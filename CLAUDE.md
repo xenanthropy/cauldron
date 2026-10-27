@@ -25,8 +25,14 @@ First target:
 | Contents    | Minimal live environment + `enchantment` installer + `system.tar.xz` |
 | Stability   | Doesn't need to be "stable" — it needs to *build and boot*     |
 
-Explicitly **not** goals right now: ppc / 32-bit x86, cross-compiling, the
-`menu` installer, i18n, the "possess" command, net installs.
+Explicitly **not** goals right now: the `menu` installer, i18n, the "possess"
+command, net installs.
+
+**Later / nice to have:** ISOs for other arches (32-bit x86, ppc) via the
+cross-compile path (`toolchain cross`, `cauldron_toolchain_build_cross`).
+Most config and data is already per-arch (`config/arch/*.conf`,
+`etc/<arch>/`). Note: `cauldron_toolchain_build_cross` relies on
+`sorcery rebuild`, which the team reports doesn't always work.
 
 ---
 
@@ -291,6 +297,20 @@ code/history; **[suspected]** = needs a real run to confirm.
   `smgl-base` `conflicts` each other, and no other spell depends on
   `basesystem` any more. `sys.runtime` lists individual spells rather than
   either meta-spell.
+- **[fixed]** `cauldron_prepare` wiped `/var/state/sorcery` in the build
+  chroot, so sorcery forgot the whole baseroot (recompiling every dependency,
+  and `build_spells` then dispelled perl/xz-utils/... from `build/`). It now
+  keeps the installed-spell records (`cauldron_sorcerous_clean ... keepstate`).
+- **[confirmed]** Grimoire source URLs broken for everyone (as of Oct 2026),
+  worth reporting to grimoire maintainers: `isl` (`isl.gforge.inria.fr` is
+  dead; `https://sourceforge.net/projects/libisl/files/` works);
+  `fallback.sourcemage.org` presents a certificate that doesn't match its name
+  over HTTPS; `david.kow.is/sourcemage/` 404s for everything tried.
+- **Agent sandbox note** (only relevant when running cauldron inside a Claude
+  Code cloud sandbox): only HTTPS egress is allowed, so plain `http://`/`ftp://`
+  spell sources fail. Workaround used there: a wrapper at
+  `build/usr/sbin/wget` rewriting URLs to `https://`, plus pre-fetching a few
+  sources into `build/var/spool/sorcery`. Not needed on a normal machine.
 - **[suspected]** `cauldron_populate_sys` only unpacks caches into `sys/`; it
   never registers them with sorcery (`/var/state/sorcery/packages`, install
   logs), and `purify_sys` then installs a fresh sorcery. The installed system
