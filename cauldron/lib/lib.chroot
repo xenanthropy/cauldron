@@ -287,7 +287,14 @@ function cauldron_chroot() {
   cauldron_verbose "${CAULDRON_CHROOT[@]} $@"
 
   PATH="/sbin:/bin:/usr/sbin:/usr/bin"
-  "${CAULDRON_CHROOT[@]}" "$@" &> "$stdout" || return $ERR_CHROOT_EXEC
+  # reopening /dev/stdout truncates it when stdout is a regular file (e.g., a
+  # log), so only redirect when actually sending output somewhere else
+  if [[ "$stdout" == "$CAULDRON_STDOUT" ]]
+  then
+    "${CAULDRON_CHROOT[@]}" "$@" 2>&1 || return $ERR_CHROOT_EXEC
+  else
+    "${CAULDRON_CHROOT[@]}" "$@" &> "$stdout" || return $ERR_CHROOT_EXEC
+  fi
 
   return $ERR_OK
 }
