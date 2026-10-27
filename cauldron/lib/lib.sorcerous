@@ -331,9 +331,10 @@ function cauldron_sorcerous_update_grimoires() {
     cauldron_verbose "Updating and unpacking grimoire: $grimoire"
 
     # remove any stale instances of the grimoire if found
+    # (path is relative to the chroot, so no $target prefix)
     cauldron_chroot \
       "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" \
-      "$target/$codex/$grimoire"
+      "$codex/$grimoire"
     liberror_check || return $?
     cauldron_chroot "${CAULDRON_CMD_RM_FORCE[@]}" "/tmp/${grimoire}.$grimtype"
     liberror_check || return $?
@@ -380,12 +381,13 @@ function cauldron_sorcerous_spell_cache() {
   local build="$CAULDRON_BUILD"
   local spell="$1"
   local cachedir="${2:-$build/var/cache/sorcery}"
+  local state="$build/var/state/sorcery/packages"
   local version=
   local cache=
 
   [[ -n "$spell" ]] || return $ERR_SORCEROUS_SPELL_CACHE
 
-  version=$(grep "^$spell:" "$state")
+  version=$(grep "^$spell:" "$state" 2> "$CAULDRON_NULL")
   version="${version##*:}"
   if [[ -z "$version" ]]
   then
@@ -471,6 +473,9 @@ function cauldron_sorcerous_cauldron_defaults() {
   # fixes for base spells until the patches hit stable
   for patch in "$CAULDRON_CONFIG"/toolchain/grimoire_hacks/*/*.patch
   do
+    # skip the literal glob pattern when there are no patches
+    [[ -f "$patch" ]] || continue
+
     local spell="${patch##*/}"
     spell="${spell%.patch}"
 
@@ -508,6 +513,9 @@ function cauldron_sorcerous_cauldron_defaults() {
     return $ERR_SORCEROUS_DEFAULT_SETTINGS
   for spellconfig in "$CAULDRON_CONFIG/toolchain/sorcery/depends/"*
   do
+    # skip the literal glob pattern when there are no presets
+    [[ -f "$spellconfig" ]] || continue
+
     local spell="${spellconfig##*/}"
 
     touch "$confdir/depends/$spell" || return $ERR_SORCEROUS_DEFAULT_SETTINGS
