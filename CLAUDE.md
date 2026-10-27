@@ -356,6 +356,12 @@ with the commit).
 
 ## 10. Conventions
 
+**Upstream policy — read first.** GitHub is only a *mirror*; Source Mage's
+source of truth is its own cgit. **Never open a pull request**, never push to
+or target the upstream Source Mage GitHub repo, and never suggest doing so.
+Work happens on branches in this fork only; working changes are carried
+upstream manually by the maintainer via cgit, and reach GitHub from there.
+
 - Bash, 2-space indent, 80 columns (see the `vim:` modelines).
 - `function name() { ... }` with `local` vars; doc-comment blocks (`##`) above
   each function.
