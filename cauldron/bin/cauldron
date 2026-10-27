@@ -1070,7 +1070,7 @@ function process_what() {
 }
 
 function process_config() {
-  local list="$@"
+  local list=( "$@" )
   local var=
   local value=
   local llist=
