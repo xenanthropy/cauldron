@@ -294,6 +294,17 @@ function build_spells() {
   # leave if nothing to process
   [[ "${#spells[@]}" -lt 1 ]] && return $ERR_OK
 
+  # only dispel spells that weren't already installed in the build chroot,
+  # otherwise we would remove parts of the build chroot itself (e.g.,
+  # xz-utils or perl) that later builds depend on
+  local packages="$CAULDRON_BUILD/var/state/sorcery/packages"
+  local transient=()
+  for spell in "${spells[@]}"
+  do
+    grep -q "^$spell:[^:]*:\(installed\|held\):" "$packages" 2> "$CAULDRON_NULL" ||
+      transient+=( "$spell" )
+  done
+
   cauldron_chroot_init "$CAULDRON_BUILD"
   liberror_check || return $?
 
@@ -301,8 +312,11 @@ function build_spells() {
   cauldron_chroot_cast "${spells[@]}"
   liberror_check || return $?
 
-  cauldron_chroot_dispel "${spells[@]}"
-  liberror_check || return $?
+  if [[ "${#transient[@]}" -gt 0 ]]
+  then
+    cauldron_chroot_dispel "${transient[@]}"
+    liberror_check || return $?
+  fi
 
   cauldron_chroot_done "$CAULDRON_BUILD"
   liberror_check
