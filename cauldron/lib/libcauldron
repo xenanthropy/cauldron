@@ -254,7 +254,7 @@ function cauldron_fs_bootstrap() {
 }
 
 #-------------------------------------------------------------------------------
-## @param target type (bootable, chroot, ...)
+## @param target type (sys, iso [alias: bootable], chroot)
 ## @param target chroot directory
 ##
 ## Ensures the existence of sane default configs in etc in the target chroot
@@ -322,7 +322,10 @@ function cauldron_etc_configs() {
       return $ERR_WRITE_FILE
 
   case "$targettype" in
-    bootable)
+    sys)
+      # the installable system needs no changes beyond the common ones above
+      ;;
+    iso | bootable)
       # the "root" fs is handled by the initramfs, so write a custom one that does
       # nothing
       "${CAULDRON_CMD_CAT[@]}" > "$target/etc/init.d/runlevels/%S/mountroot.sh" \
@@ -373,6 +376,8 @@ EOF
       return $ERR_TARGET
       ;;
   esac
+
+  return $ERR_OK
 }
 
 #-------------------------------------------------------------------------------
