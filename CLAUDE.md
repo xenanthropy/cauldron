@@ -202,9 +202,23 @@ Cauldron needs **root** and an **SMGL environment** around it
 `cauldron_prepare` copies the host `resolv.conf`). A real SMGL install is not
 required — an unpacked SMGL tarball on any distro works:
 
+Known-good inputs (Oct 2026; `download.sourcemage.org` and `codex.sourcemage.org`
+redirect to `mirror.sobukus.de/files/sourcemage/`, which also serves HTTPS):
+
+| What | URL |
+|------|-----|
+| Basesystem tarball (+ `.sha512`, `.sig`) | `https://mirror.sobukus.de/files/sourcemage/image/official/test/smgl-test-0.63-20251212_1200-basesystem-x86_64.tar.xz` |
+| Sorcery tarballs (last built 2024; devs mostly install sorcery from git: `https://github.com/sourcemage/sorcery`, `make install`) | `https://mirror.sobukus.de/files/sourcemage/sorcery/sorcery-test.tar.bz2` |
+| Grimoires (+ `.asc`) | `https://mirror.sobukus.de/files/sourcemage/codex/test.tar.bz2` |
+
+The tarball's `.sig` is made with key `4746 AECF 3E0B 39BE F7C2 12ED 4782 40C4
+FA5A 74CE` (Remko van der Vossen); it is not on public keyservers but ships in
+`/usr/share/smgl-pubkeys/*.gpg`. Verify with
+`gpgv --keyring <tarball>/usr/share/smgl-pubkeys/sorcery-stable.gpg x.sig x.tar.xz`.
+
 ```sh
 # on the outer (any) Linux host, as root
-mkdir -p /srv/smgl && tar -xpf smgl-<current>-x86_64.tar.xz -C /srv/smgl   # tarball name: to verify
+mkdir -p /srv/smgl && tar -xpf smgl-test-0.63-20251212_1200-basesystem-x86_64.tar.xz -C /srv/smgl
 for d in dev dev/pts proc sys; do mount --rbind /$d /srv/smgl/$d; done
 cp /etc/resolv.conf /srv/smgl/etc/
 chroot /srv/smgl /bin/bash -l
@@ -219,9 +233,26 @@ CAULDRON_BASEROOT=/path/to/smgl-<current>-x86_64.tar.xz ./local-exec/cauldron.sh
 
 Tips:
 - Point `CAULDRON_BASEROOT` at a **local** modern tarball (or an already
-  unpacked directory) — the default `smgl-stable-0.61` URL is ancient.
-- Set `CAULDRON_SORCERY_GRIMOIRES=(test)` and `CAULDRON_SORCERY_BRANCH` as
-  appropriate (defaults are `stable`).
+  unpacked directory) — the default `smgl-stable-0.61` URL is ancient. To
+  re-run `toolchain` without re-unpacking, use
+  `CAULDRON_BASEROOT=/tmp/cauldron/build` (a directory equal to
+  `CAULDRON_BUILD` is used as-is).
+- The defaults (`stable` grimoire, `http://` URLs, kernel 4.1.14) are still
+  stale in `config/`. Until they're updated, put overrides in a small config
+  file that sets them and then sources `local-exec/cauldron.conf`, and run
+  `cauldron/bin/cauldron -f that.conf <command>` (with `CAULDRON_BASE` set to
+  the repo). Example overrides:
+  ```sh
+  : "${CAULDRON_BASEROOT:=/root/smgl-test-0.63-20251212_1200-basesystem-x86_64.tar.xz}"
+  : "${CAULDRON_SORCERY_BRANCH:=test}"
+  CAULDRON_SORCERY_GRIMOIRES=( test )
+  : "${CAULDRON_SORCERY_URL:=https://mirror.sobukus.de/files/sourcemage/sorcery/sorcery-test.tar.bz2}"
+  : "${CAULDRON_SORCERY_GRIMOIRE_URL:=https://mirror.sobukus.de/files/sourcemage/codex}"
+  : "${CAULDRON_KERNEL_VERS:=6.18.59}"
+  : "${CAULDRON_KERNEL_URL:=https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.18.59.tar.xz}"
+  : "${CAULDRON_KERNEL_CONF:=/root/cauldron/cauldron/etc/x86_64/linux-4.1.14.config}"  # placeholder
+  source /root/cauldron/local-exec/cauldron.conf
+  ```
 - Run steps one at a time (`toolchain`, then `sys build`, then `sys populate`, ...).
 - If a run dies with things still mounted: `grep /tmp/cauldron /proc/mounts`
   and `umount -R` them (deepest first) before deleting anything. **Never
@@ -236,6 +267,35 @@ Tips:
 
 From reading the code (Oct 2026). **[confirmed]** = verified by reading the
 code/history; **[suspected]** = needs a real run to confirm.
+
+### Status / fixed so far
+- **`cauldron toolchain chroot` works** (Oct 2026) against the
+  smgl-test-0.63-20251212 tarball + test grimoire + kernel 6.18.59 headers.
+- Fixed on the working branch: `cauldron config` with several args; log
+  truncation in `cauldron_chroot` (`&> /dev/stdout`); host arch detection
+  (`host_arch.conf` yielded `i386`); `run` added to `CAULDRON_FHS_DIRS`;
+  `$state` in `cauldron_sorcerous_spell_cache`; grimoire refresh path;
+  obsolete 2015 glibc grimoire patch and dead glibc/squashfs-tools presets
+  removed; `cauldron_etc_configs` now accepts `sys`/`iso`; `build_spells` no
+  longer dispels spells the build chroot already had (it would have removed
+  xz-utils, perl, kmod, ... from `build/`).
+
+### Found while running it
+- **[confirmed]** The 2025-12 basesystem tarball ships no spell caches
+  (`/var/cache/sorcery` is empty), so `sys build` compiles every spell from
+  source, gcc and glibc included.
+- **[confirmed]** The tarball still carries kernel modules for 3.4.51 in
+  `/lib/modules`.
+- **[confirmed]** The tarball has `basesystem` installed. Since 2020 the
+  grimoire splits it into `smgl-base` + `smgl-system`; `basesystem` and
+  `smgl-base` `conflicts` each other, and no other spell depends on
+  `basesystem` any more. `sys.runtime` lists individual spells rather than
+  either meta-spell.
+- **[suspected]** `cauldron_populate_sys` only unpacks caches into `sys/`; it
+  never registers them with sorcery (`/var/state/sorcery/packages`, install
+  logs), and `purify_sys` then installs a fresh sorcery. The installed system
+  may therefore not know what's installed. Likely fix: resurrect the caches
+  with sorcery inside the `sys/` chroot instead of raw `tar -x`.
 
 ### Will fail outright / missing pieces
 - **[confirmed] Toolchain `build`/`cross` call deleted functions.**
@@ -265,11 +325,11 @@ code/history; **[suspected]** = needs a real run to confirm.
   `etc/x86_64/iso/`: `fstab`, `inittab`, `login.sh` (`cauldron_enchant_init`),
   `syslinux.cfg` (+ optional `syslinux.msg`, `installsmgl.img`)
   (`cauldron_iso_bootloader`).
-- **[confirmed]** `cauldron_etc_configs` (`libcauldron:265`) only accepts
+- **[fixed]** `cauldron_etc_configs` (`libcauldron:265`) only accepts
   target types `bootable` or `chroot` and returns `ERR_TARGET` otherwise, but is
   called with `'sys'` (`libcauldron:416`) and `'iso'` (`libcauldron:529`) — so
   `sys populate` and `iso populate` fail after copying the files.
-- **[confirmed]** `cauldron_sorcerous_spell_cache` (`lib.sorcerous:388`) greps
+- **[fixed]** `cauldron_sorcerous_spell_cache` (`lib.sorcerous:388`) greps
   `"$state"`, which is never set (should be `$CAULDRON_BUILD/var/state/sorcery/packages`).
   It then falls back to `gaze`, so this may "work" slowly/noisily.
 - **[confirmed]** `cauldron_add_enchanters` (`libcauldron:1007`) uses an
@@ -286,24 +346,25 @@ code/history; **[suspected]** = needs a real run to confirm.
   2.25.1, make 4.1, perl 5.22.0, `CAULDRON_LIBC=musl` (SMGL uses glibc; only
   used by the unused from-scratch toolchain path), baseroot
   `smgl-stable-0.61-basesystem`.
-- **[confirmed]** Grimoire/sorcery default to `stable`
+- **[confirmed, override in use]** Grimoire/sorcery default to `stable`
   (`config/sorcery.conf`); goal is `test`.
-- **[suspected]** All download URLs are plain `http://` (sourcemage.org,
+- **[confirmed]** All download URLs are plain `http://` (sourcemage.org,
   kernel.org, busybox.net, gnu.org). Whether `download.sourcemage.org/sorcery/`,
   `codex.sourcemage.org/<grimoire>.tar.bz2` and `/image/official/` still serve
-  these paths is **to verify**.
-- **[suspected]** `config/arch/host_arch.conf` greps `ARCHITECTURE=` from the
+  these paths: they redirect to `mirror.sobukus.de` (see §7); the old
+  `smgl-stable-0.61` baseroot is gone.
+- **[fixed]** `config/arch/host_arch.conf` greps `ARCHITECTURE=` from the
   host's main sorcery config; on current sorcery it may live elsewhere
   (local config), leaving `CAULDRON_HOST_ARCH` empty.
 
 ### Logic bugs / modernisation
-- **[confirmed]** `cauldron_chroot_init` mounts tmpfs on `$target/run`
+- **[fixed]** `cauldron_chroot_init` mounts tmpfs on `$target/run`
   (`lib.chroot:87`) but `run` is not in `CAULDRON_FHS_DIRS`; fails if the
   baseroot lacks `/run`.
 - **[confirmed]** `cauldron_fs_bootstrap` runs `/sbin/MAKEDEV`
   (`libcauldron:239`) — obsolete; devtmpfs does this now. (Not called by the
   main pipeline.)
-- **[confirmed]** `cauldron_sorcerous_update_grimoires` removes
+- **[fixed]** `cauldron_sorcerous_update_grimoires` removes
   `"$target/$codex/$grimoire"` *inside* the chroot (`lib.sorcerous:336`) — wrong
   path, so stale grimoires aren't removed.
 - **[confirmed]** `cauldron_toolchain_kernel_source` never downloads the
