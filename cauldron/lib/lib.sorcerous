@@ -196,14 +196,18 @@ SORCERY
 
 #-------------------------------------------------------------------------------
 ## @param target dir to remove sorcery from (optional, default: CAULDRON_BUILD)
+## @param "keepstate" (optional)
 ##
 ## Thoroughly removes traces of sorcery from the target directory. If the
 ## directory isn't specified as the first argument to the function, it defaults
-## to CAULDRON_BUILD.
+## to CAULDRON_BUILD. If the second argument is "keepstate", sorcery's records
+## of what is installed (/var/state/sorcery and /var/log/sorcery) are kept, so
+## that a baseroot chroot still knows which spells it already has.
 ##
 #-------------------------------------------------------------------------------
 function cauldron_sorcerous_clean() {
   local target="${1:-$CAULDRON_BUILD}"
+  local keepstate="$2"
 
   [[ -d "$target" ]] || return $ERR_SORCEROUS_UNINSTALL
 
@@ -228,10 +232,13 @@ function cauldron_sorcerous_clean() {
   # since some state files may not be removed by sorcery uninstall
   cauldron_chroot /bin/rm -fr "/var/lib/sorcery"
   liberror_check || return $ERR_SORCEROUS_UNINSTALL
-  cauldron_chroot /bin/rm -fr "/var/log/sorcery"
-  liberror_check || return $ERR_SORCEROUS_UNINSTALL
-  cauldron_chroot /bin/rm -fr "/var/state/sorcery"
-  liberror_check || return $ERR_SORCEROUS_UNINSTALL
+  if [[ "$keepstate" != "keepstate" ]]
+  then
+    cauldron_chroot /bin/rm -fr "/var/log/sorcery"
+    liberror_check || return $ERR_SORCEROUS_UNINSTALL
+    cauldron_chroot /bin/rm -fr "/var/state/sorcery"
+    liberror_check || return $ERR_SORCEROUS_UNINSTALL
+  fi
 
   cauldron_chroot_done "$target"
   liberror_check || return $?
