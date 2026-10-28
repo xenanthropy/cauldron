@@ -16,5 +16,13 @@ video:x:44:
 wheel:x:55:
 users:x:1000:
 nogroup:x:65534:
+burning:x:129:
 utmp:x:43:
 games:x:60:
+uucp:x:10:
+firewire:x:135:
+dialout:x:171:
+crontab:x:66:
+tape:x:26:
+input:x:203:
+kvm:x:36:

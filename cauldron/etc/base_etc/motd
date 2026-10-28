@@ -1,0 +1,7 @@
+Welcome to Source Mage GNU/Linux!
+
+ -- Post-install:
+ - set a root password: `passwd`
+ - configure architecture-optimization settings: `sorcery`
+ - run `sorcery -r` to rebuild all spells for your machine
+ - run `cat /dev/null > /etc/motd` to remove this message

@@ -1,3 +1,0 @@
-# This variable controls if you want removal of /tmp contents
-# on bootup(default unset to set put yes in)
-CLEAN_TMP=

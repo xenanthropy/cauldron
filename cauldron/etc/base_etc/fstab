@@ -4,7 +4,6 @@
 # Virtual, memory only, or non physical file systems
 proc    /proc           proc    defaults        0 0
 devpts  /dev/pts        devpts  defaults        0 0
-# only for 2.6 kernel
 sysfs   /sys            sysfs   defaults        0 0
 
 # enable this to get POSIX shared memory support (recommended)
@@ -13,10 +12,10 @@ tmpfs	/dev/shm	tmpfs	defaults	0 0
 # Add your file systems here.
 
 # Examples:
-#/dev/sda1	/	reiserfs	defaults,noatime	0 1
-#/dev/sda3	/boot	ext2		defaults		0 2
-#LABEL=home	/home	ext3		defaults		0 2
-#/dev/sda2	swap	swap		defaults		0 0
+#/dev/sda2	/	ext4		defaults,noatime	0 1
+#/dev/sda1	/boot	ext4		defaults		0 2
+#LABEL=home	/home	xfs		defaults		0 2
+#/dev/sda3	swap	swap		defaults		0 0
 #
 # The schema is
 # <device> <mountpoint> <type> <options> <dump> <pass>

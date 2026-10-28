@@ -1,3 +1,8 @@
-# SMGL default loading of loopback interface
 auto lo
 iface lo inet loopback
+
+#auto eth0
+#iface eth0 inet static
+#	address XXX.XXX.XXX.XXX
+#	netmask XXX.XXX.XXX.XXX
+#	gateway XXX.XXX.XXX.XXX
