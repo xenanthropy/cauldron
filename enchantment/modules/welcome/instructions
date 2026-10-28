@@ -5,8 +5,8 @@ To see the list of all steps: @[list].
 To see the list of all commands: @[help].
 To see this message again: @[welcome].
 
-To set a different keymap: @[keymap].
-                       or: @[539]
+To set a different keymap: @[keymap]
+  (or @[539], which types the same on any keyboard layout).
 
 If you have any feedback for us, please drop by #sourcemage-cauldron
 on irc.freenode.net, file a bug on bugs.sourcemage.org,

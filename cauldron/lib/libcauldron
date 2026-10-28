@@ -1841,6 +1841,9 @@ function cauldron_enchant() {
   cauldron_enchant_init "$target"
   liberror_check || return $ERR_ENCHANT_ISO
 
+  # the iso's version is cauldron's, not enchantment's built-in default
+  ENCHANT_ISO_VERSION="$CAULDRON_ISO_VERSION"
+
   # for all modules, replace instances of @...@ with corresponding values from
   # the environment variables
   for module in "$target/${ENCHANT_DATA#/}/modules/"*

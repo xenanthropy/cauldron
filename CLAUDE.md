@@ -332,6 +332,10 @@ sections below.
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).
+- **Installer text**: the welcome screen
+  (`enchantment/modules/welcome/instructions`) still points to
+  `#sourcemage-cauldron` on irc.freenode.net; update it to wherever the
+  channel lives now.
 - **sorcery**
   - `update_sorcery_scripts` casts `basesystem`, which conflicts with
     `smgl-base` (`sorcery update` tries to replace smgl-base/smgl-system).
