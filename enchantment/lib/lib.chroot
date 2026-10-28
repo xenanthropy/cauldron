@@ -126,8 +126,11 @@ function enchant_chroot_close() {
   for target in "${chroot[@]}"
   do
     # get a list of all mounted subdirs in the target in reverse order to ensure
-    # that subdirs are unmounted before their parents
-    local mounts=( $(grep -o "$target[^[:space:]]*" "/proc/mounts" | sort -r) )
+    # that subdirs are unmounted before their parents (only mount points below
+    # the target: the target itself is usually the new system's root
+    # partition, which must stay mounted)
+    local mounts=( $(awk -v t="$target/" 'index($2, t) == 1 { print $2 }' \
+      "/proc/mounts" | sort -r) )
 
     # unmount the chroot mount points
     for mnt in "${mounts[@]}"
