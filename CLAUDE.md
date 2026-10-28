@@ -49,6 +49,17 @@ Most config and data is already per-arch (`config/arch/*.conf`,
 `etc/<arch>/`). Note: `cauldron_toolchain_build_cross` relies on
 `sorcery rebuild`, which the team reports doesn't always work.
 
+Other ideas for later:
+- A menu installer (Lunar/Debian style: disk, partitioning, packages, network
+  in dialog menus). Enchantment's steps (`enchantment/modules/`) are separate
+  from the front end (`enchanters/`), so a `dialog` front end can drive the
+  same steps; `enchanters/menu` is an old start.
+- Hardware-tailored kernels: in the compile-kernel step, `make localmodconfig`
+  (or `localyesconfig`) in the target's kernel sources keeps only the drivers
+  the ISO kernel loaded for this machine. The broader the ISO kernel's module
+  set, the better this works; review the result in `menuconfig` (devices not
+  plugged in at install time are missed).
+
 ---
 
 ## 2. Repo map
