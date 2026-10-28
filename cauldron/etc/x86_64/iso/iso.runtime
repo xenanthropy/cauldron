@@ -44,7 +44,8 @@ e2fsprogs
 dosfstools
 xfsprogs
 btrfs-progs
-parted
+# parted: fails with gcc 16 (incompatible pointer types), see CLAUDE.md;
+# util-linux's fdisk/sfdisk/cfdisk cover MBR and GPT
 mdadm
 lvm
 cryptsetup-luks

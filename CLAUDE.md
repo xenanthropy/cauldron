@@ -315,6 +315,9 @@ sections below.
     anyway and sorcery's records are wrong.
   - Dead or broken source URLs: `isl` (gforge), `fallback.sourcemage.org`
     certificate, `david.kow.is`.
+  - parted doesn't build with gcc 16 (`parted.c`: passing argument 2 of
+    `command_create` from incompatible pointer type; gcc 14+ makes this an
+    error). Left out of the ISO for now.
   - rsync DETAILS: `UPSTRAM_HASH` typo.
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
