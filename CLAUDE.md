@@ -28,6 +28,21 @@ First target:
 Explicitly **not** goals right now: the `menu` installer, i18n, the "possess"
 command, net installs.
 
+**Init system (planned design, not started):** `simpleinit-msb` is deprecated
+but is what all of cauldron's init handling targets, so the first ISO keeps it.
+Afterwards, treat the *live ISO's* init and the *installed system's* init as
+separate choices:
+- live ISO: a `CAULDRON_ISO_INIT` setting with per-init setup functions. The
+  initramfs (`etc/x86_64/initfs/init`) is already init-agnostic (it
+  `switch_root`s to `/sbin/init`); the init-specific code is in
+  `cauldron_etc_configs` (SMGL `init.d` `mountroot.sh`, `/etc/sysconfig/init`)
+  and `cauldron_enchant_init` (`inittab`/agetty ttys running the installer).
+- installed system: ship caches for several inits (`iso.install`) and let the
+  enchantment installer ask which one to install, so one ISO serves all.
+- providers in the test grimoire: `INIT` = simpleinit-msb, systemd, openrc
+  (+ epoch, upstart); `INITSCRIPTS` = init.d, openrc. systemd works well;
+  openrc is missing many service scripts (could be ported from Gentoo).
+
 **Later / nice to have:** ISOs for other arches (32-bit x86, ppc) via the
 cross-compile path (`toolchain cross`, `cauldron_toolchain_build_cross`).
 Most config and data is already per-arch (`config/arch/*.conf`,
