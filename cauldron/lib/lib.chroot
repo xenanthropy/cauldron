@@ -131,17 +131,19 @@ function cauldron_chroot_close() {
 
     # get a list of all mounted subdirs in the target in reverse order to ensure
     # that subdirs are unmounted before their parents
-    local mounts=( $(grep -o "$target[^[:space:]]*" "/proc/mounts" | sort -r) )
+    local mounts=( $(grep -o "$target[^[:space:]]*" "/proc/mounts" | sort -ru) )
 
     # unmount the chroot mount points
+    # (a path can be mounted several times over, e.g. after an interrupted
+    # run, so keep unmounting each one until it is really gone)
     for mnt in "${mounts[@]}"
     do
-      if grep -q "$mnt" "/proc/mounts"
-      then
+      while grep -q " $mnt " "/proc/mounts"
+      do
         cauldron_verbose "umounting in chroot: ${mnt#$target/}"
         "${CAULDRON_CMD_UNMOUNT[@]}" "$mnt" ||
           return $ERR_CHROOT_DONE
-      fi
+      done
     done
   done
 
