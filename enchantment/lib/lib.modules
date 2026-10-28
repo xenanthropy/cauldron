@@ -142,7 +142,7 @@ function enchant_modules_exit() {
   local script=
 
   module="$(enchant_get_current)"
-  libcheck_error || return $?
+  liberror_check || return $?
 
   for script in "$ENCHANT_MODULES/$module/exit"/*
   do
@@ -170,9 +170,9 @@ function enchant_modules_potion() {
   local script=
 
   module="$(enchant_get_current)"
-  libcheck_error || return $?
+  liberror_check || return $?
 
-  [[ -d "$potion" ]] || $ERR_DIR_ACCESS
+  [[ -d "$potion" ]] || return $ERR_DIR_ACCESS
 
   for script in "$ENCHANT_MODULES/$module/potion"/*
   do
