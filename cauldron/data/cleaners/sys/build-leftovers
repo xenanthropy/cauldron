@@ -1,0 +1,14 @@
+# Paths (relative to the sys root) removed by "cauldron sys purify".
+# Plain paths: files are deleted, directories are removed only if empty.
+# "dir/*": the directory is emptied recursively but kept.
+
+# sorcery's source tree, unpacked by cauldron to install sorcery
+/usr/src/sorcery/*
+/usr/src/sorcery
+
+# downloaded sorcery tarball and other spool leftovers
+/var/spool/sorcery/*
+
+# sorcery/scribe scratch space
+/tmp/sorcery/*
+/tmp/sorcery
