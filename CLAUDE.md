@@ -318,6 +318,10 @@ sections below.
   - parted doesn't build with gcc 16 (`parted.c`: passing argument 2 of
     `command_create` from incompatible pointer type; gcc 14+ makes this an
     error). Left out of the ISO for now.
+  - git (2.56.0) now `depends rust`, so casting git means compiling rust and
+    llvm; git is therefore not offered on the ISO for now. Worth deciding
+    whether rust/llvm caches should be provided (also useful for other
+    spells moving to rust).
   - rsync DETAILS: `UPSTRAM_HASH` typo.
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is

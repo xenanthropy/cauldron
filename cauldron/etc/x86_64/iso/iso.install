@@ -17,5 +17,5 @@ btrfs-progs
 # network / remote access
 openssh
 
-# development
-git
+# development: git is left out for now; since 2.52 it depends on rust (and
+# so llvm), which would have to be built and shipped too
