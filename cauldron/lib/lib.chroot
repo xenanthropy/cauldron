@@ -69,14 +69,15 @@ function cauldron_chroot_init() {
       fi
     done
   else
-    # bind mount the dev tree
-    for bind in dev dev/pts
-    do
-      "${CAULDRON_CMD_MOUNT_BIND[@]}" \
-        "$CAULDRON_HOST/$bind" \
-        "$target/$bind" ||
-          return $ERR_CHROOT_INIT
-    done
+    # bind mount the dev tree (recursively, which also brings in dev/pts and
+    # dev/shm), and make it a slave so that unmounting it in the chroot doesn't
+    # propagate back to the host's /dev
+    "${CAULDRON_CMD_MOUNT_BIND[@]}" \
+      "$CAULDRON_HOST/dev" \
+      "$target/dev" ||
+        return $ERR_CHROOT_INIT
+    "${CAULDRON_CMD_MOUNT[@]}" --make-rslave "$target/dev" ||
+      return $ERR_CHROOT_INIT
     # mount procfs
     "${CAULDRON_CMD_MOUNT[@]}" -t proc proc "$target/proc" ||
       return $ERR_CHROOT_INIT
@@ -129,21 +130,22 @@ function cauldron_chroot_close() {
     # the command we ran returns, so don't pull mounts out from under it
     cauldron_chroot_wait_casts "$target"
 
-    # get a list of all mounted subdirs in the target in reverse order to ensure
-    # that subdirs are unmounted before their parents
-    local mounts=( $(grep -o "$target[^[:space:]]*" "/proc/mounts" | sort -ru) )
-
-    # unmount the chroot mount points
-    # (a path can be mounted several times over, e.g. after an interrupted
-    # run, so keep unmounting each one until it is really gone)
-    for mnt in "${mounts[@]}"
+    # unmount from the top down, lazily: a lazy unmount detaches a mount
+    # together with everything below it, including mounts that are stacked or
+    # hidden underneath (e.g. after an interrupted run), which can't be reached
+    # by path and so can't be unmounted deepest-first
+    local mnt=
+    local tries=0
+    while mnt=$(grep -o " $target/[^[:space:]]*" "/proc/mounts" |
+      sed 's/^ //' | sort -u | head -n 1) && [[ -n "$mnt" ]]
     do
-      while grep -q " $mnt " "/proc/mounts"
-      do
-        cauldron_verbose "umounting in chroot: ${mnt#$target/}"
-        "${CAULDRON_CMD_UNMOUNT[@]}" "$mnt" ||
-          return $ERR_CHROOT_DONE
-      done
+      if (( tries++ > 100 ))
+      then
+        return $ERR_CHROOT_DONE
+      fi
+      cauldron_verbose "umounting in chroot: ${mnt#$target/}"
+      "${CAULDRON_CMD_UNMOUNT[@]}" -l "$mnt" ||
+        return $ERR_CHROOT_DONE
     done
   done
 
