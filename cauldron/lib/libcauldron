@@ -329,7 +329,11 @@ function cauldron_iso_grub_cache() {
     added=yes
   done
 
-  [[ -n "$added" ]] || return $ERR_OK
+  if [[ -z "$added" ]]
+  then
+    "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$tmp" || return $ERR_RM_FILE
+    return $ERR_OK
+  fi
 
   # sorcery labels its caches with "spell version ..."; keep the label
   label=$("${CAULDRON_CMD_TAR[@]}" -tvf "$cache" | head -n 1 |
