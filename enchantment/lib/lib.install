@@ -107,14 +107,28 @@ function enchant_install_sources() {
 ## (no caches were passed as arguments), it reads the list of caches to
 ## install from $ENCHANT_CACHES_LIST.
 ##
+## Each cache carries the tablet page of the cast that made it, with the
+## answers given then (spell options and optional dependencies). Those answers
+## are handed to sorcery in the target, so that it resurrects the caches as
+## they are instead of asking again (and defaulting optional dependencies the
+## target lacks to "off", although the cached binaries link them). The caches
+## of enabled dependencies the target doesn't have yet are added from the ISO.
+##
 #-------------------------------------------------------------------------------
 function enchant_install_caches() {
   local caches=( "$@" )
   local target="$ENCHANT_TARGET"
   local dst="$ENCHANT_TARGET_CACHES"
+  local tmp="$ENCHANT_TMP/caches"
+  local state="$target/var/state/sorcery"
+  local config="$target/etc/sorcery/local/depends"
   local spells=()
   local cache=
   local spell=
+  local page=
+  local file=
+  local dep=
+  local index=0
 
   # if no caches were passed in directly, use the selected ones
   if [[ "${#caches[@]}" -eq 0 && -r "$ENCHANT_CACHES_LIST" ]]
@@ -123,27 +137,69 @@ function enchant_install_caches() {
   fi
   [[ "${#caches[@]}" -gt 0 ]] || return $ERR_OK
 
-  "${ENCHANT_CMD_MKDIR[@]}" "$dst" || return $ERR_INSTALL_CACHES
+  "${ENCHANT_CMD_MKDIR[@]}" "$dst" "$state/abandoned" "$config" ||
+    return $ERR_INSTALL_CACHES
 
-  # copy the caches to the target's sorcery cache directory
-  for cache in "${caches[@]}"
+  # (the list grows while looping: dependencies are appended)
+  while [[ "$index" -lt "${#caches[@]}" ]]
   do
+    cache="${caches[index]}"
+    index=$((index+1))
+
     [[ "$cache" == */* ]] || cache="$ENCHANT_SPELL_CACHES/$cache"
     [[ -f "$cache" ]] || return $ERR_INSTALL_CACHES
 
-    "${ENCHANT_CMD_CP[@]}" "$cache" "$dst/" || return $ERR_INSTALL_CACHES
+    # the tablet page every cache carries: the spell's name and its answers
+    "${ENCHANT_CMD_RM_RECURSE_FORCE[@]}" "$tmp" &&
+      "${ENCHANT_CMD_MKDIR[@]}" "$tmp" || return $ERR_INSTALL_CACHES
+    "${ENCHANT_CMD_TAR[@]}" -xf "$cache" -C "$tmp" --wildcards \
+      'var/state/sorcery/tablet/*/*/depends' \
+      'var/state/sorcery/tablet/*/*/spell_config*' 2> "$ENCHANT_NULL"
+    page=$(ls -d "$tmp"/var/state/sorcery/tablet/*/[0-9]* 2> "$ENCHANT_NULL" |
+      sort | tail -n 1)
+    [[ -n "$page" ]] || return $ERR_INSTALL_CACHES
+    spell="${page%/*}"
+    spell="${spell##*/}"
 
-    # the spell's name, from the tablet page every cache carries
-    spell=$("${ENCHANT_CMD_TAR[@]}" -tf "$cache" |
-      sed -n 's,^var/state/sorcery/tablet/\([^/]*\)/.*,\1,p' | head -n 1)
-    [[ -n "$spell" ]] || return $ERR_INSTALL_CACHES
+    "${ENCHANT_CMD_CP[@]}" "$cache" "$dst/" || return $ERR_INSTALL_CACHES
     spells+=( "$spell" )
+
+    for file in spell_config spell_config.p
+    do
+      [[ -f "$page/$file" ]] || continue
+      "${ENCHANT_CMD_CP[@]}" "$page/$file" "$config/$spell${file#spell_config}" ||
+        return $ERR_INSTALL_CACHES
+    done
+    [[ -f "$page/depends" ]] || continue
+    "${ENCHANT_CMD_CP[@]}" "$page/depends" "$state/abandoned/$spell" ||
+      return $ERR_INSTALL_CACHES
+
+    # enabled dependencies (spell:dependency(provider):on:...) that the target
+    # doesn't have and that aren't queued yet
+    for dep in $(awk -F: '$3 == "on" { sub(/\(.*/, "", $2); print $2 }' \
+      "$page/depends")
+    do
+      grep -q "^$dep:" "$state/packages" 2> "$ENCHANT_NULL" && continue
+      [[ " ${spells[*]} ${caches[*]##*/} " == *" $dep"[-\ ]* ]] && continue
+
+      file=$(ls "$ENCHANT_SPELL_CACHES/$dep"-[0-9]*.tar.* 2> "$ENCHANT_NULL" |
+        head -n 1)
+      if [[ -n "$file" ]]
+      then
+        libcolor_msg info "$spell needs $dep: adding ${file##*/}"
+        caches+=( "$file" )
+      else
+        libcolor_msg warn \
+          "$spell needs $dep, which has no cache here: sorcery will build it"
+      fi
+    done
   done
+  "${ENCHANT_CMD_RM_RECURSE_FORCE[@]}" "$tmp"
 
   # let sorcery in the target install them, so that it knows about them (it
   # resurrects the caches rather than compiling, since the target's grimoire
-  # has the same spell versions); the caches are already built, so take the
-  # default answers instead of waiting PROMPT_DELAY at every question
+  # has the same spell versions); the answers are already there, so don't wait
+  # PROMPT_DELAY at every question
   enchant_chroot_init "$target"
   liberror_check || return $?
   enchant_chroot env PROMPT_DELAY="${PROMPT_DELAY:-0}" cast "${spells[@]}"
