@@ -179,6 +179,7 @@ function cauldron_init_fs_bins() {
 
   for bin in "${list[@]}"
   do
+    [[ -n "$bin" ]] || continue
     "${CAULDRON_CMD_CP[@]}" "$CAULDRON_BUILD/$bin" "$initfs/bin/" ||
       return $ERR_CP_FILE
     "${CAULDRON_CMD_CHMOD[@]}" 0755 "$initfs/bin/$bin" ||
@@ -214,6 +215,7 @@ function cauldron_init_fs_libs() {
 
   for lib in "${list[@]}"
   do
+    [[ -n "$lib" ]] || continue
     "${CAULDRON_CMD_CP[@]}" "$CAULDRON_BUILD/$lib" "$initfs/lib/" ||
       return $ERR_CP_FILE
     "${CAULDRON_CMD_CHMOD[@]}" 0644 "$initfs/lib/$lib" ||
@@ -367,12 +369,14 @@ function cauldron_init_sysutils_config() {
   "${CAULDRON_CMD_MKDIR[@]}" "${saved%/*}" || return $ERR_MK_DIR
   "${CAULDRON_CMD_CP_FORCE[@]}" "$utilconf" "$saved" || return $ERR_CP_FILE
 
-  # the cache carries the config it was built with
+  # the cache carries the config it was built with; the spell runs "make
+  # oldconfig", which may add options, so only check that every setting of
+  # cauldron's config is in it
   cache=$(cauldron_sorcerous_spell_cache "$util" 2> "$CAULDRON_NULL") ||
     return $ERR_OK
-  if ! cmp -s <(grep '^[# ]*CONFIG_' "$utilconf") \
+  if [[ -n "$(comm -23 <(grep '^[# ]*CONFIG_' "$utilconf" | sort) \
     <("${CAULDRON_CMD_TAR[@]}" -xOf "$cache" "usr/share/$util/$util.config" \
-      2> "$CAULDRON_NULL" | grep '^[# ]*CONFIG_')
+      2> "$CAULDRON_NULL" | grep '^[# ]*CONFIG_' | sort))" ]]
   then
     cauldron_verbose "Removing $util cache built with another config"
     "${CAULDRON_CMD_RM_FORCE[@]}" "$cache" || return $ERR_RM_FILE
