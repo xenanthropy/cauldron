@@ -1,0 +1,9 @@
+Patches to the grimoire, applied in the build chroot by "cauldron toolchain"
+(cauldron_sorcerous_cauldron_defaults) after the grimoires are downloaded:
+patch -p0 relative to the build chroot's root, so paths look like
+var/lib/sorcery/codex/test/<section>/<spell>/<file>. One directory per spell,
+files named <spell>.patch. Keep them few and temporary: each should be
+reported to the grimoire maintainers and dropped once the grimoire is fixed.
+
+  parted          gcc 16 rejects incompatible pointer types (parted 3.6)
+  squashfs-tools  same (squashfs-tools 4.4); needed to package the ISO

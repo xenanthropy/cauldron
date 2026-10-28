@@ -315,9 +315,12 @@ sections below.
     anyway and sorcery's records are wrong.
   - Dead or broken source URLs: `isl` (gforge), `fallback.sourcemage.org`
     certificate, `david.kow.is`.
-  - parted doesn't build with gcc 16 (`parted.c`: passing argument 2 of
-    `command_create` from incompatible pointer type; gcc 14+ makes this an
-    error). Left out of the ISO for now.
+  - parted 3.6 and squashfs-tools 4.4 don't build with gcc 16 (incompatible
+    pointer types, an error since gcc 14: `command_create` in parted.c,
+    `signal` handlers in mksquashfs.c). Cauldron works around it with
+    `etc/toolchain/grimoire_hacks/` (adds
+    `-Wno-error=incompatible-pointer-types`); better fixes: squashfs-tools
+    4.6+ (4.4 is from 2020), upstream patches for parted.
   - git (2.56.0) now `depends rust`, so casting git means compiling rust and
     llvm; git is therefore not offered on the ISO for now. Worth deciding
     whether rust/llvm caches should be provided (also useful for other
