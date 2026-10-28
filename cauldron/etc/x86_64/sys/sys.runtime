@@ -15,7 +15,7 @@ gcc
 gettext
 glibc
 gmp
-gnupg
+gnupg-2.4
 grep
 gzip
 iana-etc
@@ -33,7 +33,7 @@ nano
 ncurses
 patch
 perl
-procps
+procps-ng
 readline
 sed
 shadow
