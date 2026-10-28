@@ -388,8 +388,28 @@ sections below.
   - Boot matrix in QEMU (SeaBIOS / OVMF, TCG): BIOS CD, UEFI CD, BIOS USB
     stick, UEFI USB stick all reach the installer on tty1. Not yet tried on
     real hardware.
-  - Install walkthrough (QEMU, serial console, every installer step in
-    order): see "Installer test" below.
+  - Install walkthrough in QEMU, BIOS (MBR disk) and UEFI (GPT + EFI system
+    partition), every installer step in order on a serial console: partition
+    → format → mount → select caches (grub2, efibootmgr, efivar, dosfstools)
+    → `install basesystem` → `install caches` → spell options → fstab →
+    `install iso-kernel` → grub-install + grub-mkconfig → root password.
+    Both installed systems boot (GRUB → kernel 6.18.59 with
+    `root=PARTUUID=...`, no initramfs) to a login prompt, with 110 spells
+    known to sorcery. (For the test the installed system got a serial
+    console added by hand: kernel `console=ttyS0`, a ttyS0 getty.)
+  - Installer bugs found and fixed by that walkthrough: `enchantment next`
+    (`libcheck_error`); spell names read from cache labels (`cast 0 0 0`);
+    leaving any chroot unmounted the target itself; `install iso-kernel`
+    (`local $src`, dangling `/boot/kernel` link, modules copied to
+    `lib/modules/modules/...`, wrong `depmod -b`); `install caches` waited
+    150 s at every sorcery question and answered optional dependencies
+    "no" although the cached binaries link them (grub-install failed on
+    `libdevmapper`): it now passes each cache's recorded answers to sorcery
+    and adds the caches of missing dependencies (here lvm, libaio).
+  - Seen at boot of the installed system, not investigated: lvm's boot
+    script prints "File locking initialisation failed." twice.
+  - Under QEMU without KVM, `install caches` takes ~10 minutes (sorcery's
+    dependency resolution); on hardware it should be far quicker.
   - The kernel sources are ~150 MB of the ISO; `CAULDRON_ISO_KERNEL_SOURCES=no`
     gets it under 700 MB (then the installer can only use the ISO's
     prebuilt kernel or download sources).
@@ -498,7 +518,7 @@ Things learned the hard way; keep them in mind when changing the build code.
   spell sources fail. Workaround used there: a wrapper at
   `build/usr/sbin/wget` rewriting URLs to `https://`, plus pre-fetching a few
   sources into `build/var/spool/sorcery`. Not needed on a normal machine.
-- **[suspected]** `cauldron_populate_sys` only unpacks caches into `sys/`; it
+- **[fixed]** (`cauldron_sorcerous_state_from_tablets`) `cauldron_populate_sys` only unpacks caches into `sys/`; it
   never registers them with sorcery (`/var/state/sorcery/packages`, install
   logs), and `purify_sys` then installs a fresh sorcery. The installed system
   may therefore not know what's installed. Likely fix: resurrect the caches
@@ -518,17 +538,17 @@ Things learned the hard way; keep them in mind when changing the build code.
 - **[confirmed]** `process_enchant` (`bin/cauldron:1047`) calls an `enchant`
   function that has never existed. `cauldron iso enchant` (→ `enchant_iso`) is
   the working path.
-- **[confirmed]** `CAULDRON_DATA` = `cauldron/data/` doesn't exist, so the
+- **[fixed]** (`cauldron/data/cleaners/{sys,iso}` added) `CAULDRON_DATA` = `cauldron/data/` didn't exist, so the
   cleaner lists `cleaners/sys/*` and `cleaners/iso/*` used by `purify_sys` /
   `purify_iso` are missing (the glob stays literal, `sort` complains, and
   nothing is cleaned — silently "succeeds").
-- **[confirmed]** `config/iso.conf` and `config/sys.conf` expect
+- **[fixed]** (`etc/x86_64/iso/` added) `config/iso.conf` and `config/sys.conf` expect
   `etc/x86_64/iso/{iso.runtime,iso.install,iso.sources,iso.package}` and
   `etc/x86_64/sys/{sys.runtime,sys.install,sys.sources}`. Only
   `etc/x86_64/sys/` exists (`sys.install` and `sys.sources` are empty). There is
   **no `etc/x86_64/iso/` at all**; the only ISO lists are the older flat
   `etc/x86/iso.spells`, `iso.caches`, `iso.sources`.
-- **[confirmed]** `libcauldron` also reads these non-existent files from
+- **[fixed]** (GRUB replaces syslinux: `etc/x86_64/iso/grub.cfg`) `libcauldron` also reads these non-existent files from
   `etc/x86_64/iso/`: `fstab`, `inittab`, `login.sh` (`cauldron_enchant_init`),
   `syslinux.cfg` (+ optional `syslinux.msg`, `installsmgl.img`)
   (`cauldron_iso_bootloader`).
@@ -539,19 +559,20 @@ Things learned the hard way; keep them in mind when changing the build code.
 - **[fixed]** `cauldron_sorcerous_spell_cache` (`lib.sorcerous:388`) greps
   `"$state"`, which is never set (should be `$CAULDRON_BUILD/var/state/sorcery/packages`).
   It then falls back to `gaze`, so this may "work" slowly/noisily.
-- **[confirmed]** `cauldron_add_enchanters` (`libcauldron:1007`) uses an
+- **[fixed]** `cauldron_add_enchanters` (`libcauldron:1007`) uses an
   undefined `$data` (lines 1018–1027) and copies from
   `$CAULDRON_ENCHANT_DIR/<enchanter>`, but enchanters live in
   `enchantment/enchanters/<enchanter>`.
-- **[confirmed]** `cauldron_enchant` writes `welcome/editors` to
+- **[fixed]** `cauldron_enchant` writes `welcome/editors` to
   `$ENCHANT_MODULES` on the **host**, not under the target
   (`libcauldron:1177,1181`), and line 1181 has a stray `\ ` after `column -t -s:`.
 
 ### Stale versions / URLs
-- **[fixed]** Kernel (now 6.18.59), busybox (1.38.0) and baseroot (now
+- **[fixed]** Kernel (now 6.18.59), busybox (1.37.0) and baseroot (now
   smgl-test-0.63-20251212) defaults in `config/build.conf`, all over HTTPS.
-  Still to do: kernel `.config` for 6.18 (only 4.x configs in `etc/x86_64/`)
-  and a busybox 1.38 config. The gcc/musl/binutils/... settings remain stale
+  The 6.18 kernel config is `x86_64_defconfig` + `etc/x86_64/linux-iso.fragment`;
+  busybox for the initramfs is 1.37 (the grimoire's version,
+  `CAULDRON_SYSUTILS_VERS`). The gcc/musl/binutils/... settings remain stale
   but only feed the unused from-scratch toolchain path (marked as such).
 - **[fixed]** Grimoire/sorcery default to `test`; sorcery comes from git
   master (`CAULDRON_SORCERY_SOURCE=archive|git|tarball`).
@@ -576,7 +597,7 @@ Things learned the hard way; keep them in mind when changing the build code.
   signature and checks the same `$?` twice (`lib.toolchain:251-259`).
 - **[confirmed]** `cauldron_init_fs_init` uses `"${CAULDRON_CMD_CHMOD}"`
   without `[@]` (`lib.init:324`) — works only because the array has one element.
-- **[confirmed]** Packaging is BIOS-only: `CAULDRON_CMD_MKISOFS`
+- **[fixed]** (GRUB + xorriso hybrid, see Status) Packaging was BIOS-only: `CAULDRON_CMD_MKISOFS`
   (`config/commands.conf:41`) uses isolinux El Torito flags;
   `CAULDRON_ISO_BOOTENV=efi` is half-implemented and the `grub` bootloader
   branch is empty. UEFI + USB needs `xorriso` with an EFI system partition image
@@ -585,7 +606,7 @@ Things learned the hard way; keep them in mind when changing the build code.
   active chroot command) when it's the first chroot or the target matches the
   previous one, so switching between `build/` and `isofs/` chroots may run
   commands in the wrong tree.
-- **[suspected]** The initramfs `init` assumes `mdev` and busybox
+- **[fixed]** (fragment builds them in; boots in QEMU) The initramfs `init` assumes `mdev` and busybox
   `switch_root`; the kernel config needs squashfs, overlayfs, isofs, udf, vfat,
   loop, devtmpfs built in or listed in `etc/x86_64/initfs/modules`.
 
