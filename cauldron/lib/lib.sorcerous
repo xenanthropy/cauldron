@@ -338,11 +338,11 @@ function cauldron_sorcerous_clean() {
 #-------------------------------------------------------------------------------
 ## @param spell
 ##
-## Creates a cache archive for a spell that is installed in the build chroot
-## but has none, from the spell's install log (the same files sorcery would
-## archive). Some spells disable caching on purpose (e.g. the smgl-base and
-## smgl-system meta-spells set ARCHIVE="off"), but cauldron still needs a cache
-## to populate sys/iso from, and to carry the spell's tablet.
+## Creates a cache archive for a spell that disables caching on purpose
+## (ARCHIVE="off", e.g. the smgl-base and smgl-system meta-spells) from its
+## install log in the build chroot (the same files sorcery would archive), since
+## cauldron still needs a cache to populate sys/iso from and to carry the
+## spell's tablet. Refuses other spells.
 ##
 #-------------------------------------------------------------------------------
 function cauldron_sorcerous_make_cache() {
@@ -362,6 +362,13 @@ function cauldron_sorcerous_make_cache() {
   log="$build/var/log/sorcery/install/$spell-$version"
   [[ -f "$log" ]] || return $ERR_SORCEROUS_SPELL_CACHE
 
+  # only for spells that disable caching on purpose; any other spell without a
+  # cache wasn't (re)built, and packaging whatever happens to be installed in
+  # the build chroot (e.g. the baseroot's old copy) would be wrong
+  grep -qE '^[[:space:]]*ARCHIVE="?off"?' \
+    "$build"/var/lib/sorcery/codex/*/*/"$spell"/DETAILS 2> "$CAULDRON_NULL" ||
+      return $ERR_SORCEROUS_SPELL_CACHE
+
   cache="$build/var/cache/sorcery/$spell-$version-$CAULDRON_SORCERY_ARCH"
   cache="$cache-cauldron.tar.bz2"
 
@@ -369,15 +376,17 @@ function cauldron_sorcerous_make_cache() {
 
   # only archive regular files and symlinks (directories in the log would
   # otherwise be archived recursively, dragging in unrelated files), plus the
-  # spell's tablet
+  # contents of the spell's tablet (which carries its depends records)
   (
     cd "$build" &&
-    while read -r path
-    do
-      [[ -f "${path#/}" || -L "${path#/}" ]] && echo "${path#/}"
-    done < "$log" |
-      "${CAULDRON_CMD_TAR[@]}" -cjf "$cache" --no-recursion -T - \
-        "var/state/sorcery/tablet/$spell"
+    {
+      while read -r path
+      do
+        [[ -f "${path#/}" || -L "${path#/}" ]] && echo "${path#/}"
+      done < "$log"
+      "${CAULDRON_CMD_FIND[@]}" "var/state/sorcery/tablet/$spell"
+    } | sort -u |
+      "${CAULDRON_CMD_TAR[@]}" -cjf "$cache" --no-recursion -T -
   ) || return $ERR_SORCEROUS_SPELL_CACHE
 
   return $ERR_OK
