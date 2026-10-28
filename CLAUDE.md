@@ -253,27 +253,26 @@ CAULDRON_BASEROOT=/path/to/smgl-<current>-x86_64.tar.xz ./local-exec/cauldron.sh
 ```
 
 Tips:
-- Point `CAULDRON_BASEROOT` at a **local** modern tarball (or an already
-  unpacked directory) — the default `smgl-stable-0.61` URL is ancient. To
-  re-run `toolchain` without re-unpacking, use
-  `CAULDRON_BASEROOT=/tmp/cauldron/build` (a directory equal to
-  `CAULDRON_BUILD` is used as-is).
-- The defaults (`stable` grimoire, `http://` URLs, kernel 4.1.14) are still
-  stale in `config/`. Until they're updated, put overrides in a small config
-  file that sets them and then sources `local-exec/cauldron.conf`, and run
+- The defaults are current: `test` grimoire, sorcery from git master (GitHub
+  archive tarball, no git needed), HTTPS mirror URLs, kernel 6.18.59, and the
+  smgl-test-0.63-20251212 baseroot (downloaded from the mirror if not present
+  locally). Pointing `CAULDRON_BASEROOT` at a **local** tarball (or an already
+  unpacked directory) saves the download. A tarball produced by `cauldron sys`
+  works as a baseroot too (verified Oct 2026). To re-run `toolchain` without
+  re-unpacking, use `CAULDRON_BASEROOT=/tmp/cauldron/build` (a directory equal
+  to `CAULDRON_BUILD` is used as-is).
+- For local overrides, put them in a small config file that sets them and then
+  sources `local-exec/cauldron.conf`, and run
   `cauldron/bin/cauldron -f that.conf <command>` (with `CAULDRON_BASE` set to
-  the repo). Example overrides:
+  the repo). Example:
   ```sh
   : "${CAULDRON_BASEROOT:=/root/smgl-test-0.63-20251212_1200-basesystem-x86_64.tar.xz}"
-  : "${CAULDRON_SORCERY_BRANCH:=test}"
-  CAULDRON_SORCERY_GRIMOIRES=( test )
-  : "${CAULDRON_SORCERY_URL:=https://mirror.sobukus.de/files/sourcemage/sorcery/sorcery-test.tar.bz2}"
-  : "${CAULDRON_SORCERY_GRIMOIRE_URL:=https://mirror.sobukus.de/files/sourcemage/codex}"
-  : "${CAULDRON_KERNEL_VERS:=6.18.59}"
-  : "${CAULDRON_KERNEL_URL:=https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.18.59.tar.xz}"
-  : "${CAULDRON_KERNEL_CONF:=/root/cauldron/cauldron/etc/x86_64/linux-4.1.14.config}"  # placeholder
+  : "${CAULDRON_SORCERY_COMMIT:=39a44962...}"   # optional: pin sorcery
+  : "${CAULDRON_BUILD_JOBS:=8}"
   source /root/cauldron/local-exec/cauldron.conf
   ```
+  There is no 6.18 kernel `.config` in the repo yet (stage two), so
+  `toolchain` warns about `CAULDRON_KERNEL_CONF`; the headers install anyway.
 - Run steps one at a time (`toolchain`, then `sys build`, then `sys populate`, ...).
 - If a run dies with things still mounted: `grep /tmp/cauldron /proc/mounts`
   and `umount -R` them (deepest first) before deleting anything. **Never
@@ -290,19 +289,24 @@ From reading the code (Oct 2026). **[confirmed]** = verified by reading the
 code/history; **[suspected]** = needs a real run to confirm.
 
 ### Status / fixed so far
-- **Working (Oct 2026): the whole `toolchain` and `sys` stages.** Against the
-  smgl-test-0.63-20251212 tarball + test grimoire + kernel 6.18.59 headers,
-  `cauldron sys` produces a ~318 MB `system.tar.xz` (84 spells: `sys.runtime`
-  plus its dependency closure; gcc 16.2, glibc 2.44, openssl 4.1.0, python
-  3.14, kmod, gnupg 2.4, ...). Smoke-tested by unpacking it into a fresh
-  chroot: bash, sorcery (`gaze` knows all 84 spells, `scribe` sees the test
-  grimoire), gpg, kmod, python `ssl`, shadow and SHA-512 crypt all work.
-  Next: the `iso` stage.
-- `sys` is effectively an automated minimal-chroot-tarball generator. To
-  replace the hand-made basesystem tarballs: switch `sys.runtime` to
-  `smgl-base` + `smgl-system` (the closure fills in the rest), add tarball
-  naming + `.sha512`/`.sig` output, and add cleaner lists (e.g. sorcery's
-  unpacked source in `usr/src/sorcery` currently ships).
+- **Stage one done (Oct 2026): `toolchain` + `sys` produce a release
+  basesystem tarball.** Against the smgl-test-0.63-20251212 tarball + test
+  grimoire + sorcery git master, `cauldron sys` writes `system.tar.xz` plus a
+  release-named hardlink `smgl-test-0.63-<YYYYmmdd_HHMM>-basesystem-x86_64.tar.xz`
+  and `.sha512` (optional `.sig` with `CAULDRON_SYS_SIGN_KEY`): ~313 MiB
+  compressed, 1.9 GB unpacked, 104 spells (`smgl-base` + `smgl-system` + the
+  extras in `sys.runtime` + dependency closure; gcc 16, glibc 2.44, openssl
+  4.1.0, python 3.14, kmod, gnupg 2.4, simpleinit-msb). The official 2025-12
+  tarball is 361 MiB / 95 spells. `purify` ends with `cauldron_sys_check`
+  (essential binaries, unresolved libraries, sorcery records, gpg, wget
+  https). Smoke-tested in a fresh chroot: init, login/passwd/useradd/su,
+  loadkeys, man, wget https, sorcery, trimmed locales, python ssl + dbm.
+- **Validated as a baseroot:** a fresh run with the new tarball as
+  `CAULDRON_BASEROOT` (empty `CAULDRON_TMP`) passes `toolchain` (nothing
+  obsolete to remove) and the whole `sys` stage, and re-produces a 104-spell
+  tarball whose `.sha512` verifies. Caches were reused from the first run, so
+  that run checked the pipeline, not a from-scratch compile.
+- Next: the `iso` stage (§9 steps 2, 4–6).
 - Known leftover: sorcery keeps the old `libssl.so.3`/`libcrypto.so.3` across
   the openssl 3→4 upgrade and records them in the openssl 4.1.0 cache, so
   they ship in `system.tar.xz` (unused once everything is rebuilt).
@@ -435,18 +439,16 @@ Things learned the hard way; keep them in mind when changing the build code.
   (`libcauldron:1177,1181`), and line 1181 has a stray `\ ` after `column -t -s:`.
 
 ### Stale versions / URLs
-- **[confirmed]** Defaults in `config/build.conf`: kernel 4.1.14 (configs for
-  4.0.2/4.1.13/4.1.14 in `etc/x86_64/`), busybox 1.24.1, gcc 4.8.4, binutils
-  2.25.1, make 4.1, perl 5.22.0, `CAULDRON_LIBC=musl` (SMGL uses glibc; only
-  used by the unused from-scratch toolchain path), baseroot
-  `smgl-stable-0.61-basesystem`.
-- **[confirmed, override in use]** Grimoire/sorcery default to `stable`
-  (`config/sorcery.conf`); goal is `test`.
-- **[confirmed]** All download URLs are plain `http://` (sourcemage.org,
-  kernel.org, busybox.net, gnu.org). Whether `download.sourcemage.org/sorcery/`,
-  `codex.sourcemage.org/<grimoire>.tar.bz2` and `/image/official/` still serve
-  these paths: they redirect to `mirror.sobukus.de` (see §7); the old
-  `smgl-stable-0.61` baseroot is gone.
+- **[fixed]** Kernel (now 6.18.59), busybox (1.38.0) and baseroot (now
+  smgl-test-0.63-20251212) defaults in `config/build.conf`, all over HTTPS.
+  Still to do: kernel `.config` for 6.18 (only 4.x configs in `etc/x86_64/`)
+  and a busybox 1.38 config. The gcc/musl/binutils/... settings remain stale
+  but only feed the unused from-scratch toolchain path (marked as such).
+- **[fixed]** Grimoire/sorcery default to `test`; sorcery comes from git
+  master (`CAULDRON_SORCERY_SOURCE=archive|git|tarball`).
+- **[fixed]** Sorcery/grimoire/baseroot URLs point at `mirror.sobukus.de`
+  over HTTPS (the old `download.`/`codex.sourcemage.org` paths redirect there;
+  the `smgl-stable-0.61` baseroot is gone).
 - **[fixed]** `config/arch/host_arch.conf` greps `ARCHITECTURE=` from the
   host's main sorcery config; on current sorcery it may live elsewhere
   (local config), leaving `CAULDRON_HOST_ARCH` empty.
