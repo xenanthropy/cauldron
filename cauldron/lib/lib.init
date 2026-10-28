@@ -427,6 +427,59 @@ function cauldron_init_fs_sysutils() {
   "${CAULDRON_CMD_SYMLINK_FORCE[@]}" "/sbin/$util" "$initfs/bin/sh" ||
     return $ERR_LINK_FILE
 
+  # it is linked dynamically (the grimoire's libtirpc has no static library),
+  # so the initfs needs its shared libraries too
+  cauldron_init_fs_needed_libs "$initfs" "sbin/$util" "$build"
+  liberror_check || return $?
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+## @param path_to_initfs (required)
+## @param program, relative to the initfs (required)
+## @param path to build directory (optional)
+##
+## Copies the shared libraries (and the dynamic loader) a program in the initfs
+## needs from the build chroot into the initfs, at the same paths. The program
+## is inspected with ldd inside the build chroot, which has the same libraries.
+##
+#-------------------------------------------------------------------------------
+function cauldron_init_fs_needed_libs() {
+  local initfs="$1"
+  local prog="$2"
+  local build="${3:-$CAULDRON_BUILD}"
+  local tmp="/tmp/cauldron-initfs-prog"
+  local libs=()
+  local lib=
+
+  [[ -f "$initfs/$prog" ]] || return $ERR_FILE_ACCESS
+
+  "${CAULDRON_CMD_CP_FORCE[@]}" "$initfs/$prog" "$build/$tmp" ||
+    return $ERR_CP_FILE
+
+  cauldron_chroot_init "$build"
+  liberror_check || return $?
+  # lines look like "libc.so.6 => /lib/libc.so.6 (0x...)" or, for the loader,
+  # "/lib64/ld-linux-x86-64.so.2 (0x...)"
+  libs=( $(cauldron_chroot -q ldd "$tmp" |
+    sed -n 's,^.*=> \(/[^ ]*\) .*$,\1,p; s,^[[:space:]]*\(/[^ ]*\) (.*$,\1,p') )
+  cauldron_chroot_done "$build"
+  liberror_check || return $?
+
+  "${CAULDRON_CMD_RM_FORCE[@]}" "$build/$tmp"
+
+  [[ "${#libs[@]}" -gt 0 ]] || return $ERR_OK
+
+  for lib in "${libs[@]}"
+  do
+    cauldron_verbose "Copying $lib to initfs"
+    "${CAULDRON_CMD_MKDIR[@]}" "$initfs/${lib%/*}" || return $ERR_MK_DIR
+    # -L: copy the library itself under the name the program looks for
+    "${CAULDRON_CMD_CP[@]}" -L "$build/$lib" "$initfs/$lib" ||
+      return $ERR_CP_FILE
+  done
+
   return $ERR_OK
 }
 
