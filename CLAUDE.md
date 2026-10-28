@@ -378,7 +378,7 @@ sections below.
     spells (`CAULDRON_ISO_RUNTIME_EXCLUDE`) plus gcc's runtime libraries;
     squashfs (xz, 1 MiB blocks); `system.tar.xz` inside, caches of
     `iso.install` (grub2 for BIOS+UEFI, efibootmgr, dosfstools, mdadm, lvm,
-    cryptsetup-luks, xfsprogs, btrfs-progs, openssh) in `/var/cache/sorcery`, kernel sources in `/usr/src`
+    cryptsetup-luks, xfsprogs, btrfs-progs, openssh) in `/var/cache/sorcery`; no kernel sources by default (see below)
   - kernel 6.18.59 (`x86_64_defconfig` + `etc/x86_64/linux-iso.fragment`:
     the drivers needed to reach the boot medium are built in, the rest are
     modules), initramfs with a dynamically linked busybox 1.37
