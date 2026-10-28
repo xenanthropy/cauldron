@@ -501,6 +501,20 @@ Things learned the hard way; keep them in mind when changing the build code.
   (gnutls / openssl / libressl). Unattended casts choose gnutls, so cauldron's
   wget is unaffected by OpenSSL 4; a user whose wget was built against openssl
   reported needing a patch after the OpenSSL 4 upgrade (wget2 avoided it).
+- **Grimoire pattern to fix (python3, perl, likely others):**
+  `optional_depends gdbm '' '' ...` — when the dependency is *off*, no
+  `--without-...` flag is passed, so configure still finds the library in the
+  build chroot and links it. sorcery then believes the spell doesn't need it
+  (cauldron's `sys` check caught python3/perl dbm modules missing `libgdbm`;
+  `gdbm` is now listed in `sys.runtime` as a workaround).
+- Meta-spells (`smgl-base`, `smgl-system`, `smgl-mirrors`) set `ARCHIVE="off"`,
+  so sorcery makes no cache for them; cauldron builds one from their install
+  log (`cauldron_sorcerous_make_cache`).
+- A cached spell built *without* an optional feature can be silently
+  resurrected later even when a dependent asks for the feature (here: wget
+  built `--without-ssl` before gnutls existed was resurrected when smgl-base
+  requested "wget with SSL"). `cauldron_sys_check` now catches a wget without
+  https.
 - Reported but not investigated (outside the minimal tarball): mesa without
   llvm failing to build against current glibc headers; llvm spell default
   flags.
