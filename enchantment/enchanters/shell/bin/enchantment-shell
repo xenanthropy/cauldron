@@ -198,6 +198,51 @@ function enchant_shell_command_variable() {
   liberror_check_fatal
 }
 
+#-------------------------------------------------------------------------------
+## @param spells (optional)
+##
+## Shows the options the spells installed in the target were built with: the
+## saved answers to each spell's questions, and which optional dependencies
+## are enabled or disabled. Without arguments, every spell that has any.
+##
+#-------------------------------------------------------------------------------
+function enchant_shell_command_options() {
+  local target="$ENCHANT_TARGET"
+  local config="$target/etc/sorcery/local/depends"
+  local depends="$target/var/state/sorcery/depends"
+  local spells=( "$@" )
+  local spell=
+  local with=
+  local without=
+
+  if [[ ! -f "$depends" ]]
+  then
+    echo "no system installed in $target yet (see the basesystem step)"
+    return $ERR_OK
+  fi
+
+  [[ "${#spells[@]}" -gt 0 ]] ||
+    spells=( $(cut -d: -f1 "$target/var/state/sorcery/packages" | sort -u) )
+
+  for spell in "${spells[@]}"
+  do
+    with=$(awk -F: -v s="$spell" '$1 == s && $3 == "on" && $4 == "optional" \
+      {printf " %s", $2}' "$depends")
+    without=$(awk -F: -v s="$spell" '$1 == s && $3 == "off" && $4 == "optional" \
+      {printf " %s", $2}' "$depends")
+
+    # only list spells that have something to say, unless asked for by name
+    [[ $# -gt 0 || -s "$config/$spell.p" || -n "$with$without" ]] || continue
+
+    echo "$(libcolor_color BOLD)$spell$(libcolor_color NORMAL_COLOR)"
+    [[ -s "$config/$spell.p" ]] && sed 's/^/  /' "$config/$spell.p"
+    [[ -n "$with" ]] && echo "  with:$with"
+    [[ -n "$without" ]] && echo "  without:$without"
+  done
+
+  return $ERR_OK
+}
+
 function enchant_shell_command_select() {
   local what="$1"
   shift
@@ -351,6 +396,10 @@ MAIN COMMANDS
   todo [MODULE]
           show what needs to be done for module MODULE (current module if none
           given)
+  options [SPELL ...]
+          show the options the spells in the target were built with (saved
+          answers and optional dependencies); change them later with
+          cast -r SPELL in the installed system
   select SUBCOMMAND
           sets items to install via the install command
           the SUBCOMMAND can be one of:
@@ -371,9 +420,9 @@ MAIN COMMANDS
           sources
                   install selected spell (package) sources into the target
                   (ENCHANT_TARGET)
-          system
+          system (or basesystem)
                   install a basesystem into the target (ENCHANT_TARGET)
-          isokernel
+          isokernel (or iso-kernel)
                   install the iso kernel and modules into the target
                   (ENCHANT_TARGET)
           kernel
@@ -483,6 +532,10 @@ case "$command" in
     ;;
   "welcome" )
     enchant_shell_perform_welcome
+    liberror_check_fatal
+    ;;
+  "options" )
+    enchant_shell_command_options "$@"
     liberror_check_fatal
     ;;
   "select" )

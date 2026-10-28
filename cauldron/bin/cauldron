@@ -418,6 +418,11 @@ function purify_sys() {
   cauldron_sorcerous_update_grimoires "$target"
   liberror_check || return $?
 
+  # restore each spell's saved configuration answers, so that recasting a spell
+  # on the installed system keeps the options it was built with
+  cauldron_sorcerous_config_from_tablets "$target"
+  liberror_check || return $?
+
   # remove unnecessary files from sys and free up space, last, since
   # installing sorcery above leaves its source tree and tarball behind
   # only process cleaner files specifically for the sys filesystem

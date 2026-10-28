@@ -479,6 +479,50 @@ function cauldron_sorcerous_depends_closure() {
 #-------------------------------------------------------------------------------
 ## @param target dir (required)
 ##
+## Restores every installed spell's saved configuration (the answers to its
+## questions, /etc/sorcery/local/depends/<spell> and <spell>.p) in the target
+## directory from the spell's tablet page. sorcery reads those files, not the
+## tablet, when a spell is cast again; without them recasting a spell (e.g.,
+## during sorcery update) would fall back to the defaults, or ask again.
+##
+#-------------------------------------------------------------------------------
+function cauldron_sorcerous_config_from_tablets() {
+  local target="$1"
+  local tablet="$target/var/state/sorcery/tablet"
+  local config="$target/etc/sorcery/local/depends"
+  local spelldir=
+  local page=
+  local spell=
+  local file=
+
+  [[ -d "$tablet" ]] || return $ERR_SORCEROUS_TARGET
+
+  "${CAULDRON_CMD_MKDIR[@]}" "$config" || return $ERR_MK_DIR
+
+  for spelldir in "$tablet"/*
+  do
+    [[ -d "$spelldir" ]] || continue
+    spell="${spelldir##*/}"
+
+    # use the newest page (pages are named by timestamp)
+    page=$(ls -d "$spelldir"/[0-9]* 2> "$CAULDRON_NULL" | sort | tail -n 1)
+    [[ -n "$page" ]] || continue
+
+    for file in spell_config spell_config.p
+    do
+      [[ -f "$page/$file" ]] || continue
+      "${CAULDRON_CMD_CP_FORCE[@]}" "$page/$file" \
+        "$config/$spell${file#spell_config}" ||
+          return $ERR_CP_FILE
+    done
+  done
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+## @param target dir (required)
+##
 ## Regenerates sorcery's records of installed spells (packages, depends,
 ## sub_depends) in the target directory from the tablet pages that are unpacked
 ## along with each spell cache. Unpacking caches by hand (rather than having

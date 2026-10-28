@@ -4,7 +4,8 @@ disk-format:disk-mount
 disk-mount:spell-caches
 spell-caches:spell-sources
 spell-sources:basesystem
-basesystem:edit-confs
+basesystem:spell-options
+spell-options:edit-confs
 edit-confs:kernel
 kernel:iso-kernel
 kernel:compile-kernel

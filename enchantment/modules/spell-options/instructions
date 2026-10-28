@@ -1,0 +1,22 @@
+@[spell-options step]
+The system you just installed was compiled with a particular set of spell
+options: the answers to each spell's questions (e.g., which TLS library wget
+uses, which locales are built) and which optional dependencies are enabled.
+sorcery keeps using these answers whenever a spell is cast again, so it is
+worth knowing what they are.
+
+To list them for every spell that has any:
+  @[enchantment options | less]
+or for particular spells:
+  @[enchantment options wget locale]
+
+The same answers are stored in the installed system in
+@[/etc/sorcery/local/depends/SPELL.p].
+
+Nothing needs to be changed now. If you want a spell built differently, do it
+after the install (or now, via @[enchantment chroot]) with:
+  @[cast -r SPELL]
+which asks the spell's questions again and recompiles it (this needs the
+spell's sources, so usually network access).
+
+When you are ready, type @[next].
