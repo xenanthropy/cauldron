@@ -247,6 +247,103 @@ function cauldron_sorcerous_clean() {
 }
 
 #-------------------------------------------------------------------------------
+## @param spells (or a file listing spells)
+##
+## Prints the given spells plus every spell they (recursively) depend on with
+## the dependency enabled ("on"), according to the build chroot's sorcery
+## records. Provider dependencies such as "gawk(AWK)" resolve to the spell
+## (gawk). This is what an installed system needs so that sorcery there doesn't
+## consider any enabled dependency missing.
+##
+#-------------------------------------------------------------------------------
+function cauldron_sorcerous_depends_closure() {
+  local depends="$CAULDRON_BUILD/var/state/sorcery/depends"
+  local queue=( "$@" )
+  local -A seen=()
+  local cache=
+  local spell=
+  local dep=
+
+  [[ -f "$queue" ]] && queue=( $(< "$queue") )
+
+  while [[ "${#queue[@]}" -gt 0 ]]
+  do
+    spell="${queue[0]}"
+    queue=( "${queue[@]:1}" )
+
+    [[ -n "$spell" && -z "${seen[$spell]}" ]] || continue
+    seen[$spell]=1
+    echo "$spell"
+
+    for dep in $(
+      {
+        # spells that were cast and dispelled again (e.g., by build_spells) are
+        # no longer in sorcery's records, but their cache carries a tablet
+        # with the same depends records
+        if grep -q "^$spell:" "$depends" 2> "$CAULDRON_NULL"
+        then
+          cat "$depends"
+        else
+          cache=$(cauldron_sorcerous_spell_cache "$spell" 2> "$CAULDRON_NULL")
+          [[ -n "$cache" ]] &&
+            "${CAULDRON_CMD_TAR[@]}" -xOf "$cache" --wildcards \
+              "var/state/sorcery/tablet/$spell/*/depends" 2> "$CAULDRON_NULL"
+        fi
+      } | awk -F: -v s="$spell" '$1 == s && $3 == "on" {print $2}')
+    do
+      dep="${dep%%(*}"
+      [[ -n "${seen[$dep]}" ]] || queue+=( "$dep" )
+    done
+  done
+}
+
+#-------------------------------------------------------------------------------
+## @param target dir (required)
+##
+## Regenerates sorcery's records of installed spells (packages, depends,
+## sub_depends) in the target directory from the tablet pages that are unpacked
+## along with each spell cache. Unpacking caches by hand (rather than having
+## sorcery resurrect them) only brings in the tablet, so without this sorcery
+## in the target would not know what is installed.
+##
+#-------------------------------------------------------------------------------
+function cauldron_sorcerous_state_from_tablets() {
+  local target="$1"
+  local state="$target/var/state/sorcery"
+  local tablet="$state/tablet"
+  local spelldir=
+  local page=
+  local spell=
+
+  [[ -d "$tablet" ]] || return $ERR_SORCEROUS_TARGET
+
+  : > "$state/packages" || return $ERR_WRITE_FILE
+  : > "$state/depends" || return $ERR_WRITE_FILE
+  : > "$state/sub_depends" || return $ERR_WRITE_FILE
+
+  for spelldir in "$tablet"/*
+  do
+    [[ -d "$spelldir" ]] || continue
+    spell="${spelldir##*/}"
+
+    # use the newest page (pages are named by timestamp)
+    page=$(ls -d "$spelldir"/[0-9]* 2> "$CAULDRON_NULL" | sort | tail -n 1)
+    [[ -n "$page" && -f "$page/version" ]] || continue
+
+    cauldron_verbose "Registering $spell with sorcery in $target"
+
+    echo "$spell:${page:${#spelldir}+1:8}:$(< "$page/status"):$(< "$page/version")" \
+      >> "$state/packages" || return $ERR_WRITE_FILE
+    [[ -s "$page/depends" ]] &&
+      grep -v '^$' "$page/depends" >> "$state/depends"
+    [[ -s "$page/sub_depends" ]] &&
+      grep -v '^$' "$page/sub_depends" >> "$state/sub_depends"
+  done
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
 ## @param chroot path (optional, default: CAULDRON_BUILD)
 ##
 ## Updates sorcery itself in the given chroot path.
@@ -400,14 +497,17 @@ function cauldron_sorcerous_spell_cache() {
   then
     # the spell couldn't be found in sorcery's list of installed spells, so try
     # getting the version from gaze
-    cauldron_chroot_init
+    # (chroot setup/teardown messages go to stderr, since this function's
+    # stdout is the cache path)
+    cauldron_chroot_init >&2
     liberror_check || return $?
     version=$(cauldron_chroot -q gaze DETAILS "$spell" | \
       grep 'VERSION=' | \
+      head -n 1 | \
       cut -d= -f2)
     #cauldron_chroot -q gaze -q where -p "$spell"
     liberror_check || return $?
-    cauldron_chroot_done
+    cauldron_chroot_done >&2
     liberror_check || return $?
     #version=$(grep "VERSION=" "$grimoire/$version/$spell/DETAILS" | cut -d= -f2)
     [[ -n "$version" ]] || return $ERR_SORCEROUS_SPELL_CACHE

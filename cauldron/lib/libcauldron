@@ -403,7 +403,7 @@ function cauldron_populate_sys() {
   done
 
   # find the cache file for each spell and unpack it to the target dir
-  for spell in $(< "$spells")
+  for spell in $(cauldron_sorcerous_depends_closure "$spells")
   do
     # get the spell's installed version and/or cache file
     cache=$(cauldron_sorcerous_spell_cache "$spell")
@@ -419,6 +419,10 @@ function cauldron_populate_sys() {
 
   # ensure sane default /etc configs
   cauldron_etc_configs 'sys' "$target"
+  liberror_check || return $?
+
+  # let sorcery in sys know what is installed
+  cauldron_sorcerous_state_from_tablets "$target"
   liberror_check || return $?
 
   ## ensure the sys chroot is properly bootstrapped
