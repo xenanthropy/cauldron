@@ -373,7 +373,7 @@ sections below.
   tarball whose `.sha512` verifies. Caches were reused from the first run, so
   that run checked the pipeline, not a from-scratch compile.
 - **Stage two (Oct 2026): `cauldron iso` produces a hybrid x86_64 ISO**
-  (`smgl-devel-YYYYMMDD.x86_64.iso` + `.sha512`, ~750 MiB). What it is:
+  (`smgl-devel-YYYYMMDD.x86_64.iso` + `.sha512`, ~600 MiB: fits an 80-min CD). What it is:
   - live system = `iso.runtime` + its dependency closure, minus build-only
     spells (`CAULDRON_ISO_RUNTIME_EXCLUDE`) plus gcc's runtime libraries;
     squashfs (xz, 1 MiB blocks); `system.tar.xz` inside, caches of
@@ -410,9 +410,11 @@ sections below.
     script prints "File locking initialisation failed." twice.
   - Under QEMU without KVM, `install caches` takes ~10 minutes (sorcery's
     dependency resolution); on hardware it should be far quicker.
-  - The kernel sources are ~150 MB of the ISO; `CAULDRON_ISO_KERNEL_SOURCES=no`
-    gets it under 700 MB (then the installer can only use the ISO's
-    prebuilt kernel or download sources).
+  - Kernel sources are left off the ISO by default (~150 MB; with them the
+    ISO is ~750 MiB, too big for a CD): `CAULDRON_ISO_KERNEL_SOURCES=yes`
+    puts them back. The installer's `enchantment install kernel-source`
+    copies them from the ISO if present, else downloads them from
+    kernel.org, and unpacks them with the ISO kernel's config as `.config`.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2}` (see the
     README there and the team report above)
