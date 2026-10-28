@@ -290,16 +290,64 @@ From reading the code (Oct 2026). **[confirmed]** = verified by reading the
 code/history; **[suspected]** = needs a real run to confirm.
 
 ### Status / fixed so far
-- **`cauldron toolchain chroot` works** (Oct 2026) against the
-  smgl-test-0.63-20251212 tarball + test grimoire + kernel 6.18.59 headers.
-- Fixed on the working branch: `cauldron config` with several args; log
-  truncation in `cauldron_chroot` (`&> /dev/stdout`); host arch detection
-  (`host_arch.conf` yielded `i386`); `run` added to `CAULDRON_FHS_DIRS`;
-  `$state` in `cauldron_sorcerous_spell_cache`; grimoire refresh path;
-  obsolete 2015 glibc grimoire patch and dead glibc/squashfs-tools presets
-  removed; `cauldron_etc_configs` now accepts `sys`/`iso`; `build_spells` no
-  longer dispels spells the build chroot already had (it would have removed
-  xz-utils, perl, kmod, ... from `build/`).
+- **Working (Oct 2026):** `toolchain chroot`, `toolchain prepare`,
+  `sys build` (all of `sys.runtime` plus its dependency closure, ~87 caches:
+  gcc 16.2, glibc 2.44, openssl 4.1.0, python3 3.14, ...) and
+  `sys populate`, against the smgl-test-0.63-20251212 tarball + test grimoire
+  + kernel 6.18.59 headers. Next: `sys purify`, `sys package`, then `iso`.
+- Fixed on the working branch (see `git log` for details on each):
+  `cauldron config` with several args; log truncation in `cauldron_chroot`
+  (`&> /dev/stdout`); host arch detection (`host_arch.conf` yielded `i386`);
+  `run` in `CAULDRON_FHS_DIRS`; `$state` in `cauldron_sorcerous_spell_cache`
+  (and chroot messages leaking into its returned path); grimoire refresh path;
+  obsolete 2015 glibc grimoire patch and dead presets removed;
+  `cauldron_etc_configs` accepts `sys`/`iso`; `build_spells` only dispels spells
+  the build chroot didn't already have and verifies every spell produced a
+  cache; `cauldron_prepare` keeps sorcery's installed-spell records
+  (`keepstate`); obsolete spells removed from the build chroot
+  (`CAULDRON_SORCERY_OBSOLETE`); `cauldron_chroot_dispel` skips uninstalled /
+  sustained spells; cauldron waits for background casts before unmounting and
+  copes with stacked mounts; `sys.runtime` uses `gnupg-2.4`/`procps-ng`;
+  `sys` covers the dependency closure; sorcery state regenerated from tablets.
+
+### How cauldron interacts with the baseroot tarball / sorcery
+Things learned the hard way; keep them in mind when changing the build code.
+- **`build/` *is* the baseroot.** `toolchain` unpacks the tarball there and
+  reinstalls sorcery, but must keep `/var/state/sorcery` + `/var/log/sorcery`
+  (the record of what the tarball has installed). Without them sorcery thinks
+  nothing is installed and rebuilds every dependency.
+- **The tarball ships no caches**, so every spell cauldron needs is compiled,
+  even if the tarball already has it installed (casting an installed spell
+  recasts it to produce the cache). `build_spells` skips spells whose cache
+  already exists, so interrupted runs resume where they stopped.
+- **The tarball lags the grimoire.** Expect upgrades during `sys build`
+  (here: gcc 15→16, glibc 2.42→2.44, openssl 3.5→4.1, python 3.13→3.14), and
+  replaced spells: module-init-tools→kmod (sustained in the tarball, and kmod's
+  CONFLICTS defaults to "no", so cauldron dispels it up front),
+  procps→procps-ng, gnupg (now a placeholder)→gnupg-2.4, basesystem→smgl-base
+  + smgl-system.
+- **Library upgrades mid-build leave stale caches.** A cache built before a
+  library upgrade still links the old soname (e.g. `libssl.so.3` after openssl
+  4). The old library stays in `build/`, so nothing breaks there, but
+  `system.tar.xz` only contains the new one. After such an upgrade, find
+  binaries still linking the old soname (`readelf -d ... | grep NEEDED`) and
+  recompile their spells with `cast -c` (plain `cast` just resurrects the
+  stale cache). Found this way: coreutils, python3.
+- **sorcery's exit codes are not trustworthy for cauldron's purposes:** `cast`
+  can return 0 when spells were skipped (e.g. a dependency's download failed),
+  and can return early after reporting a conflict while already-started casts
+  continue in the background (python3's triggers also recast dependents in the
+  background). Cauldron therefore checks for caches itself and waits for
+  background casts before unmounting.
+- **sys = closure, not list.** `sys.runtime` is the curated top level;
+  cauldron adds every enabled dependency (`cauldron_sorcerous_depends_closure`)
+  so the installed system isn't missing runtime libraries (libxcrypt for
+  login, gnupg's libs, zstd for kmod, ...).
+- **Unpacked caches aren't "installed" to sorcery** until
+  `cauldron_sorcerous_state_from_tablets` rebuilds `packages`/`depends` from
+  the tablet pages each cache carries.
+- To change a spell option unattended, edit
+  `build/etc/sorcery/local/depends/<spell>.p` before casting.
 
 ### Found while running it
 - **[confirmed]** The 2025-12 basesystem tarball ships no spell caches
