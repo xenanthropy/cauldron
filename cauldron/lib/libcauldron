@@ -143,9 +143,9 @@ function cauldron_get_variable() {
 ## Cleans out unneeded files that were used to generate the target directory.
 ## cleanfile is a file that lists paths to remove (absolute paths, relative to a
 ## chroot of the iso), one file/path per line. The paths can be directories or
-## regular files, but the function will not attempt to recursively remove
-## directories (i.e., only rmdir is used on directories, and rm is used on
-## regular files). The target directory should be one of either CAULDRON_SYS or
+## regular files; directories are only rmdir'ed (i.e., removed if empty), unless
+## the line has the form "dir/*", which empties the directory recursively.
+## Blank lines and lines starting with # are ignored. The target directory should be one of either CAULDRON_SYS or
 ## CAULDRON_ISO.
 ##
 #-------------------------------------------------------------------------------
@@ -161,10 +161,26 @@ function cauldron_clean_fs() {
   liberror_check || return $?
 
   # process cleanfiles in reverse so that we remove contained files and subdirs
-  # before attempting to rmdir a directory
-  for object in $(sort -r "$cleanfile")
+  # before attempting to rmdir a directory (read line by line, so that entries
+  # are never glob-expanded on the host); blank lines and # comments are ignored
+  while read -r object
   do
-      # only attempt to rmdir if the object is an existing dir
+    case "$object" in
+      ""|"#"*)
+        continue
+        ;;
+      */\*)
+        # "dir/*" empties the directory (recursively) but keeps it
+        object="${object%/\*}"
+        [[ -d "$target/${object#/}" ]] || continue
+        cauldron_verbose "Emptying directory $target/${object#/}"
+        cauldron_chroot find "$object" -mindepth 1 -delete
+        liberror_check || return $?
+        continue
+        ;;
+    esac
+
+    # only attempt to rmdir if the object is an existing dir
     if [[ -d "$target/${object#/}" ]]
     then
       cauldron_verbose "Attempting to remove directory"\
@@ -185,7 +201,7 @@ function cauldron_clean_fs() {
         liberror_check || return $?
       fi
     fi
-  done
+  done < <(sort -r "$cleanfile")
 
   cauldron_chroot_done "$target"
   liberror_check || return $?
@@ -466,6 +482,59 @@ function cauldron_package_sys() {
   cauldron_verbose "Compressing $(libcolor_file $sys)"
   "${CAULDRON_CMD_COMPRESS[@]}" "$target/$sys"* ||
     return $ERR_SYS_COMPRESS
+
+  if [[ "$CAULDRON_SYS_RELEASE" == "yes" ]]
+  then
+    cauldron_package_sys_release
+    liberror_check || return $?
+  fi
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+##
+## Creates a release copy of the compressed system archive, named like the
+## official basesystem tarballs (see CAULDRON_SYS_RELEASE_NAME), together with a
+## .sha512 checksum file and, if CAULDRON_SYS_SIGN_KEY is set, a detached .sig
+## signature. The release copy is a hard link, so it costs no extra space.
+##
+#-------------------------------------------------------------------------------
+function cauldron_package_sys_release() {
+  local target="$CAULDRON_TMP"
+  local archive="$CAULDRON_SYS_NAME_FULL"
+  local name="$CAULDRON_SYS_RELEASE_NAME"
+  local grimoire="${CAULDRON_SORCERY_GRIMOIRES[0]}"
+  local version=
+
+  [[ -f "$target/$archive" ]] || return $ERR_SYS_PACKAGE
+
+  if [[ -z "$name" ]]
+  then
+    # e.g. "0.63-test" in the grimoire's VERSION file -> "0.63"
+    version=$("${CAULDRON_CMD_HEAD[@]}" -n 1 \
+      "$CAULDRON_SYS/var/lib/sorcery/codex/$grimoire/VERSION" 2> "$CAULDRON_NULL")
+    version="${version%-$grimoire}"
+    name="smgl-$grimoire-${version:-unknown}-$(date +%Y%m%d_%H%M)"
+    name="$name-basesystem-$CAULDRON_ARCH.tar.xz"
+  fi
+
+  cauldron_verbose "Creating release archive $(libcolor_file $name)"
+  "${CAULDRON_CMD_HARDLINK_FORCE[@]}" "$target/$archive" "$target/$name" ||
+    return $ERR_SYS_PACKAGE
+
+  (
+    cd "$target" &&
+    "${CAULDRON_CMD_CHECKSUM[@]}" "$name" > "$name.sha512"
+  ) || return $ERR_SYS_PACKAGE
+
+  if [[ -n "$CAULDRON_SYS_SIGN_KEY" ]]
+  then
+    cauldron_verbose "Signing $(libcolor_file $name)"
+    "${CAULDRON_CMD_SIGN[@]}" -u "$CAULDRON_SYS_SIGN_KEY" \
+      -o "$target/$name.sig" "$target/$name" ||
+        return $ERR_SYS_PACKAGE
+  fi
 
   return $ERR_OK
 }
@@ -1425,9 +1494,17 @@ function cauldron_prepare() {
   cauldron_verbose "Unpacking kernel source for $kernel version $kvers"
   cauldron_toolchain_unpack KERNEL
   liberror_check || return $?
-  cauldron_verbose "Configuring kernel $kvers"
-  cauldron_toolchain_configure_component kernel
-  liberror_check || return $?
+  # installing the kernel headers doesn't need a kernel config, so a missing
+  # one only matters later, when building the iso kernel
+  if [[ -f "$CAULDRON_KERNEL_CONF" ]]
+  then
+    cauldron_verbose "Configuring kernel $kvers"
+    cauldron_toolchain_configure_component kernel
+    liberror_check || return $?
+  else
+    cauldron_verbose_error "no kernel config at $CAULDRON_KERNEL_CONF;" \
+      "skipping (only needed for building the iso kernel)"
+  fi
   cauldron_verbose "Installing kernel headers into $target"
   cauldron_toolchain_kernel_headers
   liberror_check || return $?
