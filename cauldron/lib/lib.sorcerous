@@ -510,6 +510,15 @@ function cauldron_sorcerous_cauldron_defaults() {
   cauldron_chroot sorcery default add kbd CONSOLE-TOOLS "on"
   liberror_check || return $?
 
+  # allow conflicting replacements for obsolete sustained spells
+  for spell in "${CAULDRON_SORCERY_UNSUSTAIN[@]}"
+  do
+    cauldron_verbose "Removing $spell from the sorcery sustained list"
+    "${CAULDRON_CMD_SEDFILE[@]}" "/^$spell\$/d" \
+      "$target/var/lib/sorcery/sustained" ||
+        return $ERR_SORCEROUS_DEFAULT_SETTINGS
+  done
+
   cauldron_chroot_done
   liberror_check || return $?
 

@@ -320,8 +320,52 @@ function cauldron_chroot_cast() {
   [[ -z "$CAULDRON_CHROOT" ]] && return $ERR_CHROOT_INIT
 
   # cast all the spells in the list in one shot for better efficiency
-  cauldron_chroot "${CAULDRON_CMD_CAST[@]}" "${target_spells[@]}" ||
-    return $ERR_CHROOT_CAST
+  cauldron_chroot "${CAULDRON_CMD_CAST[@]}" "${target_spells[@]}"
+  local rc=$?
+
+  # cast can return (e.g., after reporting a conflict) while casts it already
+  # started are still running in the background; wait for them so that we
+  # don't carry on, or unmount the chroot, underneath a running build
+  cauldron_chroot_wait_casts
+
+  [[ "$rc" -eq 0 ]] || return $ERR_CHROOT_CAST
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+## @param target chroot directory (optional, defaults to the current chroot)
+##
+## Waits until no sorcery cast processes are running inside the target chroot.
+##
+#-------------------------------------------------------------------------------
+function cauldron_chroot_wait_casts() {
+  local target="${1:-$(cauldron_chroot_current)}"
+  local proc=
+  local busy=
+
+  [[ -n "$target" ]] || return $ERR_OK
+
+  while true
+  do
+    busy=""
+    for proc in /proc/[0-9]*
+    do
+      [[ "$(readlink "$proc/root" 2> "$CAULDRON_NULL")" == "$target" ]] ||
+        continue
+      if "${CAULDRON_CMD_GREP_QUIET[@]}" -a "/tmp/sorcery/cast" \
+        "$proc/cmdline" 2> "$CAULDRON_NULL"
+      then
+        busy="yes"
+        break
+      fi
+    done
+
+    [[ -n "$busy" ]] || break
+
+    cauldron_verbose "Waiting for background casts in $target to finish..."
+    sleep 60
+  done
 
   return $ERR_OK
 }
