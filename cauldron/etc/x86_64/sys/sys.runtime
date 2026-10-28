@@ -1,9 +1,19 @@
-# Spells for the installable system (system.tar.xz). cauldron adds every
-# enabled dependency of these automatically, so only list top-level spells.
+# Spells for the installable system (system.tar.xz). cauldron adds the init
+# system (CAULDRON_SYS_INIT, default simpleinit-msb) and every enabled
+# dependency of these automatically, so only list top-level spells.
 
 # the Source Mage base system (replaces the old basesystem spell)
 smgl-base
 smgl-system
+
+# needed to build a kernel on the installed system (bc for the build scripts,
+# elfutils/libelf for objtool and the ORC unwinder)
+bc
+elfutils
+
+# networking on first boot, and manual pages
+dhcpcd
+man-db
 
 # python3 and perl record gdbm as a disabled optional dependency but still
 # link against it when it's present at build time (their DEPENDS pass no

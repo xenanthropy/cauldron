@@ -148,6 +148,19 @@ function cauldron_read_list() {
 }
 
 #-------------------------------------------------------------------------------
+##
+## Prints the top-level spells for the installable system: the entries of
+## CAULDRON_SYS_SPELLS plus the init system chosen with CAULDRON_SYS_INIT.
+##
+#-------------------------------------------------------------------------------
+function cauldron_sys_spells() {
+  cauldron_read_list "$CAULDRON_SYS_SPELLS"
+  [[ -n "$CAULDRON_SYS_INIT" && "$CAULDRON_SYS_INIT" != "none" ]] &&
+    echo "$CAULDRON_SYS_INIT"
+  return 0
+}
+
+#-------------------------------------------------------------------------------
 ## @param cleanfile
 ## @param target (chroot) directory
 ##
@@ -430,7 +443,7 @@ function cauldron_populate_sys() {
   done
 
   # find the cache file for each spell and unpack it to the target dir
-  for spell in $(cauldron_sorcerous_depends_closure "$spells")
+  for spell in $(cauldron_sorcerous_depends_closure $(cauldron_sys_spells))
   do
     # get the spell's installed version and/or cache file
     cache=$(cauldron_sorcerous_spell_cache "$spell")
@@ -632,7 +645,10 @@ function cauldron_package_sys_release() {
       "$CAULDRON_SYS/var/lib/sorcery/codex/$grimoire/VERSION" 2> "$CAULDRON_NULL")
     version="${version%-$grimoire}"
     name="smgl-$grimoire-${version:-unknown}-$(date +%Y%m%d_%H%M)"
-    name="$name-basesystem-$CAULDRON_ARCH.tar.xz"
+    name="$name-basesystem"
+    [[ "$CAULDRON_SYS_INIT" != "simpleinit-msb" ]] &&
+      name="$name-${CAULDRON_SYS_INIT:-none}"
+    name="$name-$CAULDRON_ARCH.tar.xz"
   fi
 
   cauldron_verbose "Creating release archive $(libcolor_file $name)"

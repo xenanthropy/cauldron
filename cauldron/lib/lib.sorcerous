@@ -782,8 +782,8 @@ function cauldron_sorcerous_cauldron_defaults() {
     return $ERR_SORCEROUS_DEFAULT_SETTINGS
   for spellconfig in "$CAULDRON_CONFIG/toolchain/sorcery/depends/"*
   do
-    # skip the literal glob pattern when there are no presets
-    [[ -f "$spellconfig" ]] || continue
+    # skip the literal glob pattern when there are no presets, and the README
+    [[ -f "$spellconfig" && "${spellconfig##*/}" != "README" ]] || continue
 
     local spell="${spellconfig##*/}"
 

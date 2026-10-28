@@ -1,0 +1,4 @@
+PYTHON3_BRANCH="stable"
+PY3K="n"
+SYMLINK="n"
+PYTHON3_OPTS="--with-lto --enable-ipv6 --disable-test-modules"

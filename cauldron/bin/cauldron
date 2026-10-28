@@ -356,13 +356,15 @@ function build_spells() {
 function build_sys() {
   local spells=()
 
-  # cast the listed sys spells first so sorcery records their dependencies
-  build_spells "${CAULDRON_SYS_SPELLS[@]}"
+  # cast the listed sys spells (plus the chosen init) first so sorcery records
+  # their dependencies
+  spells=( $(cauldron_sys_spells) )
+  build_spells "${spells[@]}"
   liberror_check || return $?
 
   # then make sure every enabled dependency of those spells has a cache too,
   # otherwise the installed system would be missing them
-  spells=( $(cauldron_sorcerous_depends_closure "${CAULDRON_SYS_SPELLS[@]}") )
+  spells=( $(cauldron_sorcerous_depends_closure "${spells[@]}") )
   build_spells "${spells[@]}"
   liberror_check || return $?
 }
