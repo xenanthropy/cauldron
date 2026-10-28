@@ -247,6 +247,54 @@ function cauldron_sorcerous_clean() {
 }
 
 #-------------------------------------------------------------------------------
+## @param spell
+##
+## Creates a cache archive for a spell that is installed in the build chroot
+## but has none, from the spell's install log (the same files sorcery would
+## archive). Some spells disable caching on purpose (e.g. the smgl-base and
+## smgl-system meta-spells set ARCHIVE="off"), but cauldron still needs a cache
+## to populate sys/iso from, and to carry the spell's tablet.
+##
+#-------------------------------------------------------------------------------
+function cauldron_sorcerous_make_cache() {
+  local spell="$1"
+  local build="$CAULDRON_BUILD"
+  local packages="$build/var/state/sorcery/packages"
+  local version=
+  local log=
+  local cache=
+
+  [[ -n "$spell" ]] || return $ERR_SORCEROUS_SPELL_CACHE
+
+  version=$(grep "^$spell:" "$packages" 2> "$CAULDRON_NULL")
+  version="${version##*:}"
+  [[ -n "$version" ]] || return $ERR_SORCEROUS_SPELL_CACHE
+
+  log="$build/var/log/sorcery/install/$spell-$version"
+  [[ -f "$log" ]] || return $ERR_SORCEROUS_SPELL_CACHE
+
+  cache="$build/var/cache/sorcery/$spell-$version-$CAULDRON_SORCERY_ARCH"
+  cache="$cache-cauldron.tar.bz2"
+
+  cauldron_verbose "Creating cache for $spell from its install log"
+
+  # only archive regular files and symlinks (directories in the log would
+  # otherwise be archived recursively, dragging in unrelated files), plus the
+  # spell's tablet
+  (
+    cd "$build" &&
+    while read -r path
+    do
+      [[ -f "${path#/}" || -L "${path#/}" ]] && echo "${path#/}"
+    done < "$log" |
+      "${CAULDRON_CMD_TAR[@]}" -cjf "$cache" --no-recursion -T - \
+        "var/state/sorcery/tablet/$spell"
+  ) || return $ERR_SORCEROUS_SPELL_CACHE
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
 ## @param spells (or a file listing spells)
 ##
 ## Prints the given spells plus every spell they (recursively) depend on with

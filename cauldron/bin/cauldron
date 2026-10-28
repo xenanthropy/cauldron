@@ -312,6 +312,14 @@ function build_spells() {
   cauldron_chroot_cast "${spells[@]}"
   liberror_check || return $?
 
+  # spells that disable caching (e.g. meta-spells) get a cache made from their
+  # install log
+  for spell in "${spells[@]}"
+  do
+    cauldron_sorcerous_spell_cache "$spell" &> "$CAULDRON_NULL" ||
+      cauldron_sorcerous_make_cache "$spell" &> "$CAULDRON_NULL"
+  done
+
   if [[ "${#transient[@]}" -gt 0 ]]
   then
     cauldron_chroot_dispel "${transient[@]}"
@@ -385,15 +393,6 @@ function purify_sys() {
   cauldron_chroot_init "$target"
   liberror_check || return $?
 
-  # remove unnecessary files from sys and free up space
-  # this needs to have error-checking added in later
-  # only process cleaner files specifically for the sys filesystem
-  for cleaner in "$CAULDRON_DATA/cleaners/sys/"*
-  do
-    cauldron_clean_fs "$cleaner" "$target"
-    liberror_check || return $?
-  done
-
   # ensure a clean, fresh sorcery install in sys
   cauldron_sorcerous_download "$target/var/spool/sorcery"
   liberror_check || return $?
@@ -416,6 +415,16 @@ function purify_sys() {
   liberror_check || return $?
   cauldron_sorcerous_update_grimoires "$target"
   liberror_check || return $?
+
+  # remove unnecessary files from sys and free up space, last, since
+  # installing sorcery above leaves its source tree and tarball behind
+  # only process cleaner files specifically for the sys filesystem
+  for cleaner in "$CAULDRON_DATA/cleaners/sys/"*
+  do
+    [[ -f "$cleaner" ]] || continue
+    cauldron_clean_fs "$cleaner" "$target"
+    liberror_check || return $?
+  done
 
   # finished chrooting to the sys filespace
   cauldron_chroot_done "$target"
