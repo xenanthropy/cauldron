@@ -419,6 +419,16 @@ code/history; **[suspected]** = needs a real run to confirm.
   `switch_root`; the kernel config needs squashfs, overlayfs, isofs, udf, vfat,
   loop, devtmpfs built in or listed in `etc/x86_64/initfs/modules`.
 
+### Side results from test builds
+- Oct 2026: python3 **3.13.18 builds against OpenSSL 4.1.0** with the grimoire's
+  `patches-3.13/0001-gh-146207-Add-support-for-OpenSSL-4.0.0.patch`; `_ssl`
+  links `libssl.so.4`, and a verified HTTPS request works. (3.14.10 also
+  builds against it.) To pick a python3 branch unattended, set
+  `PYTHON3_BRANCH` in `build/etc/sorcery/local/depends/python3.p` before
+  `cauldron chroot cast python3`; python3's triggers then recast
+  python-dependent spells (setuptools, meson).
+- rsync's DETAILS says `UPSTRAM_HASH` (typo for `UPSTREAM_HASH`).
+
 ### If a new baseroot tarball is ever made
 The 2025-12 tarball works, but these differences from the current test
 grimoire cost rebuild time and caused conflicts during `sys build`; a fresh

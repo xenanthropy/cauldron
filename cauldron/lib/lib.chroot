@@ -125,6 +125,10 @@ function cauldron_chroot_close() {
 
   for target in "${chroot[@]}"
   do
+    # sorcery can keep casting in the background (e.g., trigger recasts) after
+    # the command we ran returns, so don't pull mounts out from under it
+    cauldron_chroot_wait_casts "$target"
+
     # get a list of all mounted subdirs in the target in reverse order to ensure
     # that subdirs are unmounted before their parents
     local mounts=( $(grep -o "$target[^[:space:]]*" "/proc/mounts" | sort -r) )
