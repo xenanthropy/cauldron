@@ -487,6 +487,23 @@ Things learned the hard way; keep them in mind when changing the build code.
   `cauldron chroot cast python3`; python3's triggers then recast
   python-dependent spells (setuptools, meson).
 - rsync's DETAILS says `UPSTRAM_HASH` (typo for `UPSTREAM_HASH`).
+- **sorcery bug (still on sorcery git master as of Oct 2026), for the sorcery
+  maintainer:** `update_sorcery_scripts` in
+  `var/lib/sorcery/modules/libsorcery` casts `basesystem` whenever that spell
+  exists in the grimoire and isn't installed (a 2002-era block). Since
+  `basesystem` and `smgl-base` conflict, `sorcery update` on a system using
+  `smgl-base`/`smgl-system` (including tarballs cauldron builds) tries to
+  dispel them and go back to `basesystem` — reported by a user on IRC. Fix
+  options: skip the block when `smgl-base` is installed, or turn the
+  `basesystem` spell into a deprecated placeholder (like `gnupg`).
+  (`FORCE_BASESYSTEM_DEPENDS`, the other basesystem path, defaults to off.)
+- wget vs OpenSSL 4: the wget spell picks its TLS library via `WGET_SSL`
+  (gnutls / openssl / libressl). Unattended casts choose gnutls, so cauldron's
+  wget is unaffected by OpenSSL 4; a user whose wget was built against openssl
+  reported needing a patch after the OpenSSL 4 upgrade (wget2 avoided it).
+- Reported but not investigated (outside the minimal tarball): mesa without
+  llvm failing to build against current glibc headers; llvm spell default
+  flags.
 
 ### If a new baseroot tarball is ever made
 The 2025-12 tarball works, but these differences from the current test
