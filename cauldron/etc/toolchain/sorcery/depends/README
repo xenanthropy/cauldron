@@ -8,3 +8,12 @@ so unattended casts don't fall back to unsuitable defaults:
   python3     don't install the test suite (--disable-test-modules)
 
 A preset replaces the spell's whole .p file, so list all of its options.
+
+../default_depends is installed as the build chroot's
+/var/state/sorcery/default_depends: default answers to optional dependencies
+("spell:dependency:on|off", no comments allowed). Without an answer, sorcery
+enables an optional dependency whenever it is installed in the build chroot,
+which pulls in more than an install medium needs:
+
+  nghttp2     no python bindings / boost (needed via cmake -> curl; would
+              otherwise drag in boost and openmpi)

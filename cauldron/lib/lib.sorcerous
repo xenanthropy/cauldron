@@ -872,6 +872,16 @@ function cauldron_sorcerous_cauldron_defaults() {
         return $ERR_SORCEROUS_DEFAULT_SETTINGS
   done
 
+  # default answers to optional dependencies, which sorcery otherwise answers
+  # "yes" whenever the dependency is installed in the build chroot
+  if [[ -f "$CAULDRON_CONFIG/toolchain/sorcery/default_depends" ]]
+  then
+    "${CAULDRON_CMD_CP_FORCE[@]}" \
+      "$CAULDRON_CONFIG/toolchain/sorcery/default_depends" \
+      "$target/var/state/sorcery/default_depends" ||
+        return $ERR_SORCEROUS_DEFAULT_SETTINGS
+  fi
+
   return $ERR_OK
 }
 
