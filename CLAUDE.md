@@ -404,6 +404,21 @@ code/history; **[suspected]** = needs a real run to confirm.
   `switch_root`; the kernel config needs squashfs, overlayfs, isofs, udf, vfat,
   loop, devtmpfs built in or listed in `etc/x86_64/initfs/modules`.
 
+### If a new baseroot tarball is ever made
+The 2025-12 tarball works, but these differences from the current test
+grimoire cost rebuild time and caused conflicts during `sys build`; a fresh
+tarball should ideally:
+- use `kmod` instead of `module-init-tools` (obsolete since 2011, still
+  installed *and* sustained in the tarball; sorcery's default sustained list
+  still names it — worth fixing in sorcery too)
+- use `smgl-base` + `smgl-system` instead of the old `basesystem` meta-spell
+- keep `gnupg-2.4` / `procps-ng` (the plain `gnupg` and `procps` spells are a
+  deprecated placeholder and a 2009-era version respectively)
+- drop the stale 3.4.51 kernel modules from `/lib/modules`
+- optionally ship spell caches in `/var/cache/sorcery`, which would let
+  cauldron skip compiling everything from scratch
+- document how it was built (currently only the tarball maintainer knows)
+
 ### Already recorded by the previous maintainer
 `cauldron/PROCESS` lists 2015-era spell failures (glibc kernel headers,
 libmpc, util-linux, net-tools, pciutils, cryptsetup). Re-check against today's
