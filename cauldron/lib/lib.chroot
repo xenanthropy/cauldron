@@ -382,18 +382,26 @@ function cauldron_chroot_wait_casts() {
 function cauldron_chroot_dispel() {
   local target_spells=( "$@" )
   local sustained="$CAULDRON_BUILD/var/lib/sorcery/sustained"
+  local packages="$CAULDRON_BUILD/var/state/sorcery/packages"
+  local spells=()
   local spell=""
 
   # if a file that lists spells to cast is passed in, get the list of spells
   # from the file
   [[ -f "$target_spells" ]] && target_spells=( $(< "$target_spells") )
 
-  # don't attempt to dispel any spells that are sustained
-  for ((i=0; i < ${#target_spells[@]}; i++))
+  # only dispel spells that are installed and not sustained (sorcery refuses
+  # both, which would fail the whole dispel)
+  for spell in "${target_spells[@]}"
   do
-    grep -q "${target_spells[i]}" "$sustained" &&
-      target_spells[i]=""
+    [[ -n "$spell" ]] || continue
+    grep -qx "$spell" "$sustained" 2> "$CAULDRON_NULL" && continue
+    grep -q "^$spell:" "$packages" 2> "$CAULDRON_NULL" || continue
+    spells+=( "$spell" )
   done
+  target_spells=( "${spells[@]}" )
+
+  [[ "${#target_spells[@]}" -gt 0 ]] || return $ERR_OK
 
   # make sure we have a valid chroot of where we will cast
   cauldron_chroot_init

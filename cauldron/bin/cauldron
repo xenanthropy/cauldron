@@ -318,6 +318,23 @@ function build_spells() {
     liberror_check || return $?
   fi
 
+  # sorcery's cast can exit successfully even when some spells were skipped
+  # (e.g., a dependency failed to download), so verify that every requested
+  # spell actually produced a cache
+  local missing=()
+  for spell in "${spells[@]}"
+  do
+    cauldron_sorcerous_spell_cache "$spell" &> "$CAULDRON_NULL" ||
+      missing+=( "$spell" )
+  done
+  if [[ "${#missing[@]}" -gt 0 ]]
+  then
+    cauldron_chroot_done "$CAULDRON_BUILD"
+    liberror_print_error $ERR_SORCEROUS_SPELL_CACHE \
+      "no cache produced for: ${missing[*]}"
+    return $ERR_SORCEROUS_SPELL_CACHE
+  fi
+
   cauldron_chroot_done "$CAULDRON_BUILD"
   liberror_check
 }
