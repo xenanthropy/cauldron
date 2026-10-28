@@ -163,6 +163,11 @@ function enchant_shell_command_install() {
       enchant_install_kernel
       liberror_check_fatal
       ;;
+    "kernel-source" | "kernel-sources" )
+      [[ $# -gt 1 ]] && return $ERR_INSTALLER_CMD
+      enchant_install_kernel_source "$@"
+      liberror_check_fatal
+      ;;
     "system" | "basesystem" )
       [[ $# -ne 0 ]] && return $ERR_INSTALLER_CMD
       enchant_install_system

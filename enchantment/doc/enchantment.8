@@ -106,6 +106,12 @@ Installs the given kernel to the target as specified in \fIENCHANT_TARGET\fR (se
 Installs the kernel image and modules that are used for the ISO runtime itself to the target specified in \fIENCHANT_TARGET\fR (see the section on \fBENVIRONMENT VARIABLES\fR below). The image is installed to \fIENCHANT_TARGET_KERNEL\fR, and the modules are installed to \fIENCHANT_TARGET_KMODS\fR.
 .RE
 .RS 4
+\fBkernel-source\fR [VERSION]
+.RE
+.RS 8
+Puts the linux sources (by default the version the ISO runs) into the target's /usr/src: copied from the ISO if it carries them (\fIENCHANT_KERNEL_SOURCE\fR), otherwise downloaded from \fIENCHANT_KERNEL_URL\fR (needs network). They are unpacked to /usr/src/linux-VERSION with a /usr/src/linux link, and the ISO kernel's config is copied to .config as a starting point.
+.RE
+.RS 4
 \fBsystem\fR
 .RE
 .RS 8

@@ -3,21 +3,32 @@ You may now set up a custom kernel for your installation by casting the linux
 spell or compiling and installing manually. Remember to update your bootloader
 configuration to use your new kernel if you wish to boot it!
 
-chroot into your system:
+spell install (sorcery downloads the sources itself; needs network):
   @[enchantment chroot]
-
-spell install:
   @[cast -r linux]
+  @[exit]
 
-manual install (change VERSION to what you have):
-  @[cd /usr/src && tar -xvf linux-VERSION]
-  @[ln -sf /usr/src/linux-VERSION /usr/src/linux && cd /usr/src/linux]
-  @[make menuconfig && make && make modules_install]
+manual install:
+ get the sources of the kernel this ISO runs (copied from the ISO if it has
+ them, otherwise downloaded from kernel.org, so this needs network), unpacked
+ to /usr/src/linux-VERSION with the ISO kernel's config as .config:
+  @[enchantment install kernel-source]
+ (or a different version: @[enchantment install kernel-source 6.18.60])
+
+ then build it in the chroot (change VERSION to the version you have):
+  @[enchantment chroot]
+  @[cd /usr/src/linux]
+  @[make olddefconfig && make menuconfig]
+  @[make && make modules_install]
   @[cp -f arch/x86/boot/bzImage /boot/vmlinuz-VERSION]
   @[cp -f .config /boot/config-VERSION]
   @[cp -f System.map /boot/System.map-VERSION]
-
-Exit the chroot:
   @[exit]
+
+ To keep only the drivers this machine uses, @[make localmodconfig] instead
+ of @[make olddefconfig] keeps the modules the ISO kernel has loaded right now
+ (plug in the devices you need first).
+
+If you installed the ISO kernel too, the boot-loader step will list both.
 
 Type @[next] to go to the next step.

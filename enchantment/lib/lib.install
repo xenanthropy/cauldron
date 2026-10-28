@@ -291,6 +291,66 @@ function enchant_install_kernel() {
 
 #-------------------------------------------------------------------------------
 ##
+## @param kernel_version (optional, defaults to ENCHANT_ISO_KVERS)
+##
+## Puts the linux sources into the TARGET's /usr/src, for compiling a custom
+## kernel: the tarball from the ISO (ENCHANT_KERNEL_SOURCE) if the ISO carries
+## one, else downloaded from ENCHANT_KERNEL_URL (needs network). The sources
+## are unpacked to /usr/src/linux-<version> (with a /usr/src/linux link), and
+## the ISO kernel's config is put in place as .config to start from.
+##
+#-------------------------------------------------------------------------------
+function enchant_install_kernel_source() {
+  local kvers="${1:-$ENCHANT_ISO_KVERS}"
+  local ksrc="$ENCHANT_KERNEL_SOURCE"
+  local url="$ENCHANT_KERNEL_URL"
+  local dst="$ENCHANT_TARGET/usr/src"
+  local kconfig="$ENCHANT_ISO_PATH/boot/config-$ENCHANT_ISO_KVERS"
+
+  # a different version than the ISO's: never on the ISO, and the URL differs
+  if [[ "$kvers" != "$ENCHANT_ISO_KVERS" ]]
+  then
+    ksrc="${ksrc//$ENCHANT_ISO_KVERS/$kvers}"
+    url="${url//$ENCHANT_ISO_KVERS/$kvers}"
+    url="${url//\/v${ENCHANT_ISO_KVERS%%.*}.x\///v${kvers%%.*}.x/}"
+  fi
+
+  "${ENCHANT_CMD_MKDIR[@]}" "$dst" || return $ERR_MK_DIR
+
+  if [[ -f "$ksrc" ]]
+  then
+    libcolor_msg info "Copying ${ksrc##*/} from the ISO"
+    "${ENCHANT_CMD_CP[@]}" "$ksrc" "$dst/" || return $ERR_INSTALL_KSRC
+  elif [[ ! -f "$dst/${url##*/}" ]]
+  then
+    libcolor_msg info "Downloading $url"
+    "${ENCHANT_CMD_URL_DL[@]}" -O "$dst/${url##*/}.part" "$url" &&
+      "${ENCHANT_CMD_MV[@]}" "$dst/${url##*/}.part" "$dst/${url##*/}" ||
+        {
+          "${ENCHANT_CMD_RM_FORCE[@]}" "$dst/${url##*/}.part"
+          return $ERR_INSTALL_KSRC
+        }
+  fi
+  ksrc="$dst/${ksrc##*/}"
+  [[ -f "$ksrc" ]] || ksrc="$dst/${url##*/}"
+
+  libcolor_msg info "Unpacking ${ksrc##*/} to /usr/src"
+  "${ENCHANT_CMD_TAR[@]}" -C "$dst" -xf "$ksrc" || return $ERR_INSTALL_KSRC
+  [[ -d "$dst/linux-$kvers" ]] || return $ERR_INSTALL_KSRC
+  "${ENCHANT_CMD_SYMLINK[@]}" -fn "linux-$kvers" "$dst/linux" ||
+    return $ERR_INSTALL_KSRC
+
+  if [[ -f "$kconfig" && ! -f "$dst/linux-$kvers/.config" ]]
+  then
+    "${ENCHANT_CMD_CP[@]}" "$kconfig" "$dst/linux-$kvers/.config" ||
+      return $ERR_INSTALL_KSRC
+  fi
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+##
 ## @param kernel_source (absolute path - e.g. $ENCHANT_ISO_PATH/usr/src/kern.tar)
 ## @param kernel_arch (architecture to install for - e.g. x86)
 ##
