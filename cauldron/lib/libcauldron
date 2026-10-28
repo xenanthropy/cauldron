@@ -292,6 +292,8 @@ function cauldron_iso_grub_cache() {
   local platform=
   local added=
   local log=
+  local page=
+  local field=
 
   cache=$(cauldron_sorcerous_spell_cache grub2)
   liberror_check "grub2" || return $?
@@ -329,15 +331,22 @@ function cauldron_iso_grub_cache() {
     added=yes
   done
 
-  if [[ -z "$added" ]]
+  if [[ -z "$added" &&
+    "$("${CAULDRON_CMD_TAR[@]}" --test-label -f "$cache")" == "grub2 "* ]]
   then
     "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$tmp" || return $ERR_RM_FILE
     return $ERR_OK
   fi
 
-  # sorcery labels its caches with "spell version ..."; keep the label
-  label=$("${CAULDRON_CMD_TAR[@]}" -tvf "$cache" | head -n 1 |
-    sed -n 's/^V.* [0-9:]* \(.*\)--Volume Header--$/\1/p')
+  # sorcery labels its caches "spell version patchlevel security_patch
+  # updated" (libtrack); rebuild the label from the cache's tablet page
+  page=$(ls -d "$tmp"/var/state/sorcery/tablet/grub2/[0-9]* | sort | tail -n 1)
+  label="grub2"
+  for field in version patchlevel security_patch updated
+  do
+    field=$(cat "$page/$field" 2> "$CAULDRON_NULL")
+    label+=" ${field:-0}"
+  done
 
   ( cd "$tmp" && find . -mindepth 1 | sed 's,^\./,,' | sort |
     "${CAULDRON_CMD_TAR[@]}" -c $zip -f "$cache.new" ${label:+-V "$label"} \

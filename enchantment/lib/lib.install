@@ -114,7 +114,7 @@ function enchant_install_caches() {
   local dst="$ENCHANT_TARGET_CACHES"
   local spells=()
   local cache=
-  local label=
+  local spell=
 
   # if no caches were passed in directly, use the selected ones
   if [[ "${#caches[@]}" -eq 0 && -r "$ENCHANT_CACHES_LIST" ]]
@@ -133,11 +133,11 @@ function enchant_install_caches() {
 
     "${ENCHANT_CMD_CP[@]}" "$cache" "$dst/" || return $ERR_INSTALL_CACHES
 
-    # sorcery labels its caches "spell version ..."
-    label=$("${ENCHANT_CMD_TAR[@]}" -tvf "$cache" | head -n 1 |
-      sed -n 's/^V.* [0-9:]* \(.*\)--Volume Header--$/\1/p')
-    [[ -n "$label" ]] || return $ERR_INSTALL_CACHES
-    spells+=( "${label%% *}" )
+    # the spell's name, from the tablet page every cache carries
+    spell=$("${ENCHANT_CMD_TAR[@]}" -tf "$cache" |
+      sed -n 's,^var/state/sorcery/tablet/\([^/]*\)/.*,\1,p' | head -n 1)
+    [[ -n "$spell" ]] || return $ERR_INSTALL_CACHES
+    spells+=( "$spell" )
   done
 
   # let sorcery in the target install them, so that it knows about them (it
