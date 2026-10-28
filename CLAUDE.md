@@ -374,6 +374,19 @@ Things learned the hard way; keep them in mind when changing the build code.
   the tablet pages each cache carries.
 - To change a spell option unattended, edit
   `build/etc/sorcery/local/depends/<spell>.p` before casting.
+- **Optional dependencies default to "yes" when the dependency is installed in
+  `build/`** (e.g. python3), which drags in a lot (nghttp2's python bindings
+  pulled boost + openmpi into the ISO build). Cauldron's answers go in
+  `etc/toolchain/sorcery/default_depends` (installed as sorcery's
+  `/var/state/sorcery/default_depends`, format `spell:dependency:on|off`).
+  Recorded answers win over that file: sorcery's `depends` database, and the
+  answers of interrupted casts in `/var/state/sorcery/abandoned/<spell>`
+  (moved there at the next cast from `.../uncommitted/`). After killing a
+  cast, delete the affected spells' files in *both* directories, or the
+  old answers come back.
+- When stopping a cauldron run by hand, kill by PID (`ps -eo pid,args`);
+  `pkill -f <script>` also matches the shell running the pkill. Then unmount
+  what's left under `build/` (deepest first) before restarting.
 
 ### Found while running it
 - **[confirmed]** The 2025-12 basesystem tarball ships no spell caches
