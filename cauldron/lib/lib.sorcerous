@@ -121,13 +121,82 @@ function cauldron_sorcerous_download() {
     # make sure any existing file is removed
     "${CAULDRON_CMD_RM_FORCE[@]}" "$spool/$sorcery"
 
-    # run in a subshell as an easy way of not messing with the working directory
-    (
-      cd "$spool"
-      "${url_get[@]}" "$sorcery_url" ||
-        return $ERR_SORCEROUS_DOWNLOAD
-    )
+    if [[ "$CAULDRON_SORCERY_SOURCE" == "git" ]]
+    then
+      cauldron_sorcerous_download_git "$spool/$sorcery"
+      liberror_check || return $?
+    else
+      # run in a subshell as an easy way of not messing with the working
+      # directory
+      (
+        cd "$spool"
+        "${url_get[@]}" "$sorcery_url" ||
+          return $ERR_SORCEROUS_DOWNLOAD
+      )
+    fi
   fi
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+## @param output tarball path
+##
+## Creates a sorcery source tarball (same layout as the release tarballs: a
+## top-level sorcery/ directory) from sorcery's git repository, at
+## CAULDRON_SORCERY_COMMIT if set, otherwise at the head of
+## CAULDRON_SORCERY_GIT_REF. With git available, the version is stamped the
+## way sorcery's "make devinst" does (e.g. 0+20260928-0-g39a44962); without
+## git, GitHub's archive of the commit/branch is downloaded instead.
+##
+#-------------------------------------------------------------------------------
+function cauldron_sorcerous_download_git() {
+  local output="$1"
+  local ref="${CAULDRON_SORCERY_COMMIT:-$CAULDRON_SORCERY_GIT_REF}"
+  local tmp=
+  local rc=
+
+  [[ -n "$output" ]] || return $ERR_SORCEROUS_DOWNLOAD
+
+  tmp=$(mktemp -d "${CAULDRON_TMP:-/tmp}/sorcery-git.XXXXXX") ||
+    return $ERR_SORCEROUS_DOWNLOAD
+
+  (
+    cd "$tmp" || exit 1
+
+    if command -v "${CAULDRON_CMD_GIT[0]}" &> "$CAULDRON_NULL"
+    then
+      cauldron_verbose "Fetching sorcery from git: $CAULDRON_SORCERY_GIT_URL" \
+        "($ref)"
+      "${CAULDRON_CMD_GIT[@]}" init -q sorcery &&
+      cd sorcery &&
+      "${CAULDRON_CMD_GIT[@]}" fetch -q --depth 1 \
+        "$CAULDRON_SORCERY_GIT_URL" "$ref" &&
+      "${CAULDRON_CMD_GIT[@]}" checkout -q FETCH_HEAD || exit 1
+
+      # stamp the version like "make devinst" (bump.awk needs gawk)
+      "${CAULDRON_CMD_GIT[@]}" describe --always --tags --match='v*' |
+        "${CAULDRON_CMD_AWK[@]}" -f bump.awk > etc/sorcery/version &&
+      [[ -s etc/sorcery/version ]] || exit 1
+      rm -rf .git
+    else
+      cauldron_verbose "git not found; downloading sorcery archive for $ref"
+      "${CAULDRON_CMD_URL_DL[@]}" -O sorcery.tar.gz \
+        "$CAULDRON_SORCERY_ARCHIVE_URL/$ref.tar.gz" &&
+      "${CAULDRON_CMD_TAR[@]}" -xzf sorcery.tar.gz &&
+      rm -f sorcery.tar.gz &&
+      mv sorcery-* sorcery &&
+      echo "0+git-$ref" > sorcery/etc/sorcery/version || exit 1
+    fi
+    cd "$tmp" || exit 1
+
+    cauldron_verbose "sorcery version: $(< sorcery/etc/sorcery/version)"
+    "${CAULDRON_CMD_TAR[@]}" -cjf "$output" sorcery
+  )
+  rc=$?
+
+  rm -rf "$tmp"
+  [[ "$rc" -eq 0 ]] || return $ERR_SORCEROUS_DOWNLOAD
 
   return $ERR_OK
 }

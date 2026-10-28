@@ -649,7 +649,7 @@ function iso_sorcery() {
 
   cauldron_chroot_init "$target"
   liberror_check || return $?
-  cauldron_sorcerous_download "$target" "/var/spool/sorcery"
+  cauldron_sorcerous_download "$target/var/spool/sorcery"
   liberror_check || return $?
   cauldron_sorcerous_clean "$target"
   liberror_check || return $?
