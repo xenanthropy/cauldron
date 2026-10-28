@@ -299,6 +299,34 @@ Tips:
 From reading the code (Oct 2026). **[confirmed]** = verified by reading the
 code/history; **[suspected]** = needs a real run to confirm.
 
+### Report for the team (outside cauldron)
+Findings for the grimoire, sorcery and tarball maintainers; details in the
+sections below.
+- **Grimoire**
+  - busybox no longer builds with its defaults: libtirpc has been built with
+    `--disable-static` since 2025-12-01, but busybox's default config is
+    static and its BUILD always links `-ltirpc` (cauldron now builds busybox
+    dynamically). Fix: static libtirpc again, or busybox dynamic / without
+    forced tirpc.
+  - `smgl-base` + `smgl-system` don't pull in `shadow` (no login/passwd) or
+    `lzip` (and the old tarballs also had `kbd`, `man-pages`).
+  - `optional_depends gdbm '' '' ...` pattern (python3, perl, ...): a
+    disabled dependency passes no `--without`, so the library is linked
+    anyway and sorcery's records are wrong.
+  - Dead or broken source URLs: `isl` (gforge), `fallback.sourcemage.org`
+    certificate, `david.kow.is`.
+  - rsync DETAILS: `UPSTRAM_HASH` typo.
+  - Defaults worth reviewing: python3 builds without readline and sqlite
+    unless asked; nghttp2's python bindings default on when python3 is
+    installed (pulls boost + openmpi).
+- **sorcery**
+  - `update_sorcery_scripts` casts `basesystem`, which conflicts with
+    `smgl-base` (`sorcery update` tries to replace smgl-base/smgl-system).
+  - The default sustained list still names `module-init-tools`.
+- **Basesystem tarball**: see "If a new baseroot tarball is ever made"
+  (module-init-tools, basesystem, stale 3.4.51 modules, no caches, how it was
+  built).
+
 ### Status / fixed so far
 - **Stage one done (Oct 2026): `toolchain` + `sys` produce a release
   basesystem tarball.** Against the smgl-test-0.63-20251212 tarball + test
