@@ -7,3 +7,8 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
 
   parted          gcc 16 rejects incompatible pointer types (parted 3.6)
   squashfs-tools  same (squashfs-tools 4.4); needed to package the ISO
+  grub2           grub-default sets GRUB_DISABLE_UUID, which GRUB doesn't
+                  know (it's GRUB_DISABLE_LINUX_UUID); grub-mkconfig then
+                  writes root=UUID=, which needs an initramfs SMGL doesn't
+                  make, so the installed system can't find its root. Use
+                  root=PARTUUID= (the kernel handles it by itself) instead

@@ -21,8 +21,18 @@ the target (do that before chrooting, e.g. mount /dev/sda1 /mnt/smgl/boot/efi):
 If the firmware does not pick it up, also install the fallback loader:
  @[grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable]
 
+The kernel finds its root filesystem without an initramfs only by device name
+or partition UUID (root=PARTUUID=), not by filesystem UUID (root=UUID=), so
+check that /etc/default/grub has these two lines (older grub2 caches have a
+misspelled GRUB_DISABLE_UUID=true instead):
+ GRUB_DISABLE_LINUX_UUID=true
+ GRUB_DISABLE_LINUX_PARTUUID=false
+e.g. @[sed -i 's/^GRUB_DISABLE_UUID=true$/GRUB_DISABLE_LINUX_UUID=true\nGRUB_DISABLE_LINUX_PARTUUID=false/' /etc/default/grub]
+
 Then write the GRUB menu (it finds the kernel installed in the kernel step):
  @[grub-mkconfig -o /boot/grub/grub.cfg]
+and check that the "linux" lines say root=PARTUUID=... or root=/dev/...:
+ @[grep 'linux.*root=' /boot/grub/grub.cfg]
 
 Exit the chroot:
  @[exit]

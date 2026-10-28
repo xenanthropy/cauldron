@@ -282,8 +282,6 @@ Tips:
   : "${CAULDRON_BUILD_JOBS:=8}"
   source /root/cauldron/local-exec/cauldron.conf
   ```
-  There is no 6.18 kernel `.config` in the repo yet (stage two), so
-  `toolchain` warns about `CAULDRON_KERNEL_CONF`; the headers install anyway.
 - Run steps one at a time (`toolchain`, then `sys build`, then `sys populate`, ...).
 - If a run dies with things still mounted: `grep /tmp/cauldron /proc/mounts`
   and `umount -R` them (deepest first) before deleting anything. **Never
@@ -329,6 +327,18 @@ sections below.
     whether rust/llvm caches should be provided (also useful for other
     spells moving to rust).
   - rsync DETAILS: `UPSTRAM_HASH` typo.
+  - grub2's `grub-default` sets `GRUB_DISABLE_UUID=true`, a variable GRUB
+    doesn't know (it's `GRUB_DISABLE_LINUX_UUID`). `grub-mkconfig` then
+    writes `root=UUID=...` whenever `/dev/disk/by-uuid` exists, which only
+    works with an initramfs; SMGL kernels boot without one, so the
+    installed system panics. Fix: `GRUB_DISABLE_LINUX_UUID=true` +
+    `GRUB_DISABLE_LINUX_PARTUUID=false` (`root=PARTUUID=` is handled by
+    the kernel itself). Cauldron patches it (`grimoire_hacks/grub2`) and
+    the installer's grub step tells the user to check it.
+  - grub2 builds one platform per cast (`i386-pc` *or* `x86_64-efi`); a
+    cache for a hybrid ISO / installer has to be assembled from two casts
+    (cauldron does this in `cauldron_iso_grub_cache`). A spell option to
+    build several platforms would be simpler.
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).
@@ -362,7 +372,37 @@ sections below.
   obsolete to remove) and the whole `sys` stage, and re-produces a 104-spell
   tarball whose `.sha512` verifies. Caches were reused from the first run, so
   that run checked the pipeline, not a from-scratch compile.
-- Next: the `iso` stage (§9 steps 2, 4–6).
+- **Stage two (Oct 2026): `cauldron iso` produces a hybrid x86_64 ISO**
+  (`smgl-devel-YYYYMMDD.x86_64.iso` + `.sha512`, ~750 MiB). What it is:
+  - live system = `iso.runtime` + its dependency closure, minus build-only
+    spells (`CAULDRON_ISO_RUNTIME_EXCLUDE`) plus gcc's runtime libraries;
+    squashfs (xz, 1 MiB blocks); `system.tar.xz` inside, caches of
+    `iso.install` (grub2 for BIOS+UEFI, efibootmgr, dosfstools, mdadm, lvm,
+    cryptsetup-luks, xfsprogs, btrfs-progs, openssh) in `/var/cache/sorcery`, kernel sources in `/usr/src`
+  - kernel 6.18.59 (`x86_64_defconfig` + `etc/x86_64/linux-iso.fragment`:
+    the drivers needed to reach the boot medium are built in, the rest are
+    modules), initramfs with a dynamically linked busybox 1.37
+  - GRUB 2.12 for both `i386-pc` and `x86_64-efi`, `xorriso` image with El
+    Torito BIOS + EFI entries, an MBR for USB sticks and an appended EFI
+    system partition
+  - Boot matrix in QEMU (SeaBIOS / OVMF, TCG): BIOS CD, UEFI CD, BIOS USB
+    stick, UEFI USB stick all reach the installer on tty1. Not yet tried on
+    real hardware.
+  - Install walkthrough (QEMU, serial console, every installer step in
+    order): see "Installer test" below.
+  - The kernel sources are ~150 MB of the ISO; `CAULDRON_ISO_KERNEL_SOURCES=no`
+    gets it under 700 MB (then the installer can only use the ISO's
+    prebuilt kernel or download sources).
+- **Workarounds still in place** (each should become a proper fix):
+  - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2}` (see the
+    README there and the team report above)
+  - `etc/toolchain/sorcery/default_depends`: nghttp2 without python/boost
+  - `iso.runtime` lists `fuse` (undeclared e2fsprogs dependency); `iso.install`
+    leaves out git (rust)
+  - busybox is linked dynamically and its libraries copied into the
+    initramfs (static libtirpc missing)
+  - the installer's grub step tells the user to fix `/etc/default/grub` by
+    hand for caches built before the grub2 hack.
 - Known leftover: sorcery keeps the old `libssl.so.3`/`libcrypto.so.3` across
   the openssl 3→4 upgrade and records them in the openssl 4.1.0 cache, so
   they ship in `system.tar.xz` (unused once everything is rebuilt).

@@ -142,10 +142,11 @@ function enchant_install_caches() {
 
   # let sorcery in the target install them, so that it knows about them (it
   # resurrects the caches rather than compiling, since the target's grimoire
-  # has the same spell versions)
+  # has the same spell versions); the caches are already built, so take the
+  # default answers instead of waiting PROMPT_DELAY at every question
   enchant_chroot_init "$target"
   liberror_check || return $?
-  enchant_chroot cast "${spells[@]}"
+  enchant_chroot env PROMPT_DELAY="${PROMPT_DELAY:-0}" cast "${spells[@]}"
   liberror_check || return $ERR_INSTALL_CACHES
   enchant_chroot_done "$target"
   liberror_check || return $?
