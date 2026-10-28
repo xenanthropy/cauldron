@@ -452,6 +452,10 @@ function cauldron_populate_sys() {
   cauldron_sorcerous_state_from_tablets "$target"
   liberror_check || return $?
 
+  # drop sorcery's upgrade leftovers (*.new configs, *.old libraries)
+  cauldron_sys_tidy "$target"
+  liberror_check || return $?
+
   ## ensure the sys chroot is properly bootstrapped
   #cauldron_fs_bootstrap "$target"
   #liberror_check || return $?
@@ -522,6 +526,48 @@ function cauldron_sys_check() {
   liberror_check || return $?
 
   [[ "$problems" -eq 0 ]] || return $ERR_SYS_CHECK
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+## @param target directory
+##
+## Removes sorcery upgrade leftovers that get recorded in caches when spells
+## are recast over an existing install:
+## - FILE.<timestamp>.new: a spell's new default config, kept next to an
+##   existing (customized) FILE; the existing file is kept
+## - LIB.old: the previous copy of a library, kept during an upgrade; links
+##   still pointing at it are moved to LIB before it is removed
+##
+#-------------------------------------------------------------------------------
+function cauldron_sys_tidy() {
+  local target="$1"
+  local file=
+  local link=
+
+  [[ -d "$target" ]] || return $ERR_TARGET
+
+  while read -r file
+  do
+    [[ -e "${file%.*.new}" ]] || continue
+    cauldron_verbose "Removing upgrade leftover ${file#$target}"
+    "${CAULDRON_CMD_RM_FORCE[@]}" "$file" || return $ERR_RM_FILE
+  done < <("${CAULDRON_CMD_FIND[@]}" "$target/etc" -name '*.[0-9]*.new')
+
+  while read -r file
+  do
+    [[ -e "${file%.old}" ]] || continue
+    for link in "${file%/*}"/*
+    do
+      [[ -L "$link" && "$(readlink "$link")" == "${file##*/}" ]] || continue
+      "${CAULDRON_CMD_SYMLINK_FORCE[@]}" "$(basename "${file%.old}")" \
+        "$link" || return $ERR_LINK_FILE
+    done
+    cauldron_verbose "Removing upgrade leftover ${file#$target}"
+    "${CAULDRON_CMD_RM_FORCE[@]}" "$file" || return $ERR_RM_FILE
+  done < <("${CAULDRON_CMD_FIND[@]}" "$target/lib" "$target/usr/lib" \
+    -maxdepth 1 -name '*.so*.old' 2> "$CAULDRON_NULL")
 
   return $ERR_OK
 }
