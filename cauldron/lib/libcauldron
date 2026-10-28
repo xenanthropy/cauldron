@@ -582,6 +582,12 @@ EOF
       "${CAULDRON_CMD_SEDFILE[@]}" '/CLEAN_TMP=/s,=.*,=,' "$sysconfig/mountall" ||
         return $ERR_WRITE_FILE
 
+      # the installed system's motd (set a root password, ...) doesn't apply
+      # to the live system
+      echo "Source Mage GNU/Linux install ISO ($CAULDRON_ISO_VERSION)" \
+        > "$target/etc/motd" ||
+          return $ERR_WRITE_FILE
+
       # modify /etc/sysconfig/init to boot to the correct runlevel
       [[ -f "$sysconfig/init" ]] || return $ERR_FILE_ACCESS
       "${CAULDRON_CMD_SEDFILE[@]}" '/RUNLEVEL=/s,=.*,=S,' "$sysconfig/init" ||
