@@ -139,7 +139,7 @@ function cauldron_init_fs_dirs() {
   then
     list=( "$@" )
   else
-    [[ -f "$file" ]] && list=( $(< "$file") )
+    [[ -f "$file" ]] && list=( $(cauldron_read_list "$file") )
   fi
   [[ -n "$list" ]] || return $ERR_INIT_DIRS
 
@@ -174,7 +174,7 @@ function cauldron_init_fs_bins() {
   then
     list=( "$@" )
   else
-    [[ -f "$file" ]] && list=( $(< "$file") )
+    [[ -f "$file" ]] && list=( $(cauldron_read_list "$file") )
   fi
 
   for bin in "${list[@]}"
@@ -209,7 +209,7 @@ function cauldron_init_fs_libs() {
   then
     list=( "$@" )
   else
-    [[ -f "$file" ]] && list=( $(< "$file") )
+    [[ -f "$file" ]] && list=( $(cauldron_read_list "$file") )
   fi
 
   for lib in "${list[@]}"
@@ -251,7 +251,7 @@ function cauldron_init_fs_mods() {
   then
     list=( "$@" )
   else
-    [[ -f "$file" ]] && list=( $(< "$file") )
+    [[ -f "$file" ]] && list=( $(cauldron_read_list "$file") )
   fi
 
   # adding extra modules to the initfs is optional, so make sure the user wants
@@ -267,6 +267,12 @@ function cauldron_init_fs_mods() {
     for module in "${list[@]}"
     do
       path="$initfs/$modpath/kernel/${module%/*}"
+
+      if [[ ! -e "$iso/$modpath/kernel/$module" ]]
+      then
+        cauldron_verbose_error "kernel module $module not found, skipping"
+        continue
+      fi
 
       "${CAULDRON_CMD_MKDIR[@]}" "$path"
 
@@ -321,7 +327,7 @@ function cauldron_init_fs_init() {
   "${CAULDRON_CMD_CP[@]}" "$init_script" "$initfs/init" || return $ERR_CP_FILE
 
   # make sure the init script is executable
-  "${CAULDRON_CMD_CHMOD}" 0755 "$initfs/init" || return $ERR_CHMOD_FILE
+  "${CAULDRON_CMD_CHMOD[@]}" 0755 "$initfs/init" || return $ERR_CHMOD_FILE
 
   # modify the SMGL_ISOFS and SMGL_ID to match defined variables
   "${CAULDRON_CMD_SEDFILE[@]}" \
@@ -341,53 +347,85 @@ function cauldron_init_fs_init() {
 }
 
 #-------------------------------------------------------------------------------
+## @param path to build directory (optional)
+##
+## Installs cauldron's sysutils (e.g. busybox) config as the spell's saved
+## config in the build chroot, so that casting the spell builds it the way the
+## initramfs needs it. If a cache built with a different config exists, it is
+## removed, so the next cast compiles the spell again.
+##
+#-------------------------------------------------------------------------------
+function cauldron_init_sysutils_config() {
+  local build="${1:-$CAULDRON_BUILD}"
+  local util="$CAULDRON_SYSUTILS"
+  local utilconf="$CAULDRON_SYSUTILS_CONF"
+  local saved="$build/etc/sorcery/local/${util}.config"
+  local cache=
+
+  [[ -f "$utilconf" ]] || return $ERR_FILE_ACCESS
+
+  "${CAULDRON_CMD_MKDIR[@]}" "${saved%/*}" || return $ERR_MK_DIR
+  "${CAULDRON_CMD_CP_FORCE[@]}" "$utilconf" "$saved" || return $ERR_CP_FILE
+
+  # the cache carries the config it was built with
+  cache=$(cauldron_sorcerous_spell_cache "$util" 2> "$CAULDRON_NULL") ||
+    return $ERR_OK
+  if ! cmp -s <(grep '^[# ]*CONFIG_' "$utilconf") \
+    <("${CAULDRON_CMD_TAR[@]}" -xOf "$cache" "usr/share/$util/$util.config" \
+      2> "$CAULDRON_NULL" | grep '^[# ]*CONFIG_')
+  then
+    cauldron_verbose "Removing $util cache built with another config"
+    "${CAULDRON_CMD_RM_FORCE[@]}" "$cache" || return $ERR_RM_FILE
+  fi
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
 ## @param path_to_initfs (required)
 ## @param path to build directory (optional)
 ##
-## Builds sysutils (e.g. busybox) for use in the initramfs using a preconfigured
-## config file for the build. It builds by casting in the build chroot, copies
-## the resulting sysutils binary, and then dispels in the chroot to clean up.
+## Puts sysutils (e.g. busybox) into the initfs, taken from its spell cache
+## (built with cauldron's config, see cauldron_init_sysutils_config). If there
+## is no such cache yet, the spell is cast (and dispelled again) to make one.
 ##
 #-------------------------------------------------------------------------------
 function cauldron_init_fs_sysutils() {
   local initfs="$1"
   local build="${2:-$CAULDRON_BUILD}"
   local util="$CAULDRON_SYSUTILS"
-  local utilconf="$CAULDRON_SYSUTILS_CONF"
-  local sorcery="etc/sorcery/local"
+  local cache=
 
   [[ -d "$initfs" ]] || return $ERR_TARGET
   shift
 
-  if [[ ! -d "$build" ]]
+  cauldron_init_sysutils_config "$build"
+  liberror_check || return $?
+
+  if ! cache=$(cauldron_sorcerous_spell_cache "$util" 2> "$CAULDRON_NULL")
   then
-    mkdir -p "$build" || return $ERR_MK_DIR
+    cauldron_chroot_init "$build"
+    liberror_check || return $?
+
+    cauldron_chroot_cast "$util"
+    liberror_check || return $?
+
+    cauldron_chroot_dispel "$util"
+    liberror_check || return $?
+
+    cauldron_chroot_done "$build"
+    liberror_check || return $?
+
+    cache=$(cauldron_sorcerous_spell_cache "$util")
+    liberror_check "$util" || return $?
   fi
 
-  "${CAULDRON_CMD_MKDIR[@]}" "$build/$sorcery" || return $ERR_MK_DIR
-
-  "${CAULDRON_CMD_CP_FORCE[@]}" \
-    "$utilconf" \
-    "$build/$sorcery/${util}.config" ||
-      return $ERR_CP_FILE
-
-  cauldron_chroot_init "$build"
-  liberror_check || return $?
-
-  cauldron_chroot_cast "$util"
-  liberror_check || return $?
-
-  "${CAULDRON_CMD_CP[@]}" "$build/sbin/$util" "$initfs/sbin/$util" ||
-    return $ERR_CP_FILE
+  "${CAULDRON_CMD_MKDIR[@]}" "$initfs/sbin" "$initfs/bin" || return $ERR_MK_DIR
+  "${CAULDRON_CMD_TAR[@]}" -xf "$cache" -C "$initfs" "sbin/$util" ||
+    return $ERR_UNPACK_CACHE
 
   "${CAULDRON_CMD_SYMLINK_FORCE[@]}" "/sbin/$util" "$initfs/bin/sh" ||
     return $ERR_LINK_FILE
-
-  cauldron_chroot_dispel "$util"
-  liberror_check || return $?
-
-  cauldron_chroot_done "$build"
-  liberror_check || return $?
 
   return $ERR_OK
 }

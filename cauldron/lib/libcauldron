@@ -137,14 +137,20 @@ function cauldron_get_variable() {
 }
 
 #-------------------------------------------------------------------------------
-## @param list file
+## @param list file, or the entries themselves
 ##
 ## Prints the entries of a list file (spell lists etc.), one per line, ignoring
-## blank lines and comments (from # to the end of the line).
+## blank lines and comments (from # to the end of the line). If the argument(s)
+## are not a single file, they are printed as the entries.
 ##
 #-------------------------------------------------------------------------------
 function cauldron_read_list() {
-  sed -e 's/#.*//' "$1" | tr -s ' \t' '\n' | grep -v '^$'
+  if [[ $# -eq 1 && -f "$1" ]]
+  then
+    sed -e 's/#.*//' "$1" | tr -s ' \t' '\n' | grep -v '^$'
+  else
+    printf '%s\n' "$@" | grep -v '^$'
+  fi
 }
 
 #-------------------------------------------------------------------------------
@@ -158,6 +164,184 @@ function cauldron_sys_spells() {
   [[ -n "$CAULDRON_SYS_INIT" && "$CAULDRON_SYS_INIT" != "none" ]] &&
     echo "$CAULDRON_SYS_INIT"
   return 0
+}
+
+#-------------------------------------------------------------------------------
+## @param which list: runtime or install
+##
+## Prints the spells for the iso: "runtime" is the live environment
+## (CAULDRON_ISO_RUNTIME plus its dependency closure, without the build-only
+## spells in CAULDRON_ISO_RUNTIME_EXCLUDE); "install" is the optional caches
+## offered to the installed system (CAULDRON_ISO_CACHES plus their dependency
+## closure, without anything system.tar.xz already contains).
+##
+#-------------------------------------------------------------------------------
+function cauldron_iso_spells() {
+  local exclude=()
+  local spell=
+
+  case "$1" in
+    runtime )
+      for spell in "${CAULDRON_ISO_RUNTIME_EXCLUDE[@]}"
+      do
+        exclude+=( -x "$spell" )
+      done
+      cauldron_sorcerous_depends_closure "${exclude[@]}" \
+        $(cauldron_read_list "${CAULDRON_ISO_RUNTIME[@]}")
+      ;;
+    install )
+      for spell in $(cauldron_sorcerous_depends_closure $(cauldron_sys_spells))
+      do
+        exclude+=( -x "$spell" )
+      done
+      cauldron_sorcerous_depends_closure "${exclude[@]}" \
+        $(cauldron_read_list "${CAULDRON_ISO_CACHES[@]}")
+      ;;
+    * )
+      return $ERR_ISO_CREATE
+      ;;
+  esac
+}
+
+#-------------------------------------------------------------------------------
+##
+## Builds GRUB for every platform in CAULDRON_ISO_GRUB_PLATFORMS (the grub2
+## spell builds one platform per cast) and keeps each platform's module
+## directory in CAULDRON_ISO_GRUB_DIR. Afterwards the build chroot has all the
+## platforms in /usr/lib/grub (for making the iso boot images), and the grub2
+## cache carries all of them (for installing to either BIOS or UEFI machines).
+##
+#-------------------------------------------------------------------------------
+function cauldron_iso_grub() {
+  local build="$CAULDRON_BUILD"
+  local grubdir="$CAULDRON_ISO_GRUB_DIR"
+  local spellconf="$build/etc/sorcery/local/depends/grub2.p"
+  local platform=
+  local missing=()
+
+  for platform in "${CAULDRON_ISO_GRUB_PLATFORMS[@]}"
+  do
+    [[ -d "$grubdir/$platform" ]] || missing+=( "$platform" )
+  done
+
+  if [[ "${#missing[@]}" -gt 0 ]]
+  then
+    "${CAULDRON_CMD_MKDIR[@]}" "$grubdir" "${spellconf%/*}" ||
+      return $ERR_MK_DIR
+
+    cauldron_chroot_init "$build"
+    liberror_check || return $?
+
+    for platform in "${missing[@]}"
+    do
+      cauldron_verbose "Building GRUB for $platform"
+
+      # answer the spell's platform question
+      if grep -q '^GRUB2_PLATFORM=' "$spellconf" 2> "$CAULDRON_NULL"
+      then
+        "${CAULDRON_CMD_SEDFILE[@]}" \
+          "s/^GRUB2_PLATFORM=.*/GRUB2_PLATFORM=\"$platform\"/" "$spellconf" ||
+            return $ERR_WRITE_FILE
+      else
+        echo "GRUB2_PLATFORM=\"$platform\"" >> "$spellconf" ||
+          return $ERR_WRITE_FILE
+      fi
+
+      # -c: compile, rather than resurrect the cache of another platform
+      cauldron_chroot_cast -c grub2
+      liberror_check || return $?
+
+      [[ -d "$build/usr/lib/grub/$platform" ]] || return $ERR_ISO_GRUB
+      "${CAULDRON_CMD_CP_PRESERVE[@]}" "$build/usr/lib/grub/$platform" \
+        "$grubdir/" ||
+          return $ERR_CP_FILE
+    done
+
+    cauldron_chroot_done "$build"
+    liberror_check || return $?
+  fi
+
+  # recasting grub2 removed the platforms built before; put them back
+  for platform in "${CAULDRON_ISO_GRUB_PLATFORMS[@]}"
+  do
+    [[ -d "$build/usr/lib/grub/$platform" ]] && continue
+    "${CAULDRON_CMD_CP_PRESERVE[@]}" "$grubdir/$platform" \
+      "$build/usr/lib/grub/" ||
+        return $ERR_CP_FILE
+  done
+
+  cauldron_iso_grub_cache
+  liberror_check || return $?
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+##
+## Adds every GRUB platform from CAULDRON_ISO_GRUB_DIR that the grub2 cache
+## lacks to that cache, recording the added files in the cache's install and
+## md5sum logs so that sorcery on the installed system knows about them.
+##
+#-------------------------------------------------------------------------------
+function cauldron_iso_grub_cache() {
+  local grubdir="$CAULDRON_ISO_GRUB_DIR"
+  local tmp="$CAULDRON_TMP/grub-cache"
+  local cache=
+  local label=
+  local zip=
+  local platform=
+  local added=
+  local log=
+
+  cache=$(cauldron_sorcerous_spell_cache grub2)
+  liberror_check "grub2" || return $?
+
+  case "$cache" in
+    *.bz2 ) zip="-j" ;;
+    *.xz ) zip="-J" ;;
+    *.gz ) zip="-z" ;;
+    *.zst ) zip="--zstd" ;;
+    * ) return $ERR_ISO_GRUB ;;
+  esac
+
+  "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$tmp" || return $ERR_RM_FILE
+  "${CAULDRON_CMD_MKDIR[@]}" "$tmp" || return $ERR_MK_DIR
+  "${CAULDRON_CMD_TAR[@]}" -xf "$cache" -C "$tmp" || return $ERR_UNPACK_CACHE
+
+  for platform in "${CAULDRON_ISO_GRUB_PLATFORMS[@]}"
+  do
+    [[ -d "$tmp/usr/lib/grub/$platform" ]] && continue
+
+    cauldron_verbose "Adding GRUB $platform to $(libcolor_file $cache)"
+    "${CAULDRON_CMD_CP_PRESERVE[@]}" "$grubdir/$platform" "$tmp/usr/lib/grub/" ||
+      return $ERR_CP_FILE
+
+    for log in "$tmp"/var/log/sorcery/install/grub2-*
+    do
+      ( cd "$tmp" && find "usr/lib/grub/$platform" ) |
+        sed 's,^,/,' >> "$log" || return $ERR_WRITE_FILE
+    done
+    for log in "$tmp"/var/log/sorcery/md5sum/grub2-*
+    do
+      ( cd "$tmp" && find "usr/lib/grub/$platform" -type f -exec md5sum {} + ) |
+        sed 's,  ,  /,' >> "$log" || return $ERR_WRITE_FILE
+    done
+    added=yes
+  done
+
+  [[ -n "$added" ]] || return $ERR_OK
+
+  # sorcery labels its caches with "spell version ..."; keep the label
+  label=$("${CAULDRON_CMD_TAR[@]}" -tvf "$cache" | head -n 1 |
+    sed -n 's/^V.* [0-9:]* \(.*\)--Volume Header--$/\1/p')
+
+  ( cd "$tmp" && find . -mindepth 1 | sed 's,^\./,,' | sort |
+    "${CAULDRON_CMD_TAR[@]}" -c $zip -f "$cache.new" ${label:+-V "$label"} \
+      --no-recursion -T - ) || return $ERR_ISO_GRUB
+  "${CAULDRON_CMD_MV[@]}" "$cache.new" "$cache" || return $ERR_ISO_GRUB
+  "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$tmp" || return $ERR_RM_FILE
+
+  return $ERR_OK
 }
 
 #-------------------------------------------------------------------------------
@@ -505,13 +689,7 @@ function cauldron_sys_check() {
   liberror_check || return $?
 
   cauldron_verbose "Checking $target for missing shared libraries..."
-  out=$(cauldron_chroot -q sh -c '
-    for f in $(find /bin /sbin /usr/bin /usr/sbin /lib /usr/lib /usr/libexec \
-      -xdev -type f \( -perm -u+x -o -name "*.so*" \) 2>/dev/null)
-    do
-      ldd "$f" 2>/dev/null | grep -q "not found" &&
-        echo "$f: $(ldd "$f" 2>/dev/null | grep "not found" | tr -s " \t" " ")"
-    done' | grep -v '^chroot ')
+  out=$(cauldron_check_libs)
   if [[ -n "$out" ]]
   then
     echo "$out"
@@ -550,6 +728,75 @@ function cauldron_sys_check() {
   liberror_check || return $?
 
   [[ "$problems" -eq 0 ]] || return $ERR_SYS_CHECK
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+##
+## Prints every program and library in the current chroot (see
+## cauldron_chroot_init) that can't find one of its shared libraries, with the
+## missing libraries. Prints nothing if all is well.
+##
+#-------------------------------------------------------------------------------
+function cauldron_check_libs() {
+  cauldron_chroot -q sh -c '
+    for f in $(find /bin /sbin /usr/bin /usr/sbin /lib /usr/lib /usr/libexec \
+      -xdev -type f \( -perm -u+x -o -name "*.so*" \) 2>/dev/null)
+    do
+      ldd "$f" 2>/dev/null | grep -q "not found" &&
+        echo "$f: $(ldd "$f" 2>/dev/null | grep "not found" | tr -s " \t" " ")"
+    done' | grep -v '^chroot '
+  return 0
+}
+
+#-------------------------------------------------------------------------------
+## @param target directory (optional, defaults to the iso runtime)
+##
+## Sanity checks the iso runtime (the live system): every program and library
+## must find its shared libraries (the runtime leaves out build-only spells, see
+## CAULDRON_ISO_RUNTIME_EXCLUDE), the installer and the programs it relies on
+## must be there, and so must the system image it installs. Prints every
+## problem found and returns ERR_ISO_CHECK if there were any.
+##
+#-------------------------------------------------------------------------------
+function cauldron_iso_check() {
+  local target="${1:-$CAULDRON_ISO}"
+  local problems=0
+  local out=
+
+  [[ -z "$1" && "$CAULDRON_ISO_SQUASH" == "yes" ]] &&
+    target="$CAULDRON_ISO_SQUASHFS"
+
+  [[ -d "$target" ]] || return $ERR_TARGET
+
+  cauldron_chroot_init "$target"
+  liberror_check || return $?
+
+  cauldron_verbose "Checking $target for missing shared libraries..."
+  out=$(cauldron_check_libs)
+  if [[ -n "$out" ]]
+  then
+    echo "$out"
+    ((problems++))
+  fi
+
+  cauldron_chroot_done "$target"
+  liberror_check || return $?
+
+  cauldron_verbose "Checking for essential programs in $target..."
+  for out in sbin/init bin/login sbin/agetty bin/bash bin/login.sh \
+    usr/sbin/enchantment sbin/fdisk sbin/mkfs.ext4 bin/tar usr/bin/xz \
+    sbin/modprobe "$CAULDRON_SYS_NAME_FULL"
+  do
+    if [[ ! -e "$target/$out" && ! -e "$target/usr/$out" ]]
+    then
+      echo "missing /$out"
+      ((problems++))
+    fi
+  done
+
+  [[ "$problems" -eq 0 ]] || return $ERR_ISO_CHECK
 
   return $ERR_OK
 }
@@ -691,25 +938,24 @@ function cauldron_package_sys_release() {
 #-------------------------------------------------------------------------------
 function cauldron_iso_install_runtime() {
   local target="$CAULDRON_ISO"
-  local spells="$CAULDRON_ISO_RUNTIME"
-  local caches="$CAULDRON_ISO_CACHES"
-  local cachedir="var/cache/sorcery"
-  local sysconfig="$target/etc/sysconfig"
   local sys="$CAULDRON_SYS_NAME_FULL"
   local src="$(${CAULDRON_CMD_READLINK[@]} $CAULDRON_TMP/$sys)"
-  local karch=
-  local kimg=
+  local spells=()
   local spell=
   local cache=
+  local bb=
 
   # alter the target if a compressed fs is desired
   [[ "$CAULDRON_ISO_SQUASH" == "yes" ]] &&
     target="$CAULDRON_ISO_SQUASHFS"
 
-  # convert the spell list to an array if it's a file
-  [[ -f "$spells" ]] &&  spells=( $(< "$spells") )
+  # the live environment: the runtime list plus its runtime dependencies
+  spells=( $(cauldron_iso_spells runtime) )
   # make sure we have spells to add
-  [[ -n "$spells" ]] || return $ERR_ISO_CREATE
+  [[ "${#spells[@]}" -gt 0 ]] || return $ERR_ISO_CREATE
+
+  # the installable system is copied in at the end
+  [[ -f "$src" ]] || return $ERR_FILE_ACCESS
 
   # make the target dir if it doesn't exist
   "${CAULDRON_CMD_MKDIR[@]}" "$target" || return $ERR_MK_DIR
@@ -725,7 +971,7 @@ function cauldron_iso_install_runtime() {
   do
     # get the spell's installed version and/or cache file
     cache=$(cauldron_sorcerous_spell_cache "$spell")
-    liberror_check "$spell"
+    liberror_check "$spell" || return $?
 
     cauldron_verbose "Unpacking to $(libcolor_dir $target): \
         $(libcolor_file $cache)"
@@ -734,16 +980,20 @@ function cauldron_iso_install_runtime() {
       return $ERR_UNPACK_CACHE
   done
 
-  # ensure that the libraries from gcc are unpacked, since many programs rely on
-  # them instead of libc alone (particularly if they are C++ programs)
+  # gcc itself is left out (CAULDRON_ISO_RUNTIME_EXCLUDE), but C++ programs and
+  # others need its runtime libraries
   cache=$(cauldron_sorcerous_spell_cache "gcc")
   liberror_check "gcc libs" || return $ERR_ISO_CREATE
   cauldron_verbose "Unpacking to $(libcolor_dir $target): \
       $(libcolor_file gcc shared libraries)"
   "${CAULDRON_CMD_UNPACK_TARGETDIR[@]/TARGETDIR/$target}" "$cache" \
     --wildcards \
-    "usr/lib/lib*" ||
+    "${CAULDRON_ISO_GCC_LIBS[@]}" ||
       return $ERR_UNPACK_CACHE
+
+  # tidy upgrade leftovers recorded in the caches, as for sys
+  cauldron_sys_tidy "$target"
+  liberror_check || return $?
 
   # ensure sane default /etc configs
   cauldron_verbose "Ensuring sane /etc defaults in $(libcolor_dir $target)"
@@ -758,8 +1008,14 @@ function cauldron_iso_install_runtime() {
   "$CAULDRON_BUILD/sbin/ldconfig" -r "$target" ||
     return $ERR_LDCONFIG
 
-  # install busybox symlinks and set the PATH accordingly
-  if [[ -x "$target/sbin/busybox" ]]
+  # install busybox symlinks (for vi and other small tools the iso doesn't
+  # otherwise have) and add them to the end of the PATH
+  for bb in bin/busybox sbin/busybox usr/bin/busybox usr/sbin/busybox
+  do
+    [[ -x "$target/$bb" ]] && break
+    bb=
+  done
+  if [[ -n "$bb" ]]
   then
     cauldron_verbose "Installing busybox symlinks in \
         $(libcolor_dir $target/usr/busybox)"
@@ -768,7 +1024,7 @@ function cauldron_iso_install_runtime() {
 
     cauldron_chroot_init "$target"
     liberror_check || return $?
-    cauldron_chroot "/sbin/busybox" --install -s "/usr/busybox"
+    cauldron_chroot "/$bb" --install -s "/usr/busybox"
     liberror_check || return $?
     cauldron_chroot_done "$target"
     liberror_check || return $?
@@ -776,20 +1032,17 @@ function cauldron_iso_install_runtime() {
     cauldron_verbose "Adding busybox symlinks to PATH via \
         $(libcolor_file $target/etc/profile.d/busybox.sh)"
 
+    "${CAULDRON_CMD_MKDIR[@]}" "$target/etc/profile.d" || return $ERR_MK_DIR
     echo 'export PATH="$PATH:/usr/busybox"' > "$target/etc/profile.d/busybox.sh" ||
       return $ERR_WRITE_FILE
 
     "${CAULDRON_CMD_CHMOD[@]}" 0755 "$target/etc/profile.d/busybox.sh" ||
       return $ERR_CHMOD_FILE
-
-    # busybox also needs specifically gtbl, instead of tbl, for man
-    # symlinking to tbl provided by groff works fine
-    "${CAULDRON_CMD_SYMLINK[@]}" "tbl" "$target/usr/bin/gtbl" ||
-      return $ERR_LINK_FILE
   fi
 
   # make sure sys is added to iso
-  "${CAULDRON_CMD_CP_FORCE[@]}" "$src" "$target/${src##*/}" ||
+  cauldron_verbose "Copying $(libcolor_file ${src##*/}) to the iso"
+  "${CAULDRON_CMD_CP_FORCE[@]}" "$src" "$target/$sys" ||
     return $ERR_CP_FILE
 
   return $ERR_OK
@@ -803,7 +1056,7 @@ function cauldron_iso_install_runtime() {
 ##
 #-------------------------------------------------------------------------------
 function cauldron_iso_install_caches() {
-  local caches=( "${1:-${CAULDRON_ISO_CACHES[@]}}" )
+  local caches=()
   local srcdir="$CAULDRON_BUILD/var/cache/sorcery"
   local target="$CAULDRON_ISO"
   local cachedir="/var/cache/sorcery"
@@ -819,11 +1072,11 @@ function cauldron_iso_install_caches() {
   # make sure the source cache dir exists
   [[ -d "$srcdir" ]] || return $ERR_DIR_ACCESS
 
-  # convert the cache list to an array if it's a file
-  [[ -f "$caches" ]] && caches=( $(< "$caches") )
+  # the listed caches plus their dependencies that system.tar.xz lacks
+  caches=( $(cauldron_iso_spells install) )
 
   # make sure we have at least one valid cache to deal with
-  [[ -n "$caches" ]] || return $ERR_ISO_CREATE
+  [[ "${#caches[@]}" -gt 0 ]] || return $ERR_ISO_CREATE
 
   # make the target cache dir if it doesn't exist
   "${CAULDRON_CMD_MKDIR[@]}" "$target/$cachedir" || return $ERR_MK_DIR
@@ -860,7 +1113,7 @@ function cauldron_iso_install_caches() {
 ##
 #-------------------------------------------------------------------------------
 function cauldron_iso_install_sources() {
-  local spells=( "${@:-${CAULDRON_ISO_SOURCES[@]}}" )
+  local spells=()
   local srcdir="$CAULDRON_BUILD/var/spool/sorcery"
   local target="$CAULDRON_ISO/usr/src"
   local spellsrc=
@@ -868,7 +1121,12 @@ function cauldron_iso_install_sources() {
   local kernel="$CAULDRON_KERNEL"
   local kvers="$CAULDRON_KERNEL_VERS"
 
-  [[ -f $spells ]] && spells=( $(< $spells) )
+  if [[ $# -gt 0 ]]
+  then
+    spells=( "$@" )
+  else
+    spells=( $(cauldron_read_list "${CAULDRON_ISO_SOURCES[@]}") )
+  fi
 
   # alter the target if a compressed fs is desired
   [[ "$CAULDRON_ISO_SQUASH" == "yes" ]] &&
@@ -902,32 +1160,73 @@ function cauldron_iso_install_sources() {
   done
 
   # add the kernel sources
-  cauldron_verbose "Copying kernel sources to $(libcolor_dir $target): \
-      $(libcolor_file $kernel-$kvers)"
-  "${CAULDRON_CMD_CP[@]}" "$srcdir/$kernel-$kvers"* "$target/" ||
-    return $ERR_CP_FILE
-  "${CAULDRON_CMD_CP[@]}" "$srcdir/$kernel-$kvers"* "$target/" ||
-    return $ERR_CP_FILE
+  if [[ "$CAULDRON_ISO_KERNEL_SOURCES" == "yes" ]]
+  then
+    cauldron_verbose "Copying kernel sources to $(libcolor_dir $target): \
+        $(libcolor_file $kernel-$kvers)"
+    "${CAULDRON_CMD_CP[@]}" "$srcdir/$kernel-$kvers".tar* "$target/" ||
+      return $ERR_CP_FILE
+  fi
 
   cauldron_chroot_done "$CAULDRON_BUILD"
   liberror_check || return $?
 }
 
 #-------------------------------------------------------------------------------
+## @param host directory (required)
+## @param directory inside the build chroot to make it available at (required)
+## @param command to run in the build chroot (required)
+##
+## Runs a command (typically one of the CAULDRON_CMD_* arrays) in the build
+## chroot, with a directory from outside the chroot bind-mounted into it. The
+## packaging tools are run inside the build chroot because that is where they
+## are installed, and its libraries need not match the host's.
+##
+#-------------------------------------------------------------------------------
+function cauldron_build_run_with() {
+  local hostdir="$1"
+  local mnt="$2"
+  local build="$CAULDRON_BUILD"
+  local rc=
+
+  shift 2
+
+  [[ -d "$hostdir" ]] || return $ERR_TARGET
+  "${CAULDRON_CMD_MKDIR[@]}" "$build/$mnt" || return $ERR_MK_DIR
+
+  cauldron_chroot_init "$build"
+  liberror_check || return $?
+
+  "${CAULDRON_CMD_MOUNT[@]}" --bind "$hostdir" "$build/$mnt" ||
+    return $ERR_MOUNT
+  cauldron_chroot "$@"
+  rc=$?
+  "${CAULDRON_CMD_UNMOUNT[@]}" "$build/$mnt" || return $ERR_UNMOUNT
+
+  cauldron_chroot_done "$build"
+  liberror_check || return $?
+
+  "${CAULDRON_CMD_RMDIR[@]}" "$build/$mnt"
+
+  return $rc
+}
+
+#-------------------------------------------------------------------------------
 ##
 ## Generates a compressed filesystem of the iso runtime, using the configured
 ## command. This is typically a squashfs image. The final image is later copied
-## into the iso target directory to be used during the iso boot.
+## into the iso target directory to be used during the iso boot. The image is
+## always regenerated, so that it never lags behind the runtime directory.
 ##
 #-------------------------------------------------------------------------------
 function cauldron_iso_compressedfs() {
   local target="$CAULDRON_ISO_SQUASHFS"
-  local binpath="$CAULDRON_BUILD/usr/sbin"
+  local img="$CAULDRON_ISO_SQUASHIMG"
+  local mnt="/tmp/cauldron-isofs"
+  local out="/tmp/${img##*/}"
+  local cmd=()
 
   [[ -d "$target" ]] || return $ERR_TARGET
-
-  # don't do anything if we already have the image
-  [[ -f "$CAULDRON_ISO_SQUASHIMG" ]] && return $ERR_OK
 
   # wipe the bash history if it exists
   if [[ -f "$target/root/.bash_history" ]]
@@ -936,97 +1235,124 @@ function cauldron_iso_compressedfs() {
       return $ERR_WRITE_FILE
   fi
 
-  "$binpath/${CAULDRON_CMD_MKSQUASHFS[@]}" ||
+  cmd=( "${CAULDRON_CMD_MKSQUASHFS[@]/ISOFS_DIR/$mnt}" )
+  cmd=( "${cmd[@]/SQUASH_IMAGE/$out}" )
+
+  cauldron_verbose "Creating $(libcolor_file $img)"
+  cauldron_build_run_with "$target" "$mnt" "${cmd[@]}" ||
     return $ERR_ISO_COMPRESSFS
+
+  "${CAULDRON_CMD_MV[@]}" "$CAULDRON_BUILD/$out" "$img" ||
+    return $ERR_ISO_COMPRESSFS
+
+  return $ERR_OK
 }
 
 #-------------------------------------------------------------------------------
 ## @param target path (optional)
 ##
-## Packages the iso filesystem using the generated iso data and the filename
-## set in the cauldron config file. If the target path isn't given as an
-## argument, it defaults to CAULDRON_ISO.
+## Installs the bootloader into the iso directory (the target path, defaulting
+## to CAULDRON_ISO). With grub (the default), this installs the menu
+## (boot/grub/grub.cfg) and the GRUB modules for each platform, and makes the
+## boot images: boot/grub/i386-pc/eltorito.img for BIOS, and a FAT image with
+## EFI/BOOT/BOOTX64.EFI for UEFI (CAULDRON_TMP/efiboot.img, which
+## cauldron_package_iso appends to the iso as an EFI system partition). Both
+## images find the iso by the marker file boot/grub/<volume id>.
 ##
 #-------------------------------------------------------------------------------
 function cauldron_iso_bootloader() {
   local target="${1:-$CAULDRON_ISO}"
-  local src="$CAULDRON_BUILD"
+  local build="$CAULDRON_BUILD"
   local loader="$CAULDRON_ISO_BOOTLOADER"
-  local binpath="$CAULDRON_BUILD/usr/bin"
   local conf="$CAULDRON_CONFIG/$CAULDRON_ARCH/iso"
+  local work="$CAULDRON_TMP/grub-images"
+  local marker="/boot/grub/$CAULDRON_ISO_VOLID"
+  local efiimg="$CAULDRON_TMP/efiboot.img"
+  local mnt="/tmp/cauldron-grub"
+  local platform=
+  local size=
 
   [[ -d "$target" ]] || return $ERR_TARGET
-  [[ -d "$src" ]] || return $ERR_DIR_ACCESS
-  [[ -d "$binpath" ]] || return $ERR_DIR_ACCESS
+  [[ -d "$build" ]] || return $ERR_DIR_ACCESS
   [[ -d "$conf" ]] || return $ERR_DIR_ACCESS
 
   case "$loader" in
-    syslinux )
-      # ensure /boot/syslinux exists in the target
-      "${CAULDRON_CMD_MKDIR[@]}" "$target/boot/syslinux" ||
-        return $ERR_MK_DIR
-
-      # copy the main config file
-      "${CAULDRON_CMD_CP[@]}" \
-        "$conf/syslinux.cfg" \
-        "$target/boot/syslinux/syslinux.cfg" ||
-          return $ERR_CP_FILE
-
-      # ensure that /isolinux exists in the target for booting cdroms
-      "${CAULDRON_CMD_MKDIR[@]}" "$target/isolinux" ||
-        return $ERR_MK_DIR
-
-      # copy the main config to the isolinux config
-      "${CAULDRON_CMD_CP[@]}" \
-        "$target/boot/syslinux/syslinux.cfg" \
-        "$target/isolinux/isolinux.cfg" ||
-          return $ERR_CP_FILE
-
-      # copy over the bootup message if present
-      if [[ -f "$conf/syslinux.msg" ]]
-      then
-        "${CAULDRON_CMD_CP[@]}" \
-          "$conf/syslinux.msg" \
-          "$target/boot/syslinux/syslinux.msg" ||
-            return $ERR_CP_FILE
-      fi
-
-      # copy in all necessary syslinux/isolinux modules
-      case "$CAULDRON_ISO_BOOTENV" in
-        efi )
-          mods="$src/usr/share/syslinux/efi"
-          ;;
-        bios )
-          mods="$src/usr/share/syslinux"
-
-          # copy the isolinux.bin boot file into the target's /isolinux
-          "${CAULDRON_CMD_CP[@]}" \
-            "$src/usr/share/syslinux/isolinux.bin" \
-            "$target/isolinux/" ||
-             return $ERR_CP_FILE
-          ;;
-        * )
-          ;;
-      esac
-      for mod in "$mods/"*.c32
-      do
-        "${CAULDRON_CMD_CP[@]}" "$mod" "$target/boot/syslinux/" ||
-          return $ERR_CP_FILE
-      done
-      ;;
     grub )
+      "${CAULDRON_CMD_MKDIR[@]}" "$target/boot/grub" "$work" ||
+        return $ERR_MK_DIR
+
+      # the menu
+      "${CAULDRON_CMD_SED[@]}" "s/@ISO_VERSION@/$CAULDRON_ISO_VERSION/g" \
+        "$conf/grub.cfg" > "$target/boot/grub/grub.cfg" ||
+          return $ERR_WRITE_FILE
+
+      # the file the boot images look for to find the iso
+      echo "$CAULDRON_ISO_VERSION" > "$target/$marker" ||
+        return $ERR_WRITE_FILE
+
+      # GRUB modules for each platform, loaded by the boot images at runtime
+      for platform in "${CAULDRON_ISO_GRUB_PLATFORMS[@]}"
+      do
+        [[ -d "$build/usr/lib/grub/$platform" ]] || return $ERR_ISO_GRUB
+        "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$target/boot/grub/$platform" ||
+          return $ERR_RM_FILE
+        "${CAULDRON_CMD_CP_PRESERVE[@]}" "$build/usr/lib/grub/$platform" \
+          "$target/boot/grub/" ||
+            return $ERR_CP_FILE
+      done
+
+      # the config embedded in the boot images: find the iso, then read the
+      # menu from it
+      cat > "$work/early.cfg" <<-EarlyCfg
+	search --no-floppy --set=root --file $marker
+	set prefix=(\$root)/boot/grub
+	EarlyCfg
+      [[ "$?" -eq 0 ]] || return $ERR_WRITE_FILE
+
+      cat > "$work/mkimages.sh" <<-MkImages
+	#!/bin/sh
+	set -e
+	cd $mnt
+	mods="search search_fs_file configfile normal echo test part_msdos part_gpt
+	  iso9660 fat"
+	grub-mkimage -O i386-pc-eltorito -d /usr/lib/grub/i386-pc -p /boot/grub \\
+	  -c early.cfg -o eltorito.img biosdisk \$mods
+	grub-mkimage -O x86_64-efi -d /usr/lib/grub/x86_64-efi -p /boot/grub \\
+	  -c early.cfg -o BOOTX64.EFI \$mods
+	# a FAT image just big enough for BOOTX64.EFI (in 1 MiB steps)
+	size=\$(( (\$(wc -c < BOOTX64.EFI) / 1048576 + 2) * 2048 ))
+	rm -f efiboot.img
+	mformat -i efiboot.img -C -T \$size -h 64 -s 32 -v EFIBOOT ::
+	mmd -i efiboot.img ::/EFI ::/EFI/BOOT
+	mcopy -i efiboot.img BOOTX64.EFI ::/EFI/BOOT/BOOTX64.EFI
+	MkImages
+      [[ "$?" -eq 0 ]] || return $ERR_WRITE_FILE
+
+      cauldron_verbose "Making the GRUB boot images"
+      cauldron_build_run_with "$work" "$mnt" sh "$mnt/mkimages.sh" ||
+        return $ERR_ISO_GRUB
+
+      "${CAULDRON_CMD_CP_FORCE[@]}" "$work/eltorito.img" \
+        "$target/boot/grub/i386-pc/eltorito.img" ||
+          return $ERR_CP_FILE
+      "${CAULDRON_CMD_CP_FORCE[@]}" "$work/efiboot.img" "$efiimg" ||
+        return $ERR_CP_FILE
+
+      # also put the EFI loader in the iso9660 tree, for firmware that looks
+      # for it there
+      "${CAULDRON_CMD_MKDIR[@]}" "$target/EFI/BOOT" || return $ERR_MK_DIR
+      "${CAULDRON_CMD_CP_FORCE[@]}" "$work/BOOTX64.EFI" \
+        "$target/EFI/BOOT/BOOTX64.EFI" ||
+          return $ERR_CP_FILE
       ;;
     * )
+      # syslinux used to be supported here, but it only covered BIOS and its
+      # spell no longer builds reliably
+      liberror_print_error $ERR_ISO_LOADER \
+        "unsupported bootloader: $loader (only grub is supported)"
       return $ERR_ISO_LOADER
       ;;
   esac
-
-  # install the bootloader background image
-  if [[ -f "$conf/installsmgl.img" ]]
-  then
-    "${CAULDRON_CMD_CP[@]}" "$conf/installsmgl.img" "$target/boot/" ||
-      return $ERR_CP_FILE
-  fi
 
   return $ERR_OK
 }
@@ -1041,11 +1367,13 @@ function cauldron_iso_bootloader() {
 #-------------------------------------------------------------------------------
 function cauldron_package_iso() {
   local target="${1:-$CAULDRON_ISO}"
-  local binpath="$CAULDRON_BUILD/usr/bin"
   local cimg="$CAULDRON_ISO_SQUASHIMG"
+  local iso="$CAULDRON_ISO_NAME"
+  local work="$CAULDRON_TMP"
+  local mnt="/tmp/cauldron-iso"
+  local cmd=()
 
   [[ -d "$target" ]] || return $ERR_TARGET
-  [[ -d "$binpath" ]] || return $ERR_DIR_ACCESS
 
   # add bootloader files and setup
   cauldron_iso_bootloader "$target"
@@ -1058,7 +1386,7 @@ function cauldron_package_iso() {
     # during image creation
     if [[ "$cimg" != "$target/${cimg##*/}" ]]
     then
-      "${CAULDRON_CMD_CP[@]}" "$cimg" "$target/" || return $ERR_CP_FILE
+      "${CAULDRON_CMD_CP_FORCE[@]}" "$cimg" "$target/" || return $ERR_CP_FILE
     fi
   fi
 
@@ -1069,13 +1397,30 @@ function cauldron_package_iso() {
       return $ERR_WRITE_FILE
   fi
 
-  # build the final filesystem image
-  "$binpath/${CAULDRON_CMD_MKISOFS[@]}" "$target" || return $ERR_ISO_PACKAGE
+  # build the final filesystem image; xorriso runs in the build chroot, with
+  # CAULDRON_TMP (the efi image, the output) and the iso dir mounted there
+  cmd=( "${CAULDRON_CMD_MKISOFS[@]/BIOS_MBR//usr/lib/grub/i386-pc/boot_hybrid.img}" )
+  cmd=( "${cmd[@]/EFI_IMAGE/$mnt/efiboot.img}" )
+  cmd=( "${cmd[@]/ISO_IMAGE/$mnt/${iso##*/}.tmp}" )
+  cmd=( "${cmd[@]/ISO_DIR/$mnt/${target##*/}}" )
+
+  [[ "${target%/*}" == "$work" ]] || return $ERR_TARGET
+
+  cauldron_verbose "Creating $(libcolor_file $iso)"
+  cauldron_build_run_with "$work" "$mnt" "${cmd[@]}" ||
+    return $ERR_ISO_PACKAGE
+  "${CAULDRON_CMD_MV[@]}" "$work/${iso##*/}.tmp" "$iso" ||
+    return $ERR_ISO_PACKAGE
+
+  # checksum, as for the system tarball
+  ( cd "${iso%/*}" && "${CAULDRON_CMD_CHECKSUM[@]}" "${iso##*/}" ) \
+    > "$iso.sha512" ||
+      return $ERR_ISO_PACKAGE
 
   # compress it if desired
   if [[ "$CAULDRON_ISO_COMPRESS" == "yes" ]]
   then
-    "$binpath/${CAULDRON_CMD_COMPRESS[@]}" "$CAULDRON_ISO_NAME" ||
+    "${CAULDRON_CMD_COMPRESS[@]}" -k "$iso" ||
       return $ERR_ISO_COMPRESS
   fi
 
@@ -1130,11 +1475,21 @@ function cauldron_iso_kernel() {
           ;;
       esac
       kimg="$kimg/$kernel-$kvers/arch/$karch/boot/bzImage"
+
+      # always build with the config from cauldron, so that changes to it
+      # take effect even if the sources were configured earlier
+      [[ -f "$kconf" ]] || return $ERR_KERNEL_CONFIG
+      "${CAULDRON_CMD_CP_FORCE[@]}" "$kconf" \
+        "$build/usr/src/$kernel-$kvers/.config" ||
+          return $ERR_CP_FILE
+
       cat > "$build/tmp/kbuild.sh" <<- KBuild
         #!/bin/sh
         cd /usr/src/$kernel-$kvers &&
+        make olddefconfig &&
         make -j "${CAULDRON_BUILD_JOBS:-1}" &&
-        make -j "${CAULDRON_BUILD_JOBS:-1}" modules_install
+        rm -rf "/lib/modules/$kvers" &&
+        make INSTALL_MOD_STRIP=1 modules_install
 KBuild
       ;;
     * )
@@ -1147,6 +1502,20 @@ KBuild
   then
     cauldron_chroot_init "$build"
     liberror_check || return $?
+
+    # the build tools may have been dispelled after their caches were made;
+    # casting them again just resurrects those caches (only cast missing
+    # ones: recasting an installed spell can fire triggers, e.g. perl's
+    # recompile autoconf, automake and texinfo)
+    local deps=(
+      $(cauldron_sorcerous_not_installed "${CAULDRON_KERNEL_BUILD_DEPS[@]}")
+    )
+    if [[ "${#deps[@]}" -gt 0 ]]
+    then
+      cauldron_chroot_cast "${deps[@]}"
+      liberror_check || return $?
+    fi
+
     cauldron_chroot sh "/tmp/kbuild.sh"
     liberror_check || return $?
     cauldron_chroot rm "/tmp/kbuild.sh"
@@ -1173,23 +1542,38 @@ KBuild
       return $ERR_LINK_FILE
 
   # if using a compressed iso runtime, the kernel should also be copied to the
-  # runtime for install purposes
+  # runtime for install purposes (enchantment installs /boot/kernel and
+  # /boot/config-<version> to the target)
   if [[ "$CAULDRON_ISO_SQUASH" == "yes" ]]
   then
-    "${CAULDRON_CMD_CP[@]}" "$kimg" "$target/boot/$kernel-$karch-$kvers" ||
+    "${CAULDRON_CMD_MKDIR[@]}" "$target/boot" || return $ERR_MK_DIR
+    "${CAULDRON_CMD_CP[@]}" "$kimg" "$target/boot/vmlinuz-$kvers" ||
       return $ERR_CP_FILE
+    "${CAULDRON_CMD_SYMLINK_FORCE[@]}" "vmlinuz-$kvers" \
+      "$target/boot/kernel" ||
+        return $ERR_LINK_FILE
   fi
+  "${CAULDRON_CMD_CP[@]}" "$build/usr/src/$kernel-$kvers/.config" \
+    "$target/boot/config-$kvers" ||
+      return $ERR_CP_FILE
 
   # ensure that the lib/modules dir exists in the target
   "${CAULDRON_CMD_MKDIR[@]}" "$target/lib/modules" ||
     return $ERR_MK_DIR
 
-  # install the kernel modules into the iso
-  "${CAULDRON_CMD_CP_RECURSE[@]}" \
+  # install the kernel modules into the iso (without the build and source
+  # links into the build chroot's kernel tree)
+  "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$target/lib/modules/$kvers" ||
+    return $ERR_RM_FILE
+  "${CAULDRON_CMD_CP_PRESERVE[@]}" \
     "$build/lib/modules/$kvers" \
-    "$target/lib/modules" ||
+    "$target/lib/modules/" ||
       return $ERR_CP_FILE
+  "${CAULDRON_CMD_RM_FORCE[@]}" "$target/lib/modules/$kvers/build" \
+    "$target/lib/modules/$kvers/source" ||
+      return $ERR_RM_FILE
 
+  return $ERR_OK
 }
 
 #-------------------------------------------------------------------------------
@@ -1209,7 +1593,7 @@ function cauldron_source_enchantment() {
   ENCHANT_CONF="${ENCHANT_CONF:-$CAULDRON_ENCHANT_DIR/config}"
 
   # source the enchantment config to make sure we get the paths correct
-  . "$config" @>$CAULDRON_NULL || return $ERR_ENCHANT_CONFIG
+  . "$config" &> "$CAULDRON_NULL" || return $ERR_ENCHANT_CONFIG
 }
 
 #-------------------------------------------------------------------------------
@@ -1227,33 +1611,40 @@ function cauldron_source_enchantment() {
 #-------------------------------------------------------------------------------
 function cauldron_add_enchanters() {
   local target="$CAULDRON_ISO"
-  local enchanters="${1:-${ENCHANT_DATA#/}}"
-  local srcdir="$CAULDRON_ENCHANT_DIR"
+  local srcdir="$CAULDRON_ENCHANT_DIR/enchanters"
+  local dest="${ENCHANT_ENCHANTERS#/}"
+  local list="${ENCHANT_MODULES#/}/welcome/enchanters"
   local enchanter=""
 
   # alter the target if a compressed fs is desired
   [[ "$CAULDRON_ISO_SQUASH" == "yes" ]] &&
     target="$CAULDRON_ISO_SQUASHFS"
 
-  [[ -d "$CAULDRON_ENCHANT_DIR" ]] || return $ERR_ENCHANT_SRC
-  [[ -d "$target/$data" ]] || return $ERR_ENCHANT_DIR
+  [[ -d "$srcdir" ]] || return $ERR_ENCHANT_SRC
+  [[ -n "$dest" ]] || return $ERR_ENCHANT_DIR
+
+  "${CAULDRON_CMD_MKDIR[@]}" "$target/$dest" "$target/usr/sbin" \
+    "$target/${list%/*}" ||
+      return $ERR_ENCHANT_DIR
+  : > "$target/$list" || return $ERR_WRITE_FILE
 
   for enchanter in "${CAULDRON_ENCHANTERS[@]}"
   do
     cauldron_verbose "Installing enchanter: $enchanter"
 
-    "${CAULDRON_CMD_CP_RECURSE[@]}" "$srcdir/$enchanter" "$target/$data/" ||
+    "${CAULDRON_CMD_CP_PRESERVE[@]}" "$srcdir/$enchanter" "$target/$dest/" ||
       return $ERR_COPY_ENCHANTER
 
-    if [[ -f "$target/$data/$enchanter/bin/enchantment-$enchanter" ]]
+    if [[ -f "$target/$dest/$enchanter/bin/enchantment-$enchanter" ]]
     then
       "${CAULDRON_CMD_SYMLINK_FORCE[@]}" \
-        "$ENCHANT_DATA/$enchanter/bin/enchantment-$enchanter" \
-        "$target/usr/sbin/" ||
+        "$ENCHANT_ENCHANTERS/$enchanter/bin/enchantment-$enchanter" \
+        "$target/usr/sbin/enchantment-$enchanter" ||
           return $ERR_LINK_ENCHANTER
     fi
-    echo "$enchanter:$(cat $target/$enchanters/$enchanter/description)" \
-      >> "$target/$ENCHANT_MODULES/welcome/enchanters"
+    echo "$enchanter:$(cat "$target/$dest/$enchanter/description")" \
+      >> "$target/$list" ||
+        return $ERR_WRITE_FILE
   done
 
   # set the default enchanter to the first entry in the enchanters list
@@ -1266,7 +1657,7 @@ function cauldron_add_enchanters() {
   case "$CAULDRON_ENCHANTERS" in
     shell)
       "${CAULDRON_CMD_SYMLINK_FORCE[@]}" \
-        "$ENCHANT_DATA/shell/bashrc" \
+        "$ENCHANT_ENCHANTERS/shell/bashrc" \
         "$target/root/.bashrc" ||
           return $ERR_LINK_ENCHANTER
       ;;
@@ -1394,12 +1785,13 @@ function cauldron_enchant() {
   # add available editors information
   if [[ "${#CAULDRON_ISO_EDITORS[@]}" -gt 0 ]]
   then
+    local editors="$target/${ENCHANT_MODULES#/}/welcome/editors"
     echo "This iso provides the following editors by default:" \
-      > "$ENCHANT_MODULES/welcome/editors"
+      > "$editors" || return $ERR_WRITE_FILE
     for editor in "${CAULDRON_ISO_EDITORS[@]}"
     do
       echo "$editor" | sed 's/^\([^:]*\)/::@[\1]/'
-    done | column -t -s: \ >> "$ENCHANT_MODULES/welcome/editors" ||
+    done | column -t -s: >> "$editors" ||
       return $ERR_WRITE_FILE
   fi
 
@@ -1414,7 +1806,7 @@ function cauldron_enchant() {
   # write the version info file by file
   echo "$ENCHANT_VERSION" >> "$target/$ENCHANT_DATA/version/enchantment" ||
     return $ERR_WRITE_FILE
-  echo "$ENCHANT_ISO_VERSION" >> "$target/$ENCHANT_DATA/version/iso" ||
+  echo "$CAULDRON_ISO_VERSION" >> "$target/$ENCHANT_DATA/version/iso" ||
     return $ERR_WRITE_FILE
   "${CAULDRON_CMD_CAT[@]}" "$CAULDRON_BUILD/etc/sorcery/version" \
     >> "$target/$ENCHANT_DATA/version/sorcery" ||
@@ -1517,6 +1909,7 @@ function cauldron_enchant_init() {
   "${CAULDRON_CMD_RM[@]}" "$target/tmp/inittab" || return $ERR_RM_FILE
 
   # set login shells to run enchantment
+  "${CAULDRON_CMD_MKDIR[@]}" "${profile%/*}" || return $ERR_MK_DIR
   echo "[ -f /root/.bashrc ] && source /root/.bashrc" > "$profile" ||
     return $ERR_WRITE_FILE
   echo "$enchantment welcome" >> "$profile" ||
@@ -1559,6 +1952,14 @@ function cauldron_enchant_init() {
       >> "$target/etc/inittab" ||
         return $ERR_WRITE_FILE
   done
+
+  # optionally the default enchanter on the first serial port as well
+  if [[ "$CAULDRON_ISO_SERIAL_GETTY" == "yes" ]]
+  then
+    echo "ttyS0:vt100:/sbin/agetty -nl /bin/login.sh -L 115200 ttyS0" \
+      >> "$target/etc/inittab" ||
+        return $ERR_WRITE_FILE
+  fi
 
   return $ERR_OK
 }

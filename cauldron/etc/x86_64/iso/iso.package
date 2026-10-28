@@ -1,0 +1,6 @@
+# Spells needed in the build chroot to package the ISO: the squashfs image,
+# the GRUB boot images (BIOS + UEFI) and the hybrid ISO itself.
+squashfs-tools
+grub2
+mtools
+libisoburn

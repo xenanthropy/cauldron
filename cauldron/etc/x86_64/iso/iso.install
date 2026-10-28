@@ -1,0 +1,21 @@
+# Spell caches shipped on the ISO (isofs/var/cache/sorcery) that the installer
+# can add to the installed system on top of system.tar.xz. Their dependency
+# closure is shipped too, minus spells already in system.tar.xz.
+
+# boot loader (the grub2 cache carries both the BIOS and the UEFI platform)
+grub2
+efibootmgr
+dosfstools
+
+# storage
+mdadm
+lvm
+cryptsetup-luks
+xfsprogs
+btrfs-progs
+
+# network / remote access
+openssh
+
+# development
+git

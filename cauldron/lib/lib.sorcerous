@@ -393,22 +393,55 @@ function cauldron_sorcerous_make_cache() {
 }
 
 #-------------------------------------------------------------------------------
+## @param spells
+##
+## Prints those of the given spells that are not installed in the build chroot.
+## Use it to cast only what is missing: casting an installed spell recasts it,
+## which can fire triggers that recompile other spells.
+##
+#-------------------------------------------------------------------------------
+function cauldron_sorcerous_not_installed() {
+  local packages="$CAULDRON_BUILD/var/state/sorcery/packages"
+  local spell=
+
+  for spell in "$@"
+  do
+    grep -q "^$spell:[^:]*:\(installed\|held\):" "$packages" \
+      2> "$CAULDRON_NULL" ||
+        echo "$spell"
+  done
+
+  return 0
+}
+
+#-------------------------------------------------------------------------------
+## @param -x spell (optional, repeatable): spell to leave out
 ## @param spells (or a file listing spells)
 ##
 ## Prints the given spells plus every spell they (recursively) depend on with
 ## the dependency enabled ("on"), according to the build chroot's sorcery
 ## records. Provider dependencies such as "gawk(AWK)" resolve to the spell
 ## (gawk). This is what an installed system needs so that sorcery there doesn't
-## consider any enabled dependency missing.
+## consider any enabled dependency missing. Spells given with -x are neither
+## printed nor followed (sorcery's records don't tell build-time dependencies
+## from runtime ones, so this is how build tools are kept out of the ISO).
 ##
 #-------------------------------------------------------------------------------
 function cauldron_sorcerous_depends_closure() {
   local depends="$CAULDRON_BUILD/var/state/sorcery/depends"
-  local queue=( "$@" )
+  local queue=()
   local -A seen=()
   local cache=
   local spell=
   local dep=
+
+  # "-x spell" leaves that spell, and whatever only it depends on, out
+  while [[ "$1" == "-x" ]]
+  do
+    seen[$2]=1
+    shift 2
+  done
+  queue=( "$@" )
 
   [[ -f "$queue" ]] && queue=( $(cauldron_read_list "$queue") )
 

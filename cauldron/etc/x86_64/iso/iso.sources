@@ -1,0 +1,3 @@
+# Spell sources copied to the ISO (isofs/usr/src) so they can be cast on the
+# installed system without network access. The kernel sources are always
+# added. Empty for now: keeping the ISO small matters more.

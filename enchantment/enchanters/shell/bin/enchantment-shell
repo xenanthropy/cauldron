@@ -158,12 +158,12 @@ function enchant_shell_command_install() {
       enchant_install_kernel "$@"
       liberror_check_fatal
       ;;
-    "isokernel" )
+    "isokernel" | "iso-kernel" )
       [[ $# -ne 0 ]] && return $ERR_INSTALLER_CMD
       enchant_install_kernel
       liberror_check_fatal
       ;;
-    "system" )
+    "system" | "basesystem" )
       [[ $# -ne 0 ]] && return $ERR_INSTALLER_CMD
       enchant_install_system
       liberror_check_fatal
@@ -199,7 +199,91 @@ function enchant_shell_command_variable() {
 }
 
 function enchant_shell_command_select() {
-  # TODO: not yet implemented
+  local what="$1"
+  shift
+
+  case "$what" in
+    caches )
+      enchant_shell_select_list "$ENCHANT_CACHES_LIST" \
+        "$ENCHANT_SPELL_CACHES" "$@"
+      ;;
+    sources )
+      enchant_shell_select_list "$ENCHANT_SOURCES_LIST" \
+        "$ENCHANT_SPELL_SOURCES" "$@"
+      ;;
+    * )
+      return $ERR_INSTALLER_CMD
+      ;;
+  esac
+}
+
+#-------------------------------------------------------------------------------
+## @param selection list file
+## @param directory with the files to select from
+## @param action: show (default), add, del, all, none
+## @param globs (for add and del)
+##
+## Shows or changes the selection of files (spell caches or sources) to
+## install into the target.
+##
+#-------------------------------------------------------------------------------
+function enchant_shell_select_list() {
+  local list="$1"
+  local dir="$2"
+  local action="${3:-show}"
+  local available=()
+  local file=
+  local glob=
+  local mark=
+
+  shift 3
+
+  [[ -d "$dir" ]] && available=( $(cd "$dir" && ls) )
+  [[ -f "$list" ]] || : > "$list" || return $ERR_FILE_ACCESS
+
+  case "$action" in
+    show )
+      if [[ "${#available[@]}" -eq 0 ]]
+      then
+        echo "nothing available in $dir"
+        return $ERR_OK
+      fi
+      for file in "${available[@]}"
+      do
+        mark=" "
+        grep -qxF "$file" "$list" && mark="x"
+        echo "[$mark] $file"
+      done
+      ;;
+    add )
+      for glob in "$@"
+      do
+        for file in "${available[@]}"
+        do
+          [[ "$file" == $glob ]] || continue
+          grep -qxF "$file" "$list" || echo "$file" >> "$list"
+        done
+      done
+      ;;
+    del )
+      for glob in "$@"
+      do
+        for file in $(< "$list")
+        do
+          [[ "$file" == $glob ]] && sed -i "\\|^$file\$|d" "$list"
+        done
+      done
+      ;;
+    all )
+      printf '%s\n' "${available[@]}" > "$list"
+      ;;
+    none )
+      : > "$list"
+      ;;
+    * )
+      return $ERR_INSTALLER_CMD
+      ;;
+  esac
 
   return $ERR_OK
 }

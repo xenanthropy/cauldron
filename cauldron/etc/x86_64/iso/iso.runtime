@@ -1,0 +1,75 @@
+# Spells that make up the live environment the ISO boots into (isofs/).
+# cauldron adds their dependency closure, minus CAULDRON_ISO_RUNTIME_EXCLUDE
+# (build-only tools such as gcc and python3; gcc's shared libraries are added
+# separately). Keep this to what an installer session needs: the installed
+# system itself comes from system.tar.xz.
+
+# base
+smgl-fhs
+glibc
+bash
+coreutils
+util-linux
+eudev
+kmod
+simpleinit-msb
+init.d
+shadow
+procps-ng
+grep
+sed
+gawk
+findutils
+diffutils
+less
+file
+which
+kbd
+locale
+tzdata
+iana-etc
+
+# archives (system.tar.xz, spell caches)
+tar
+gzip
+bzip2
+xz-utils
+zstd
+lzip
+unzip
+cpio
+
+# disks: partitioning, filesystems, RAID/LVM/encryption
+e2fsprogs
+dosfstools
+xfsprogs
+btrfs-progs
+parted
+mdadm
+lvm
+cryptsetup-luks
+hdparm
+lsscsi
+pciutils
+usbutils
+efibootmgr
+
+# network
+iproute2
+net-tools
+ifupdown
+dhcpcd
+wget
+ca-certificates
+openssl
+openssh
+rsync
+
+# editors, docs, convenience
+nano
+ed
+busybox
+man-db
+groff
+dialog
+gnupg-2.4

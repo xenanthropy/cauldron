@@ -195,10 +195,10 @@ device_manager_stop() {
       devpid="$(pidof $SMGL_DEVMGR)"
       ;;
   esac
-  if [ -n "$DEVPID" ] ;then
+  if [ -n "$devpid" ] ;then
     msginfo "Killing initramfs $SMGL_DEVMGR ..."
     echo "" > /proc/sys/kernel/hotplug
-    if ! kill "$DEVPID" ;then
+    if ! kill $devpid ;then
       msgerr "Error killing $SMGL_DEVMGR!"
       msgprompt -n "  [a]bort to shell or [c]ontinue? (a or c): "
       read choice
@@ -223,7 +223,7 @@ load_all_fs_modules() {
   # attempt to load all fs modules we can find
   # doing so enables mounting without specifying fs-type
   for mod in /lib/modules/*/kernel/fs/*/*.ko ;do
-    insmod "$mod" 2>&1 /dev/null
+    insmod "$mod" > /dev/null 2>&1
   done
 }
 
@@ -233,8 +233,8 @@ mount_squashfs() {
   local target="${3:-$SMGL_ISOMNT}"
 
   # ensure we have a functional srcdir
-  if ! [ -d "$mnt" ] ;then
-    msgerr "$mnt not a directory"
+  if ! [ -d "$srcdir" ] ;then
+    msgerr "$srcdir not a directory"
     return 1
   fi
 
@@ -306,7 +306,7 @@ try_mount() {
   local alttype="$5"
 
   if [ -z "$fstype" ] ;then
-    msgerror "please supply a filesystem type to mount with"
+    msgerr "please supply a filesystem type to mount with"
     return 1
   fi
 
@@ -357,7 +357,7 @@ test_mount() {
       msgerr "SMGL iso file not found: $SMGL_ISOPATH/$SMGL_ID"
     fi
   else
-    msgerr "couldn't mount $device at $mnt"
+    msgerr "couldn't mount $dev at $mnt"
   fi
 
   return $found
@@ -379,7 +379,9 @@ scan_cdrom()  {
       device="/dev/${handler##*/}"
 
       # skip loop devices
-      [ "${device##*/}" = "loop" ] && continue
+      case "${device##*/}" in
+        loop*) continue ;;
+      esac
 
       if test_mount "$device" "$fstype" ;then
         msggood "SMGL cdrom found!"
@@ -392,15 +394,23 @@ scan_cdrom()  {
   # Next try: look at all /proc/partitions stuff, make devices if neccessary
   local major minor blocks name
   while read major minor blocks name ;do
-    (( major )) 2>/dev/null || continue # Don't process non-numeric lines
+    # skip the header and blank lines
+    case "$major" in
+      ''|*[!0-9]*) continue ;;
+    esac
 
     device="/dev/$name"
+
+    # skip loop and ram devices
+    case "$name" in
+      loop*|ram*) continue ;;
+    esac
 
     if [ ! -b "$device" ] ;then
       mknod "$device" b "$major" "$minor"
     fi
 
-    if test_mount "$device" ;then
+    if test_mount "$device" "$fstype" ;then
       msggood "SMGL cdrom found!"
       return 0
     fi

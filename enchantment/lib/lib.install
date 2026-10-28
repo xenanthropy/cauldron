@@ -110,26 +110,45 @@ function enchant_install_sources() {
 #-------------------------------------------------------------------------------
 function enchant_install_caches() {
   local caches=( "$@" )
+  local target="$ENCHANT_TARGET"
   local dst="$ENCHANT_TARGET_CACHES"
+  local spells=()
+  local cache=
+  local label=
 
-  # if no spells were passed in directly, load via the env var
-  [[ -n "$caches" ]] || caches=( "${ENCHANT_CACHES_LIST[@]}" )
+  # if no caches were passed in directly, use the selected ones
+  if [[ "${#caches[@]}" -eq 0 && -r "$ENCHANT_CACHES_LIST" ]]
+  then
+    caches=( $(grep -v '^#' "$ENCHANT_CACHES_LIST") )
+  fi
+  [[ "${#caches[@]}" -gt 0 ]] || return $ERR_OK
 
-  for spell in $caches
+  "${ENCHANT_CMD_MKDIR[@]}" "$dst" || return $ERR_INSTALL_CACHES
+
+  # copy the caches to the target's sorcery cache directory
+  for cache in "${caches[@]}"
   do
-    # if the spells are specified via a file, read the file
-    if [[ -r "$spell" ]]
-    then
-      while read s
-      do
-        "${ENCHANT_CMD_TAR[@]}" -C "$target" -xf "$ENCHANT_SPELL_CACHES/$s" ||
-          return $ERR_INSTALL_CACHES
-      done < "$spell"
-    else
-      "${ENCHANT_CMD_TAR[@]}" -C "$target" -xf "$ENCHANT_SPELL_CACHES/$spell" ||
-        return $ERR_INSTALL_CACHES
-    fi
+    [[ "$cache" == */* ]] || cache="$ENCHANT_SPELL_CACHES/$cache"
+    [[ -f "$cache" ]] || return $ERR_INSTALL_CACHES
+
+    "${ENCHANT_CMD_CP[@]}" "$cache" "$dst/" || return $ERR_INSTALL_CACHES
+
+    # sorcery labels its caches "spell version ..."
+    label=$("${ENCHANT_CMD_TAR[@]}" -tvf "$cache" | head -n 1 |
+      sed -n 's/^V.* [0-9:]* \(.*\)--Volume Header--$/\1/p')
+    [[ -n "$label" ]] || return $ERR_INSTALL_CACHES
+    spells+=( "${label%% *}" )
   done
+
+  # let sorcery in the target install them, so that it knows about them (it
+  # resurrects the caches rather than compiling, since the target's grimoire
+  # has the same spell versions)
+  enchant_chroot_init "$target"
+  liberror_check || return $?
+  enchant_chroot cast "${spells[@]}"
+  liberror_check || return $ERR_INSTALL_CACHES
+  enchant_chroot_done "$target"
+  liberror_check || return $?
 
   return $ERR_OK
 }

@@ -1,12 +1,18 @@
 @[basesystem step]
-In this step, you will unpack and install the basesystem chroot image to your target partitions.
+In this step, you will unpack and install the basesystem image to your target
+partitions, and then install the spell caches you selected in the
+@[spell-caches] step into it.
 
 enchantment:
   @[enchantment install basesystem]
+  @[enchantment install caches]
 
 manually:
-  @[tar -xf /system.tar.xz -C "$ENCHANT_TARGET"]
+  @[tar -xpf /system.tar.xz -C "$ENCHANT_TARGET"]
+  copy the caches you want to $ENCHANT_TARGET/var/cache/sorcery/, then
+  @[enchantment chroot] and @[cast] the spells, and @[exit]
 
-If all goes well, you will have a very minimal base system that you can now play around in.
+If all goes well, you will have a very minimal base system that you can now
+play around in.
 
 When you are ready, type @[next].

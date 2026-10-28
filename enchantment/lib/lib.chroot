@@ -285,7 +285,14 @@ function enchant_chroot() {
   enchant_verbose "${ENCHANT_CHROOT[@]} $@"
 
   PATH="/sbin:/bin:/usr/sbin:/usr/bin"
-  "${ENCHANT_CHROOT[@]}" "$@" @> "$stdout" || return $ERR_CHROOT_EXEC
+  # (only redirect when silencing: reopening /dev/stdout would truncate a log
+  # file that stdout goes to)
+  if [[ "$stdout" == "$ENCHANT_STDOUT" ]]
+  then
+    "${ENCHANT_CHROOT[@]}" "$@" || return $ERR_CHROOT_EXEC
+  else
+    "${ENCHANT_CHROOT[@]}" "$@" > "$stdout" || return $ERR_CHROOT_EXEC
+  fi
 
   return $ERR_OK
 }

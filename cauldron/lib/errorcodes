@@ -51,6 +51,7 @@ liberror_add_error ERR_BUILD_SPOOL \
   "build directory sorcery spool does not exist"
 liberror_add_error ERR_RESOLV "resolv.conf missing in target directory"
 liberror_add_error ERR_KERNEL "could not determine kernel"
+liberror_add_error ERR_KERNEL_CONFIG "kernel config file not found"
 liberror_add_error ERR_LDCONFIG "could not build library symlinks"
 
 # libcauldron cleaner files
@@ -74,6 +75,10 @@ liberror_add_error ERR_ISO_COMPRESS "could not compress final iso image"
 liberror_add_error ERR_ISO_COMPRESSFS \
   "could not create compressed iso runtime image"
 liberror_add_error ERR_ISO_LOADER "could not set up iso bootloader"
+liberror_add_error ERR_ISO_GRUB "could not build GRUB for the iso"
+liberror_add_error ERR_ISO_CHECK "iso sanity check failed"
+liberror_add_error ERR_MOUNT "could not mount"
+liberror_add_error ERR_UNMOUNT "could not unmount"
 liberror_add_error ERR_SYS_CREATE "could not create sys filesystem"
 liberror_add_error ERR_SYS_PACKAGE "could not package final sys file"
 liberror_add_error ERR_SYS_COMPRESS "could not compress final sys archive"

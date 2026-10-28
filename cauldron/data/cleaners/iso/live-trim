@@ -1,0 +1,14 @@
+# Paths (relative to the iso runtime root) removed by "cauldron iso purify".
+# Plain paths: files are deleted, directories are removed only if empty.
+# "dir/*": the directory is emptied recursively but kept.
+#
+# The live system only runs the installer; the installed system comes from
+# system.tar.xz, which keeps all of these.
+
+# headers (nothing is compiled in the live system)
+/usr/include/*
+
+# documentation other than man pages (enchantment's help is a man page)
+/usr/share/doc/*
+/usr/share/info/*
+/usr/share/gtk-doc/*

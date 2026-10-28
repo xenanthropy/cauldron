@@ -457,8 +457,16 @@ function package_sys() {
 ##
 #-------------------------------------------------------------------------------
 function build_iso_caches() {
+  # grub2 gets a cache with both the BIOS and the UEFI platform
+  cauldron_iso_grub
+  liberror_check || return $?
+
   # cast spells needed for iso, then dispel them, leaving the caches
-  build_spells "${CAULDRON_ISO_CACHES[@]}"
+  build_spells $(cauldron_read_list "${CAULDRON_ISO_CACHES[@]}")
+  liberror_check || return $?
+
+  # and their dependencies that system.tar.xz doesn't already have
+  build_spells $(cauldron_iso_spells install)
   liberror_check || return $?
 }
 
@@ -470,8 +478,16 @@ function build_iso_caches() {
 ##
 #-------------------------------------------------------------------------------
 function build_iso_runtime() {
+  # busybox (the runtime's and the initramfs') is built with cauldron's config
+  cauldron_init_sysutils_config
+  liberror_check || return $?
+
   # cast spells needed for iso, then dispel them, leaving the caches
-  build_spells "${CAULDRON_ISO_RUNTIME[@]}"
+  build_spells $(cauldron_read_list "${CAULDRON_ISO_RUNTIME[@]}")
+  liberror_check || return $?
+
+  # and their (runtime) dependencies
+  build_spells $(cauldron_iso_spells runtime)
   liberror_check || return $?
 }
 
@@ -482,7 +498,10 @@ function build_iso_runtime() {
 ##
 #-------------------------------------------------------------------------------
 function build_iso_packagers() {
-  build_spells "${CAULDRON_ISO_PACKAGE[@]}"
+  cauldron_iso_grub
+  liberror_check || return $?
+
+  build_spells $(cauldron_read_list "${CAULDRON_ISO_PACKAGE[@]}")
   liberror_check || return $?
 }
 
@@ -622,9 +641,7 @@ function purify_iso() {
   # only process cleaner files specifically for the iso filesystem
   for cleaner in "$CAULDRON_DATA/cleaners/iso/"*
   do
-    # TODO: add cleaner file(s) for wiping out usr/include/* and other such
-    # "nonsense", *unless* building a live iso in which case /usr/include may be
-    # needed (unless unpacking system.tar.xz over the iso during runtime)
+    [[ -f "$cleaner" ]] || continue
     cauldron_clean_fs "$cleaner" "$target"
     liberror_check || return $?
   done
@@ -677,14 +694,29 @@ function iso_sorcery() {
 ##
 #-------------------------------------------------------------------------------
 function package_iso() {
-  cauldron_chroot_init "$CAULDRON_BUILD"
+  local spells=()
+
+  # GRUB for every platform the iso boots with
+  cauldron_iso_grub
   liberror_check || return $?
 
-  # cast spells needed for iso, then dispel them, leaving the caches
-  cauldron_chroot_cast "${CAULDRON_ISO_PACKAGE[@]}"
-  liberror_check || return $?
+  # cast the packaging tools that aren't installed in the build chroot
+  spells=(
+    $(cauldron_sorcerous_not_installed \
+      $(cauldron_read_list "${CAULDRON_ISO_PACKAGE[@]}"))
+  )
+  if [[ "${#spells[@]}" -gt 0 ]]
+  then
+    cauldron_chroot_init "$CAULDRON_BUILD"
+    liberror_check || return $?
+    cauldron_chroot_cast "${spells[@]}"
+    liberror_check || return $?
+    cauldron_chroot_done "$CAULDRON_BUILD"
+    liberror_check || return $?
+  fi
 
-  cauldron_chroot_done "$CAULDRON_BUILD"
+  # make sure nothing the live system needs went missing
+  cauldron_iso_check
   liberror_check || return $?
 
   # create a compressed filesystem of the iso runtime if desired
@@ -698,15 +730,16 @@ function package_iso() {
   cauldron_package_iso
   liberror_check || return $?
 
-  cauldron_chroot_init "$CAULDRON_BUILD"
-  liberror_check || return $?
-
-  # dispel the cast spells, but leave the caches
-  cauldron_chroot_dispel "${CAULDRON_ISO_PACKAGE[@]}"
-  liberror_check || return $?
-
-  cauldron_chroot_done "$CAULDRON_BUILD"
-  liberror_check || return $?
+  # dispel the tools cast above again, but leave the caches
+  if [[ "${#spells[@]}" -gt 0 ]]
+  then
+    cauldron_chroot_init "$CAULDRON_BUILD"
+    liberror_check || return $?
+    cauldron_chroot_dispel "${spells[@]}"
+    liberror_check || return $?
+    cauldron_chroot_done "$CAULDRON_BUILD"
+    liberror_check || return $?
+  fi
 }
 
 #-------------------------------------------------------------------------------

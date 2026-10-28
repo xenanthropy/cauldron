@@ -1,0 +1,126 @@
+# Cauldron ISO kernel: settings applied on top of the kernel's
+# x86_64_defconfig. The full config used by cauldron
+# (linux-<version>.config next to this file) is generated from it with:
+#
+#   cd /usr/src/linux-<version>
+#   make x86_64_defconfig
+#   scripts/kconfig/merge_config.sh -m .config <this file>
+#   make olddefconfig
+#
+# Rule of thumb: anything the initramfs needs to find and mount the boot
+# medium is built in (=y), so booting never depends on loading modules; extra
+# hardware and filesystems the installer may need are modules (=m).
+
+# general
+CONFIG_LOCALVERSION=""
+CONFIG_LOCALVERSION_AUTO=n
+CONFIG_IKCONFIG=y
+CONFIG_IKCONFIG_PROC=y
+CONFIG_MODULES=y
+CONFIG_MODULE_UNLOAD=y
+CONFIG_MODULE_COMPRESS=n
+CONFIG_MODULE_SIG=n
+CONFIG_DEBUG_INFO_NONE=y
+# not needed for anything on the ISO (and needs a Rust toolchain)
+# CONFIG_RUST is not set
+
+# initramfs, devices
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_RD_GZIP=y
+CONFIG_RD_XZ=y
+CONFIG_RD_ZSTD=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+CONFIG_BLK_DEV_LOOP=y
+CONFIG_TMPFS=y
+CONFIG_TMPFS_POSIX_ACL=y
+
+# boot medium: CD (iso9660/udf), USB stick, squashfs live image + overlay
+CONFIG_ISO9660_FS=y
+CONFIG_JOLIET=y
+CONFIG_ZISOFS=y
+CONFIG_UDF_FS=y
+CONFIG_SQUASHFS=y
+CONFIG_SQUASHFS_FILE_DIRECT=y
+CONFIG_SQUASHFS_XZ=y
+CONFIG_SQUASHFS_ZSTD=y
+CONFIG_OVERLAY_FS=y
+CONFIG_BLK_DEV_SR=y
+CONFIG_CHR_DEV_SG=y
+CONFIG_USB_STORAGE=y
+CONFIG_USB_UAS=y
+CONFIG_USB_XHCI_HCD=y
+CONFIG_USB_EHCI_HCD=y
+CONFIG_USB_OHCI_HCD=y
+CONFIG_USB_UHCI_HCD=y
+CONFIG_USB_HID=y
+CONFIG_HID_GENERIC=y
+
+# disks
+CONFIG_ATA=y
+CONFIG_SATA_AHCI=y
+CONFIG_ATA_PIIX=y
+CONFIG_BLK_DEV_NVME=y
+CONFIG_MD=y
+CONFIG_BLK_DEV_MD=m
+CONFIG_MD_RAID0=m
+CONFIG_MD_RAID1=m
+CONFIG_MD_RAID10=m
+CONFIG_MD_RAID456=m
+CONFIG_BLK_DEV_DM=m
+CONFIG_DM_CRYPT=m
+CONFIG_DM_SNAPSHOT=m
+CONFIG_DM_MIRROR=m
+CONFIG_DM_RAID=m
+CONFIG_CRYPTO_XTS=m
+CONFIG_CRYPTO_AES_NI_INTEL=m
+
+# filesystems the installer can create / mount
+CONFIG_EXT4_FS=y
+CONFIG_EXT4_FS_POSIX_ACL=y
+CONFIG_EXT4_FS_SECURITY=y
+CONFIG_VFAT_FS=y
+CONFIG_FAT_DEFAULT_UTF8=y
+CONFIG_NLS_CODEPAGE_437=y
+CONFIG_NLS_ISO8859_1=y
+CONFIG_NLS_UTF8=y
+CONFIG_XFS_FS=m
+CONFIG_BTRFS_FS=m
+CONFIG_F2FS_FS=m
+CONFIG_EXFAT_FS=m
+CONFIG_NTFS3_FS=m
+# castfs (sorcery's staged installs) uses fuse
+CONFIG_FUSE_FS=y
+
+# UEFI
+CONFIG_EFI=y
+CONFIG_EFI_STUB=y
+CONFIG_EFI_PARTITION=y
+CONFIG_EFIVAR_FS=y
+CONFIG_SYSFB_SIMPLEFB=y
+CONFIG_DRM=y
+CONFIG_DRM_SIMPLEDRM=y
+CONFIG_DRM_FBDEV_EMULATION=y
+CONFIG_FRAMEBUFFER_CONSOLE=y
+
+# virtual machines
+CONFIG_VIRTIO_PCI=y
+CONFIG_VIRTIO_BLK=y
+CONFIG_SCSI_VIRTIO=y
+CONFIG_VIRTIO_NET=y
+CONFIG_VIRTIO_CONSOLE=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+
+# common wired network cards (wireless needs firmware, which the ISO lacks)
+CONFIG_E1000=m
+CONFIG_E1000E=m
+CONFIG_IGB=m
+CONFIG_IGC=m
+CONFIG_R8169=m
+CONFIG_TIGON3=m
+CONFIG_BNX2=m
+CONFIG_ATL1C=m
+CONFIG_ALX=m
+CONFIG_8139CP=m
+CONFIG_8139TOO=m

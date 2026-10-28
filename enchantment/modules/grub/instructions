@@ -1,21 +1,28 @@
 @[grub step]:
-To run grub properly, it needs to be chroot'ed into the new system.
+GRUB 2 must have been installed into the target in the @[spell-caches] step
+(@[enchantment select caches add 'grub2*'], then @[enchantment install caches]).
+Its cache supports both BIOS and UEFI machines.
+
+To find out how this machine booted the ISO:
+ @[ls /sys/firmware/efi]  # exists: UEFI; "No such file": BIOS
 
 chroot into the system:
  @[enchantment chroot]
 
-Copy all the necessary grub files to /boot:
-cp /usr/lib/grub/i386-pc/* /boot/grub
+BIOS machines: install GRUB to the disk's boot sector (the whole disk, not a
+partition; adjust /dev/sda):
+ @[grub-install --target=i386-pc /dev/sda]
+ (on a GPT disk, this needs a small "BIOS boot" partition without a filesystem)
 
-Then run grub and enter the following commands, without the > in front (adjust
-for your disk layout):
- @[/sbin/grub]
- > @[root (hd0,0)]
- > @[setup (hd0)]
- > @[quit]
+UEFI machines: the EFI system partition (FAT) must be mounted at /boot/efi in
+the target (do that before chrooting, e.g. mount /dev/sda1 /mnt/smgl/boot/efi):
+ @[mount -t efivarfs efivarfs /sys/firmware/efi/efivars]  # if not mounted yet
+ @[grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=smgl]
+If the firmware does not pick it up, also install the fallback loader:
+ @[grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable]
 
-Update menu.lst for your kernel:
-$EDITOR /boot/grub/menu.lst
+Then write the GRUB menu (it finds the kernel installed in the kernel step):
+ @[grub-mkconfig -o /boot/grub/grub.cfg]
 
 Exit the chroot:
  @[exit]
