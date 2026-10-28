@@ -519,6 +519,33 @@ Things learned the hard way; keep them in mind when changing the build code.
   llvm failing to build against current glibc headers; llvm spell default
   flags.
 
+### Base tarball contents (decisions, Oct 2026)
+- Principle: the base system must be able to rebuild itself (it's a source
+  distro), so build-time tools needed by base spells stay in; size is kept
+  down by options (presets), not by dropping those.
+- `sys.runtime` = `smgl-base` + `smgl-system` + `bc` + `elfutils` (kernel
+  builds) + `dhcpcd` (networking after first boot) + `man-db` + `gdbm` (see
+  above), plus the init from `CAULDRON_SYS_INIT` (default `simpleinit-msb`:
+  what the team expects and what sorcery's init-script prompts support;
+  `systemd`/`openrc` variants are possible from the same caches but untested).
+  `castfs`+`fuse` stay (staged installs). `git` goes on the ISO, not here.
+- Presets in `etc/toolchain/sorcery/depends/`: `locale` (en_US + UTF-8 +
+  C.UTF-8 instead of all locales, ~130 MB saved), `python3`
+  (`--disable-test-modules`). Caveat: cauldron reuses existing caches, so
+  after changing a preset, delete that spell's cache in
+  `build/var/cache/sorcery` to force a rebuild.
+- Stripping: sorcery already strips (`OPTIMIZATIONS` contains `strip`, i.e.
+  `LDFLAGS -s`); gcc's own compilers (cc1, cc1plus, lto1) ignore it, which is
+  most of gcc's ~290 MB — same in the hand-made tarballs.
+- Later: `net-tools` is unmaintained (iproute2 is the modern tool and is
+  already present via ifupdown); dropping it means changing `smgl-system` and
+  `ifupdown`'s DEPENDS and `init.d`'s `hostname.sh` (uses net-tools'
+  `hostname`). Saved spell options in the tarball are invisible to users
+  until `cast -r` — consider listing them / an installer review step.
+- Init on the ISO (stage 2): ship caches for several inits and let the
+  installer choose; Rust is not needed for the kernel (keep `CONFIG_RUST`
+  off), could be offered as an optional prebuilt cache.
+
 ### If a new baseroot tarball is ever made
 The 2025-12 tarball works, but these differences from the current test
 grimoire cost rebuild time and caused conflicts during `sys build`; a fresh
