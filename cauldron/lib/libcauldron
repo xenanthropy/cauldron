@@ -786,10 +786,12 @@ function cauldron_iso_check() {
 
   cauldron_verbose "Checking for essential programs in $target..."
   for out in sbin/init bin/login sbin/agetty bin/bash bin/login.sh \
-    usr/sbin/enchantment sbin/fdisk sbin/mkfs.ext4 bin/tar usr/bin/xz \
+    usr/sbin/enchantment sbin/fdisk sbin/mkfs.ext4 bin/tar bin/xz \
     sbin/modprobe "$CAULDRON_SYS_NAME_FULL"
   do
-    if [[ ! -e "$target/$out" && ! -e "$target/usr/$out" ]]
+    # (-L: links may point to absolute paths, which only exist in the chroot)
+    if [[ ! -e "$target/$out" && ! -L "$target/$out" &&
+      ! -e "$target/usr/$out" && ! -L "$target/usr/$out" ]]
     then
       echo "missing /$out"
       ((problems++))

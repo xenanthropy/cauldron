@@ -41,6 +41,8 @@ cpio
 
 # disks: partitioning, filesystems, RAID/LVM/encryption
 e2fsprogs
+# e2fsprogs builds fuse2fs against fuse without declaring it (see CLAUDE.md)
+fuse
 dosfstools
 xfsprogs
 btrfs-progs

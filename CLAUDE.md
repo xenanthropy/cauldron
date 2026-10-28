@@ -313,6 +313,9 @@ sections below.
   - `optional_depends gdbm '' '' ...` pattern (python3, perl, ...): a
     disabled dependency passes no `--without`, so the library is linked
     anyway and sorcery's records are wrong.
+  - e2fsprogs doesn't declare fuse, but configure finds it and builds
+    `fuse2fs` linked to `libfuse.so.2` (should be an `optional_depends fuse`
+    with `--disable-fuse2fs`). The ISO lists fuse explicitly for now.
   - Dead or broken source URLs: `isl` (gforge), `fallback.sourcemage.org`
     certificate, `david.kow.is`.
   - parted 3.6 and squashfs-tools 4.4 don't build with gcc 16 (incompatible
