@@ -456,6 +456,66 @@ function cauldron_populate_sys() {
 }
 
 #-------------------------------------------------------------------------------
+## @param target directory (optional, defaults to CAULDRON_SYS)
+##
+## Sanity-checks a populated system (sys) by running a few commands inside it:
+## every binary and library must find its shared libraries, sorcery must know
+## what is installed, gpg must work (sorcery verifies sources with it), and the
+## downloader must support https (most spell sources are https). Prints every
+## problem found and returns ERR_SYS_CHECK if there were any.
+##
+#-------------------------------------------------------------------------------
+function cauldron_sys_check() {
+  local target="${1:-$CAULDRON_SYS}"
+  local problems=0
+  local out=
+
+  [[ -d "$target" ]] || return $ERR_TARGET
+
+  cauldron_chroot_init "$target"
+  liberror_check || return $?
+
+  cauldron_verbose "Checking $target for missing shared libraries..."
+  out=$(cauldron_chroot -q sh -c '
+    for f in $(find /bin /sbin /usr/bin /usr/sbin /lib /usr/lib /usr/libexec \
+      -xdev -type f \( -perm -u+x -o -name "*.so*" \) 2>/dev/null)
+    do
+      ldd "$f" 2>/dev/null | grep -q "not found" &&
+        echo "$f: $(ldd "$f" 2>/dev/null | grep "not found" | tr -s " \t" " ")"
+    done' | grep -v '^chroot ')
+  if [[ -n "$out" ]]
+  then
+    echo "$out"
+    ((problems++))
+  fi
+
+  cauldron_verbose "Checking sorcery, gpg and https downloads in $target..."
+  if [[ ! -s "$target/var/state/sorcery/packages" ]]
+  then
+    echo "sorcery has no record of installed spells"
+    ((problems++))
+  fi
+  if ! cauldron_chroot -s gpg --version
+  then
+    echo "gpg does not run"
+    ((problems++))
+  fi
+  if [[ -x "$target/usr/bin/wget" ]] &&
+    ! cauldron_chroot -q wget --version | grep -q '+https'
+  then
+    echo "wget lacks https support"
+    ((problems++))
+  fi
+
+  cauldron_chroot_done "$target"
+  liberror_check || return $?
+
+  [[ "$problems" -eq 0 ]] || return $ERR_SYS_CHECK
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
 ##
 ## Packages the sys directory into a compressed tarball to be placed in the iso
 ## filesystem as system.tar.bz2. Relies on the fact that

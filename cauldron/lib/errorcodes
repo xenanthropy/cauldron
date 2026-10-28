@@ -77,6 +77,7 @@ liberror_add_error ERR_ISO_LOADER "could not set up iso bootloader"
 liberror_add_error ERR_SYS_CREATE "could not create sys filesystem"
 liberror_add_error ERR_SYS_PACKAGE "could not package final sys file"
 liberror_add_error ERR_SYS_COMPRESS "could not compress final sys archive"
+liberror_add_error ERR_SYS_CHECK "sys sanity check failed"
 
 # lib.chroot
 liberror_add_error ERR_CHROOT_INVALID "chroot target is undefined or invalid"
