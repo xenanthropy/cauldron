@@ -529,6 +529,12 @@ Things learned the hard way; keep them in mind when changing the build code.
   what the team expects and what sorcery's init-script prompts support;
   `systemd`/`openrc` variants are possible from the same caches but untested).
   `castfs`+`fuse` stay (staged installs). `git` goes on the ISO, not here.
+- **Grimoire gap, for the team:** compared with `basesystem`, the
+  `smgl-base` + `smgl-system` pair (2022) no longer pulls in `shadow` (login,
+  passwd, useradd) or `lzip`; the hand-made tarballs also had `kbd` and
+  `man-pages` installed separately. A system built from the two meta-spells
+  alone can't be logged into. `sys.runtime` lists them explicitly for now;
+  `smgl-system` should probably depend on `shadow` (and `kbd`).
 - Presets in `etc/toolchain/sorcery/depends/`: `locale` (en_US + UTF-8 +
   C.UTF-8 instead of all locales, ~130 MB saved), `python3`
   (`--disable-test-modules`). Caveat: cauldron reuses existing caches, so
