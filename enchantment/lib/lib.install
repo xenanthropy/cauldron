@@ -30,8 +30,8 @@
 ##
 #-------------------------------------------------------------------------------
 function enchant_install_file() {
-  local $src="$1"
-  local $dst="$2"
+  local src="$1"
+  local dst="$2"
 
   [[ -z "$src" ]] && return $ERR_INSTALL_FILE
   [[ -z "$dst" ]] && return $ERR_INSTALL_FILE
@@ -52,8 +52,8 @@ function enchant_install_file() {
 ##
 #-------------------------------------------------------------------------------
 function enchant_install_dir() {
-  local $src="$1"
-  local $dst="$2"
+  local src="$1"
+  local dst="$2"
 
   [[ -z "$src" ]] && return $ERR_INSTALL_DIR
   [[ -z "$dst" ]] && return $ERR_INSTALL_DIR
@@ -177,16 +177,17 @@ function enchant_install_system() {
 
 #-------------------------------------------------------------------------------
 ##
-## @param kernel_image (absolute path - e.g. $ENCHANT_ISO_PATH/boot/vmlinux)
+## @param kernel_image (absolute path - e.g. $ENCHANT_ISO_PATH/boot/kernel)
 ## @param modules_path (absolute path - e.g. $ENCHANT_ISO_PATH/lib/modules)
-## @param kernel_version (e.g. 2.6.32.8)
+## @param kernel_version (e.g. 6.18.59)
 ## @param kernel_type (e.g. linux)
 ##
 ## Copies the kernel and it's associated modules from the ISO to the TARGET
 ## system. Requires that / and /boot on the TARGET system are mounted (unless
-## ENCHANT_TARGET_KERNEL and ENCHANT_TARGET_KMODS are modified). The second
-## parameter (modules_path) *must* include the kernel version as the last
-## directory in the path (i.e., /path/to/kernel/modules/version/).
+## ENCHANT_TARGET_KERNEL and ENCHANT_TARGET_KMODS are modified). The modules
+## are taken from modules_path/kernel_version. A linux kernel is installed as
+## ENCHANT_TARGET_KERNEL-kernel_version (the name grub-mkconfig looks for),
+## together with its config-kernel_version if there is one next to the image.
 ##
 #-------------------------------------------------------------------------------
 function enchant_install_kernel() {
@@ -197,19 +198,35 @@ function enchant_install_kernel() {
   local kmods="${2:-$ENCHANT_ISO_KMODS}"
   local kvers="${3:-$ENCHANT_ISO_KVERS}"
   local ktype="${4:-$ENCHANT_KERNEL_TYPE}"
+  local kconfig=
 
-  # copy the kernel over
-  enchant_install_file "$kernel" "$target_kernel" || return $ERR_INSTALL_KERNEL
+  # the image may be a symlink (/boot/kernel on the ISO); copy what it points to
+  kernel=$("${ENCHANT_CMD_READLINK[@]}" "$kernel") || return $ERR_INSTALL_KERNEL
 
   case "$ktype" in
     linux)
+      enchant_install_file "$kernel" "$target_kernel-$kvers" ||
+        return $ERR_INSTALL_KERNEL
+
+      kconfig="${kernel%/*}/config-$kvers"
+      if [[ -f "$kconfig" ]]
+      then
+        enchant_install_file "$kconfig" "${target_kernel%/*}/" ||
+          return $ERR_INSTALL_KERNEL
+      fi
+
       # copy the modules over
-      enchant_install_dir "$kmods/$kvers" "$target_kmods/$(basename $kmods)" ||
+      "${ENCHANT_CMD_MKDIR[@]}" "$target_kmods" || return $ERR_INSTALL_KMODS
+      enchant_install_dir "$kmods/$kvers" "$target_kmods/" ||
           return $ERR_INSTALL_KMODS
 
       # make sure that the proper dep info is generated on the target system
-      depmod -a -b "$target_kmods/$kvers" "$kvers" ||
+      depmod -a -b "$target" "$kvers" ||
         return $ERR_INSTALL_DEPMOD
+      ;;
+    *)
+      enchant_install_file "$kernel" "$target_kernel" ||
+        return $ERR_INSTALL_KERNEL
       ;;
   esac
 
