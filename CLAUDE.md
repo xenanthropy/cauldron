@@ -290,11 +290,22 @@ From reading the code (Oct 2026). **[confirmed]** = verified by reading the
 code/history; **[suspected]** = needs a real run to confirm.
 
 ### Status / fixed so far
-- **Working (Oct 2026):** `toolchain chroot`, `toolchain prepare`,
-  `sys build` (all of `sys.runtime` plus its dependency closure, ~87 caches:
-  gcc 16.2, glibc 2.44, openssl 4.1.0, python3 3.14, ...) and
-  `sys populate`, against the smgl-test-0.63-20251212 tarball + test grimoire
-  + kernel 6.18.59 headers. Next: `sys purify`, `sys package`, then `iso`.
+- **Working (Oct 2026): the whole `toolchain` and `sys` stages.** Against the
+  smgl-test-0.63-20251212 tarball + test grimoire + kernel 6.18.59 headers,
+  `cauldron sys` produces a ~318 MB `system.tar.xz` (84 spells: `sys.runtime`
+  plus its dependency closure; gcc 16.2, glibc 2.44, openssl 4.1.0, python
+  3.14, kmod, gnupg 2.4, ...). Smoke-tested by unpacking it into a fresh
+  chroot: bash, sorcery (`gaze` knows all 84 spells, `scribe` sees the test
+  grimoire), gpg, kmod, python `ssl`, shadow and SHA-512 crypt all work.
+  Next: the `iso` stage.
+- `sys` is effectively an automated minimal-chroot-tarball generator. To
+  replace the hand-made basesystem tarballs: switch `sys.runtime` to
+  `smgl-base` + `smgl-system` (the closure fills in the rest), add tarball
+  naming + `.sha512`/`.sig` output, and add cleaner lists (e.g. sorcery's
+  unpacked source in `usr/src/sorcery` currently ships).
+- Known leftover: sorcery keeps the old `libssl.so.3`/`libcrypto.so.3` across
+  the openssl 3→4 upgrade and records them in the openssl 4.1.0 cache, so
+  they ship in `system.tar.xz` (unused once everything is rebuilt).
 - Fixed on the working branch (see `git log` for details on each):
   `cauldron config` with several args; log truncation in `cauldron_chroot`
   (`&> /dev/stdout`); host arch detection (`host_arch.conf` yielded `i386`);
