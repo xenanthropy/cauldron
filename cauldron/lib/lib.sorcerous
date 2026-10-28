@@ -121,7 +121,7 @@ function cauldron_sorcerous_download() {
     # make sure any existing file is removed
     "${CAULDRON_CMD_RM_FORCE[@]}" "$spool/$sorcery"
 
-    if [[ "$CAULDRON_SORCERY_SOURCE" == "git" ]]
+    if [[ "$CAULDRON_SORCERY_SOURCE" != "tarball" ]]
     then
       cauldron_sorcerous_download_git "$spool/$sorcery"
       liberror_check || return $?
@@ -144,10 +144,12 @@ function cauldron_sorcerous_download() {
 ##
 ## Creates a sorcery source tarball (same layout as the release tarballs: a
 ## top-level sorcery/ directory) from sorcery's git repository, at
-## CAULDRON_SORCERY_COMMIT if set, otherwise at the head of
-## CAULDRON_SORCERY_GIT_REF. With git available, the version is stamped the
-## way sorcery's "make devinst" does (e.g. 0+20260928-0-g39a44962); without
-## git, GitHub's archive of the commit/branch is downloaded instead.
+## CAULDRON_SORCERY_COMMIT if set, otherwise at the newest commit of
+## CAULDRON_SORCERY_GIT_REF. CAULDRON_SORCERY_SOURCE selects how: "archive"
+## downloads GitHub's archive (no git needed), "git" fetches with git. Either
+## way the version is stamped the way sorcery's "make devinst" does it,
+## 0+<commit date>-0-g<short commit id> (e.g. 0+20260928-0-g39a4496), so the
+## result records exactly which commit it contains.
 ##
 #-------------------------------------------------------------------------------
 function cauldron_sorcerous_download_git() {
@@ -162,35 +164,53 @@ function cauldron_sorcerous_download_git() {
     return $ERR_SORCEROUS_DOWNLOAD
 
   (
+    local commit=
+    local date=
+
     cd "$tmp" || exit 1
 
-    if command -v "${CAULDRON_CMD_GIT[0]}" &> "$CAULDRON_NULL"
+    if [[ "$CAULDRON_SORCERY_SOURCE" == "git" ]]
     then
-      cauldron_verbose "Fetching sorcery from git: $CAULDRON_SORCERY_GIT_URL" \
+      cauldron_verbose "Fetching sorcery with git: $CAULDRON_SORCERY_GIT_URL" \
         "($ref)"
       "${CAULDRON_CMD_GIT[@]}" init -q sorcery &&
-      cd sorcery &&
-      "${CAULDRON_CMD_GIT[@]}" fetch -q --depth 1 \
+      "${CAULDRON_CMD_GIT[@]}" -C sorcery fetch -q --depth 1 \
         "$CAULDRON_SORCERY_GIT_URL" "$ref" &&
-      "${CAULDRON_CMD_GIT[@]}" checkout -q FETCH_HEAD || exit 1
-
-      # stamp the version like "make devinst" (bump.awk needs gawk)
-      "${CAULDRON_CMD_GIT[@]}" describe --always --tags --match='v*' |
-        "${CAULDRON_CMD_AWK[@]}" -f bump.awk > etc/sorcery/version &&
-      [[ -s etc/sorcery/version ]] || exit 1
-      rm -rf .git
+      "${CAULDRON_CMD_GIT[@]}" -C sorcery checkout -q FETCH_HEAD &&
+      commit=$("${CAULDRON_CMD_GIT[@]}" -C sorcery rev-parse HEAD) &&
+      date=$("${CAULDRON_CMD_GIT[@]}" -C sorcery log -1 --format=%cd \
+        --date=format-local:%Y%m%d) || exit 1
+      rm -rf sorcery/.git
     else
-      cauldron_verbose "git not found; downloading sorcery archive for $ref"
+      # a commit id selects that commit, anything else is a branch
+      local path="refs/heads/$ref"
+      [[ "$ref" =~ ^[0-9a-f]{7,40}$ ]] && path="$ref"
+
+      cauldron_verbose "Downloading sorcery:" \
+        "$CAULDRON_SORCERY_ARCHIVE_URL/$path.tar.gz"
       "${CAULDRON_CMD_URL_DL[@]}" -O sorcery.tar.gz \
-        "$CAULDRON_SORCERY_ARCHIVE_URL/$ref.tar.gz" &&
+        "$CAULDRON_SORCERY_ARCHIVE_URL/$path.tar.gz" || exit 1
+
+      # GitHub's archives are made by "git archive", which records the commit
+      # id in the pax header and gives every file the commit's timestamp
+      commit=$(gzip -dc sorcery.tar.gz | head -c 2048 |
+        grep -ao 'comment=[0-9a-f]\{40\}' | head -n 1)
+      commit="${commit#comment=}"
+      date=$(TZ=UTC "${CAULDRON_CMD_TAR[@]}" -tvzf sorcery.tar.gz \
+        --full-time 2> "$CAULDRON_NULL" | head -n 1 | awk '{print $4}')
+      date="${date//-/}"
+
       "${CAULDRON_CMD_TAR[@]}" -xzf sorcery.tar.gz &&
       rm -f sorcery.tar.gz &&
-      mv sorcery-* sorcery &&
-      echo "0+git-$ref" > sorcery/etc/sorcery/version || exit 1
+      mv sorcery-* sorcery || exit 1
     fi
-    cd "$tmp" || exit 1
 
-    cauldron_verbose "sorcery version: $(< sorcery/etc/sorcery/version)"
+    [[ -d sorcery/etc/sorcery ]] || exit 1
+    echo "0+${date:-unknown}-0-g${commit:0:7}" > sorcery/etc/sorcery/version ||
+      exit 1
+
+    cauldron_verbose "sorcery version: $(< sorcery/etc/sorcery/version)" \
+      "(commit ${commit:-unknown})"
     "${CAULDRON_CMD_TAR[@]}" -cjf "$output" sorcery
   )
   rc=$?

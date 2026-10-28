@@ -1467,14 +1467,17 @@ function cauldron_prepare() {
     cauldron_load_library lib.sorcerous
   fi
 
+  # get the new sorcery first, so a failed download doesn't leave the chroot
+  # without any sorcery
+  cauldron_sorcerous_download
+  liberror_check || return $?
+
   # clean any existing sorcery instances from the chroot, but keep the record
   # of installed spells so sorcery knows what the baseroot already provides
   cauldron_sorcerous_clean "$target" "keepstate"
   liberror_check || return $?
 
   # install sorcery into the build dir
-  cauldron_sorcerous_download
-  liberror_check || return $?
   cauldron_sorcerous_install
   liberror_check || return $?
 
