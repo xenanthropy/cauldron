@@ -1,2 +1,11 @@
+# Spells for the installable system (system.tar.xz). cauldron adds every
+# enabled dependency of these automatically, so only list top-level spells.
+
+# the Source Mage base system (replaces the old basesystem spell)
 smgl-base
 smgl-system
+
+# python3 and perl record gdbm as a disabled optional dependency but still
+# link against it when it's present at build time (their DEPENDS pass no
+# --without flag), so it has to be in the system
+gdbm

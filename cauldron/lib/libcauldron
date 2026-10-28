@@ -137,6 +137,17 @@ function cauldron_get_variable() {
 }
 
 #-------------------------------------------------------------------------------
+## @param list file
+##
+## Prints the entries of a list file (spell lists etc.), one per line, ignoring
+## blank lines and comments (from # to the end of the line).
+##
+#-------------------------------------------------------------------------------
+function cauldron_read_list() {
+  sed -e 's/#.*//' "$1" | tr -s ' \t' '\n' | grep -v '^$'
+}
+
+#-------------------------------------------------------------------------------
 ## @param cleanfile
 ## @param target (chroot) directory
 ##
@@ -529,18 +540,17 @@ function cauldron_package_sys() {
 
   [[ -d "$target" ]] || return $ERR_DIR_ACCESS
 
-  # remove any existing sys package before proceeding
-  if readlink -q "$target/$sys"*
-  then
-    "${CAULDRON_CMD_RM[@]}" "$target/$sys"* ||
+  # remove any existing sys package before proceeding (the archive command
+  # writes $sys.tar, compression turns it into $CAULDRON_SYS_NAME_FULL)
+  "${CAULDRON_CMD_RM_FORCE[@]}" "$target/$sys.tar" \
+    "$target/$CAULDRON_SYS_NAME_FULL" ||
       return $ERR_RM_FILE
-  fi
 
   cauldron_verbose "Packing sys to $(libcolor_file $sys)"
   "${CAULDRON_CMD_ARCHIVE_SYS[@]}" || return $ERR_SYS_PACKAGE
 
   cauldron_verbose "Compressing $(libcolor_file $sys)"
-  "${CAULDRON_CMD_COMPRESS[@]}" "$target/$sys"* ||
+  "${CAULDRON_CMD_COMPRESS[@]}" "$target/$sys.tar" ||
     return $ERR_SYS_COMPRESS
 
   if [[ "$CAULDRON_SYS_RELEASE" == "yes" ]]

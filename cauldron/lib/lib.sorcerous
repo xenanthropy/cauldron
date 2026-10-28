@@ -410,7 +410,7 @@ function cauldron_sorcerous_depends_closure() {
   local spell=
   local dep=
 
-  [[ -f "$queue" ]] && queue=( $(< "$queue") )
+  [[ -f "$queue" ]] && queue=( $(cauldron_read_list "$queue") )
 
   while [[ "${#queue[@]}" -gt 0 ]]
   do

@@ -278,7 +278,7 @@ function toolchain() {
 function build_spells() {
   local spells=( "$@" )
 
-  [[ -f "$spells" ]] && spells=( $(< "$spells") )
+  [[ -f "$spells" ]] && spells=( $(cauldron_read_list "$spells") )
 
   # remove spells from the list if their caches already exist
   local count="${#spells[@]}"
@@ -428,6 +428,10 @@ function purify_sys() {
 
   # finished chrooting to the sys filespace
   cauldron_chroot_done "$target"
+  liberror_check || return $?
+
+  # make sure the result actually works before it gets packaged
+  cauldron_sys_check "$target"
   liberror_check
 }
 
