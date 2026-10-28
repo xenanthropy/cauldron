@@ -6,6 +6,14 @@
 smgl-base
 smgl-system
 
+# in basesystem (and the hand-made tarballs) but not in smgl-base/smgl-system:
+# shadow provides login and passwd (without it nobody can log in), kbd the
+# console keymaps/fonts, lzip a compression format some sources use
+shadow
+kbd
+lzip
+man-pages
+
 # needed to build a kernel on the installed system (bc for the build scripts,
 # elfutils/libelf for objtool and the ORC unwinder)
 bc

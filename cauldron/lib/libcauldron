@@ -487,7 +487,8 @@ function cauldron_populate_sys() {
 ## @param target directory (optional, defaults to CAULDRON_SYS)
 ##
 ## Sanity-checks a populated system (sys) by running a few commands inside it:
-## every binary and library must find its shared libraries, sorcery must know
+## the essentials for booting and logging in must exist (init, login, passwd,
+## agetty, bash), every binary and library must find its shared libraries, sorcery must know
 ## what is installed, gpg must work (sorcery verifies sources with it), and the
 ## downloader must support https (most spell sources are https). Prints every
 ## problem found and returns ERR_SYS_CHECK if there were any.
@@ -516,6 +517,16 @@ function cauldron_sys_check() {
     echo "$out"
     ((problems++))
   fi
+
+  cauldron_verbose "Checking for essential programs in $target..."
+  for out in sbin/init bin/login usr/bin/passwd sbin/agetty bin/bash
+  do
+    if [[ ! -e "$target/$out" && ! -e "$target/usr/$out" ]]
+    then
+      echo "missing /$out"
+      ((problems++))
+    fi
+  done
 
   cauldron_verbose "Checking sorcery, gpg and https downloads in $target..."
   if [[ ! -s "$target/var/state/sorcery/packages" ]]
