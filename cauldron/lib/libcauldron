@@ -1584,16 +1584,21 @@ KBuild
 ##
 #-------------------------------------------------------------------------------
 function cauldron_source_enchantment() {
-  local host_config="$CAULDRON_HOST/etc/cauldron/enchantment.conf"
-  local config="${CAULDRON_ENCHANT_CONFIG:-$host_config}"
+  local srcconfigs="$CAULDRON_ENCHANT_DIR/config"
 
-  [[ -f "$config" ]] || return $ERR_ENCHANT_CONFIG
+  [[ -f "$srcconfigs/paths.conf" ]] || return $ERR_ENCHANT_CONFIG
 
-  # make sure enchantment can find its configs
-  ENCHANT_CONF="${ENCHANT_CONF:-$CAULDRON_ENCHANT_DIR/config}"
+  # read enchantment's settings from its source tree: ENCHANT_CONFIGS has to
+  # point there while they are read (etc/enchantment.conf would look on the
+  # host's /usr/share/smgl), but afterwards it must name the configs' path on
+  # the iso, where cauldron_enchant installs them
+  ENCHANT_CONFIGS="$srcconfigs"
+  . "$srcconfigs/paths.conf" &> "$CAULDRON_NULL" &&
+  . "$srcconfigs/default.conf" &> "$CAULDRON_NULL" ||
+    return $ERR_ENCHANT_CONFIG
+  ENCHANT_CONFIGS="$ENCHANT_DATA/config"
 
-  # source the enchantment config to make sure we get the paths correct
-  . "$config" &> "$CAULDRON_NULL" || return $ERR_ENCHANT_CONFIG
+  return $ERR_OK
 }
 
 #-------------------------------------------------------------------------------
