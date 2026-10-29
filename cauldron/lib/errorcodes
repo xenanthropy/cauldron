@@ -77,6 +77,7 @@ liberror_add_error ERR_ISO_COMPRESSFS \
 liberror_add_error ERR_ISO_LOADER "could not set up iso bootloader"
 liberror_add_error ERR_ISO_GRUB "could not build GRUB for the iso"
 liberror_add_error ERR_ISO_CHECK "iso sanity check failed"
+liberror_add_error ERR_ISO_FIRMWARE "could not install firmware to the iso"
 liberror_add_error ERR_MOUNT "could not mount"
 liberror_add_error ERR_UNMOUNT "could not unmount"
 liberror_add_error ERR_SYS_CREATE "could not create sys filesystem"

@@ -61,6 +61,8 @@ iproute2
 net-tools
 ifupdown
 dhcpcd
+wpa_supplicant
+iw
 wget
 ca-certificates
 openssl

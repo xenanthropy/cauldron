@@ -589,6 +589,8 @@ function populate_iso() {
 #-------------------------------------------------------------------------------
 function iso_kernel() {
   cauldron_iso_kernel
+  liberror_check || return $?
+  cauldron_iso_firmware
   liberror_check
 }
 

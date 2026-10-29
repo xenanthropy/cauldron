@@ -241,7 +241,8 @@ function enchant_install_system() {
 ## Copies the kernel and it's associated modules from the ISO to the TARGET
 ## system. Requires that / and /boot on the TARGET system are mounted (unless
 ## ENCHANT_TARGET_KERNEL and ENCHANT_TARGET_KMODS are modified). The modules
-## are taken from modules_path/kernel_version. A linux kernel is installed as
+## are taken from modules_path/kernel_version, and the ISO's firmware
+## (ENCHANT_ISO_FIRMWARE) is copied along. A linux kernel is installed as
 ## ENCHANT_TARGET_KERNEL-kernel_version (the name grub-mkconfig looks for),
 ## together with its config-kernel_version if there is one next to the image.
 ##
@@ -279,6 +280,16 @@ function enchant_install_kernel() {
       # make sure that the proper dep info is generated on the target system
       depmod -a -b "$target" "$kvers" ||
         return $ERR_INSTALL_DEPMOD
+
+      # and the firmware the ISO carries for it (network, graphics)
+      if [[ -d "$ENCHANT_ISO_FIRMWARE" ]]
+      then
+        "${ENCHANT_CMD_MKDIR[@]}" "$ENCHANT_TARGET_FIRMWARE" ||
+          return $ERR_INSTALL_KMODS
+        "${ENCHANT_CMD_INSTALL_DIR[@]}" "$ENCHANT_ISO_FIRMWARE/." \
+          "$ENCHANT_TARGET_FIRMWARE/" ||
+            return $ERR_INSTALL_KMODS
+      fi
       ;;
     *)
       enchant_install_file "$kernel" "$target_kernel" ||

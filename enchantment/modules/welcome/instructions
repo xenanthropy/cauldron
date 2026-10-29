@@ -8,6 +8,14 @@ To see this message again: @[welcome].
 To set a different keymap: @[keymap]
   (or @[539], which types the same on any keyboard layout).
 
+No network is needed to install. To get online anyway (@[ip link] lists the
+network interfaces; replace wlan0 below with yours):
+  wired:  @[dhcpcd]
+  Wi-Fi:  @[wpa_passphrase 'NETWORK' 'PASSWORD' > /etc/wpa_supplicant.conf]
+          @[wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf]
+          @[dhcpcd wlan0]
+The installed system has the same tools (copy /etc/wpa_supplicant.conf over).
+
 If you have any feedback for us, please drop by #sourcemage-cauldron
 on irc.freenode.net, file a bug on bugs.sourcemage.org,
 or just send an email to the mailing lists or to iso@sourcemage.org.

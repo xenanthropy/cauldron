@@ -29,6 +29,10 @@ misspelled GRUB_DISABLE_UUID=true instead):
  GRUB_DISABLE_LINUX_PARTUUID=false
 e.g. @[sed -i 's/^GRUB_DISABLE_UUID=true$/GRUB_DISABLE_LINUX_UUID=true\nGRUB_DISABLE_LINUX_PARTUUID=false/' /etc/default/grub]
 
+If you had to add kernel options to boot this ISO (e.g. fbcon=rotate:1 or
+video=DSI-1:panel_orientation=right_side_up for a screen mounted sideways),
+add them to GRUB_CMDLINE_LINUX_DEFAULT="..." in /etc/default/grub as well.
+
 Then write the GRUB menu (it finds the kernel installed in the kernel step):
  @[grub-mkconfig -o /boot/grub/grub.cfg]
 and check that the "linux" lines say root=PARTUUID=... or root=/dev/...:

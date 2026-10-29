@@ -1449,6 +1449,75 @@ function cauldron_package_iso() {
 }
 
 #-------------------------------------------------------------------------------
+##
+## Installs the firmware listed in CAULDRON_ISO_FIRMWARE into the iso runtime's
+## /lib/firmware. The files come from the source of CAULDRON_ISO_FIRMWARE_SPELL
+## (linux-firmware), summoned in the build chroot and installed to a scratch
+## directory with its own copy-firmware.sh: that script also creates the links
+## the kernel looks files up by (e.g. iwlwifi-*.ucode -> intel/iwlwifi/...),
+## which the source tarball itself doesn't have.
+##
+#-------------------------------------------------------------------------------
+function cauldron_iso_firmware() {
+  local target="$CAULDRON_ISO"
+  local build="$CAULDRON_BUILD"
+  local spell="$CAULDRON_ISO_FIRMWARE_SPELL"
+  local scratch="/tmp/cauldron-firmware"
+  local fwall="$build$scratch/installed"
+  local src=
+  local glob=
+  local files=()
+
+  [[ "${#CAULDRON_ISO_FIRMWARE[@]}" -gt 0 ]] || return $ERR_OK
+
+  [[ "$CAULDRON_ISO_SQUASH" == "yes" ]] && target="$CAULDRON_ISO_SQUASHFS"
+  [[ -d "$target" ]] || return $ERR_TARGET
+
+  cauldron_chroot_init "$build"
+  liberror_check || return $?
+
+  cauldron_verbose "Getting the $spell source"
+  cauldron_chroot summon "$spell"
+  liberror_check || return $?
+  # (summon -p prints the source file names, which are in the spool)
+  src=$(cauldron_chroot -q summon -p source "$spell" | head -n 1)
+  src="/var/spool/sorcery/${src##*/}"
+  [[ -f "$build$src" ]] || return $ERR_ISO_FIRMWARE
+
+  cauldron_verbose "Installing $(libcolor_file ${src##*/}) to a scratch directory"
+  "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$build$scratch" || return $ERR_RM_FILE
+  "${CAULDRON_CMD_MKDIR[@]}" "$build$scratch/src" "$fwall" ||
+    return $ERR_MK_DIR
+  cauldron_chroot tar -xf "$src" -C "$scratch/src" --strip-components=1
+  liberror_check || return $ERR_ISO_FIRMWARE
+  cauldron_chroot sh -c "cd $scratch/src && ./copy-firmware.sh $scratch/installed"
+  liberror_check || return $ERR_ISO_FIRMWARE
+
+  cauldron_chroot_done "$build"
+  liberror_check || return $?
+
+  # the selected files (globs that match nothing are skipped)
+  for glob in "${CAULDRON_ISO_FIRMWARE[@]}"
+  do
+    files+=( $(cd "$fwall" && compgen -G "$glob") )
+  done
+  [[ "${#files[@]}" -gt 0 ]] || return $ERR_ISO_FIRMWARE
+
+  cauldron_verbose "Installing ${#files[@]} firmware files/directories to the iso"
+  "${CAULDRON_CMD_MKDIR[@]}" "$target/lib/firmware" || return $ERR_MK_DIR
+  "${CAULDRON_CMD_TAR[@]}" -C "$fwall" -cf - "${files[@]}" |
+    "${CAULDRON_CMD_TAR[@]}" -C "$target/lib/firmware" -xf - ||
+      return $ERR_ISO_FIRMWARE
+
+  # links to files outside the selection would be dangling: drop them
+  find "$target/lib/firmware" -xtype l -delete || return $ERR_ISO_FIRMWARE
+
+  "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$build$scratch" || return $ERR_RM_FILE
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
 ## @param target path (optional)
 ##
 ## Builds the iso kernel and installs it into the iso filesystem. If the target

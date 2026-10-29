@@ -19,8 +19,12 @@ man-pages
 bc
 elfutils
 
-# networking on first boot, and manual pages
+# networking on first boot (wired: dhcpcd; wifi: wpa_supplicant, iw; most
+# laptops have nothing else, and a source distro needs network to cast), and
+# manual pages
 dhcpcd
+wpa_supplicant
+iw
 man-db
 
 # python3 and perl record gdbm as a disabled optional dependency but still
