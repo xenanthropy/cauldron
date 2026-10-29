@@ -388,6 +388,13 @@ sections below.
   - Boot matrix in QEMU (SeaBIOS / OVMF, TCG): BIOS CD, UEFI CD, BIOS USB
     stick, UEFI USB stick all reach the installer on tty1. Not yet tried on
     real hardware.
+  - USB sticks must be written as a raw image (`dd`, Etcher, Rufus in "DD
+    image" mode). Rufus' "ISO image" mode and Ventoy don't work: the
+    initramfs looks for an ISO9660 filesystem holding `isofs.img` on the
+    block devices (`scan_cdrom` in `initfs/init`). Supporting them would mean
+    also searching FAT/ext filesystems for `isofs.img` (and, for Ventoy, an
+    ISO file).
+  - Secure Boot isn't supported (GRUB is unsigned; no shim).
   - Install walkthrough in QEMU, BIOS (MBR disk) and UEFI (GPT + EFI system
     partition), every installer step in order on a serial console: partition
     → format → mount → select caches (grub2, efibootmgr, efivar, dosfstools)
