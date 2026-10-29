@@ -1450,28 +1450,39 @@ function cauldron_package_iso() {
 
 #-------------------------------------------------------------------------------
 ##
-## Installs the firmware listed in CAULDRON_ISO_FIRMWARE into the iso runtime's
-## /lib/firmware. The files come from the source of CAULDRON_ISO_FIRMWARE_SPELL
-## (linux-firmware), summoned in the build chroot and installed to a scratch
-## directory with its own copy-firmware.sh: that script also creates the links
-## the kernel looks files up by (e.g. iwlwifi-*.ucode -> intel/iwlwifi/...),
-## which the source tarball itself doesn't have.
+## Installs firmware for the iso kernel into the iso runtime's /lib/firmware:
+## every file the kernel's drivers declare (modinfo -F firmware, and
+## modules.builtin.modinfo for built-in drivers), plus the globs in
+## CAULDRON_ISO_FIRMWARE_EXTRA. Drivers that try several firmware API
+## versions (iwlwifi) declare the newest one they support; the newest file
+## available up to that version is used. The files come from the source of
+## CAULDRON_ISO_FIRMWARE_SPELL (linux-firmware), summoned in the build chroot
+## and installed to a scratch directory with its own copy-firmware.sh, which
+## also creates the links the kernel looks many files up by.
 ##
 #-------------------------------------------------------------------------------
 function cauldron_iso_firmware() {
   local target="$CAULDRON_ISO"
   local build="$CAULDRON_BUILD"
   local spell="$CAULDRON_ISO_FIRMWARE_SPELL"
+  local kvers="$CAULDRON_KERNEL_VERS"
   local scratch="/tmp/cauldron-firmware"
   local fwall="$build$scratch/installed"
   local src=
-  local glob=
+  local name=
+  local file=
+  local version=
+  local best=
+  local prefix=
+  local suffix=
+  local max=
   local files=()
 
-  [[ "${#CAULDRON_ISO_FIRMWARE[@]}" -gt 0 ]] || return $ERR_OK
+  [[ "$CAULDRON_ISO_FIRMWARE" == "yes" ]] || return $ERR_OK
 
   [[ "$CAULDRON_ISO_SQUASH" == "yes" ]] && target="$CAULDRON_ISO_SQUASHFS"
   [[ -d "$target" ]] || return $ERR_TARGET
+  [[ -d "$build/lib/modules/$kvers" ]] || return $ERR_ISO_FIRMWARE
 
   cauldron_chroot_init "$build"
   liberror_check || return $?
@@ -1492,25 +1503,59 @@ function cauldron_iso_firmware() {
   liberror_check || return $ERR_ISO_FIRMWARE
   cauldron_chroot sh -c "cd $scratch/src && ./copy-firmware.sh $scratch/installed"
   liberror_check || return $ERR_ISO_FIRMWARE
+  # (the unpacked source is as big as the installed files: drop it now)
+  "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$build$scratch/src" ||
+    return $ERR_RM_FILE
+
+  # the firmware the kernel's drivers declare
+  cauldron_chroot sh -c "find /lib/modules/$kvers -name '*.ko*' \
+    -exec modinfo -F firmware {} + > $scratch/wanted"
+  liberror_check || return $ERR_ISO_FIRMWARE
 
   cauldron_chroot_done "$build"
   liberror_check || return $?
 
-  # the selected files (globs that match nothing are skipped)
-  for glob in "${CAULDRON_ISO_FIRMWARE[@]}"
+  tr '\0' '\n' < "$build/lib/modules/$kvers/modules.builtin.modinfo" |
+    sed -n 's/^[^.]*\.firmware=//p' >> "$build$scratch/wanted" ||
+      return $ERR_ISO_FIRMWARE
+
+  for name in $(sort -u "$build$scratch/wanted")
   do
-    files+=( $(cd "$fwall" && compgen -G "$glob") )
+    if [[ -e "$fwall/$name" ]]
+    then
+      files+=( "$name" )
+    elif [[ "$name" =~ ^(.*-)([0-9]+)(\.ucode)$ ]]
+    then
+      prefix="${BASH_REMATCH[1]}"
+      max="${BASH_REMATCH[2]}"
+      suffix="${BASH_REMATCH[3]}"
+
+      # the newest version available that the driver supports
+      best=
+      for file in "$fwall/$prefix"*"$suffix"
+      do
+        version="${file#$fwall/$prefix}"
+        version="${version%$suffix}"
+        [[ "$version" =~ ^[0-9]+$ ]] || continue
+        (( version <= max && version > ${best:-0} )) && best="$version"
+      done
+      [[ -n "$best" ]] && files+=( "$prefix$best$suffix" )
+      # newer Intel chips also load a .pnvm file without a version
+      [[ -e "$fwall/${prefix%-}.pnvm" ]] && files+=( "${prefix%-}.pnvm" )
+    fi
+  done
+  for name in "${CAULDRON_ISO_FIRMWARE_EXTRA[@]}"
+  do
+    files+=( $(cd "$fwall" && compgen -G "$name") )
   done
   [[ "${#files[@]}" -gt 0 ]] || return $ERR_ISO_FIRMWARE
 
-  cauldron_verbose "Installing ${#files[@]} firmware files/directories to the iso"
+  cauldron_verbose "Installing ${#files[@]} firmware files to the iso"
   "${CAULDRON_CMD_MKDIR[@]}" "$target/lib/firmware" || return $ERR_MK_DIR
-  "${CAULDRON_CMD_TAR[@]}" -C "$fwall" -cf - "${files[@]}" |
+  # (-h: copy what links point to, so that nothing dangles)
+  "${CAULDRON_CMD_TAR[@]}" -C "$fwall" -chf - "${files[@]}" |
     "${CAULDRON_CMD_TAR[@]}" -C "$target/lib/firmware" -xf - ||
       return $ERR_ISO_FIRMWARE
-
-  # links to files outside the selection would be dangling: drop them
-  find "$target/lib/firmware" -xtype l -delete || return $ERR_ISO_FIRMWARE
 
   "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$build$scratch" || return $ERR_RM_FILE
 

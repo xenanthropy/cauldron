@@ -63,6 +63,7 @@ ifupdown
 dhcpcd
 wpa_supplicant
 iw
+wireless-regdb
 wget
 ca-certificates
 openssl

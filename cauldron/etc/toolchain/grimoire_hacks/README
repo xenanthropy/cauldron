@@ -12,3 +12,6 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
                   writes root=UUID=, which needs an initramfs SMGL doesn't
                   make, so the installed system can't find its root. Use
                   root=PARTUUID= (the kernel handles it by itself) instead
+  wireless-regdb  installs only the CRDA file (regulatory.bin); kernels since
+                  4.15 read /lib/firmware/regulatory.db + .p7s (without them
+                  wifi falls back to the restrictive world regulatory domain)
