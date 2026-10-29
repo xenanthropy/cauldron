@@ -395,6 +395,24 @@ sections below.
     also searching FAT/ext filesystems for `isofs.img` (and, for Ventoy, an
     ISO file).
   - Secure Boot isn't supported (GRUB is unsigned; no shim).
+  - First real hardware (Chuwi MiniBook X, UEFI, USB stick through a USB-C
+    adapter, Oct 2026): boots, but showed what QEMU couldn't:
+    - the stick appeared after the initramfs had scanned for the boot device
+      once, so it fell through to its menu (choosing "scan" there worked).
+      The initramfs now scans repeatedly (`SMGL_SCAN_TRIES`/`SMGL_SCAN_WAIT`
+      in `initfs/init`, `bootscan=N` on the kernel command line); tested in
+      QEMU by plugging the stick in 10 s after the kernel started.
+    - the panel is mounted sideways. The kernel console now has
+      `CONFIG_FRAMEBUFFER_CONSOLE_ROTATION` (follows the orientation the GPU
+      driver reports; `fbcon=rotate:1`/`:3` overrides it, verified in QEMU
+      under UEFI). The MiniBook X isn't in the kernel's
+      `drm_panel_orientation_quirks` table as of 6.18. GRUB 2.12 can't
+      rotate, so its menu stays sideways.
+    - GRUB prints "serial port 'com0' isn't found" on machines without a
+      serial port: harmless (the ISO's `grub.cfg` offers its menu on the
+      serial port too, which the QEMU tests rely on).
+    - `/proc/sys/kernel/hotplug` doesn't exist without
+      `CONFIG_UEVENT_HELPER`; the initramfs no longer depends on it.
   - Install walkthrough in QEMU, BIOS (MBR disk) and UEFI (GPT + EFI system
     partition), every installer step in order on a serial console: partition
     → format → mount → select caches (grub2, efibootmgr, efivar, dosfstools)
