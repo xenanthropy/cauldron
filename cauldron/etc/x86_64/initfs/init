@@ -10,6 +10,11 @@ SMGL_PREFIX=""
 SMGL_ISOFS="isofs.img"
 SMGL_ISOMNT="/iso"
 SMGL_ID="/etc/enchantment/enchantment.conf"
+# how often, and how many seconds apart, to look for the boot device before
+# showing the menu (bootscan=TRIES on the kernel command line; the kernel
+# passes it to init as an environment variable)
+SMGL_SCAN_TRIES="${bootscan:-10}"
+SMGL_SCAN_WAIT=3
 
 
 # Setup a color prompt to use for the shell-out
@@ -175,7 +180,10 @@ device_manager_start() {
       udevadm settle --timeout=60 &>/dev/null
       ;;
     mdev )
-      echo /sbin/mdev > /proc/sys/kernel/hotplug &&
+      # (no uevent helper in kernels without CONFIG_UEVENT_HELPER; devtmpfs
+      # creates the device nodes of devices that show up later anyway)
+      [ -e /proc/sys/kernel/hotplug ] &&
+        echo /sbin/mdev > /proc/sys/kernel/hotplug
       /sbin/mdev -s
       ;;
     * )
@@ -197,7 +205,7 @@ device_manager_stop() {
   esac
   if [ -n "$devpid" ] ;then
     msginfo "Killing initramfs $SMGL_DEVMGR ..."
-    echo "" > /proc/sys/kernel/hotplug
+    [ -e /proc/sys/kernel/hotplug ] && echo "" > /proc/sys/kernel/hotplug
     if ! kill $devpid ;then
       msgerr "Error killing $SMGL_DEVMGR!"
       msgprompt -n "  [a]bort to shell or [c]ontinue? (a or c): "
@@ -720,10 +728,22 @@ choice_modules() {
 }
 
 choice_auto() {
-  msginfo "Looking for boot device via cdrom/dvdrom..."
-  choice_cdrom
-  msginfo "Looking for boot device via usb..."
-  choice_usb
+  local tries="$SMGL_SCAN_TRIES"
+
+  # USB sticks (and some CD drives) show up a few seconds after the kernel
+  # starts, so keep looking for a while before giving up
+  while true ;do
+    msginfo "Looking for boot device via cdrom/dvdrom..."
+    choice_cdrom
+    msginfo "Looking for boot device via usb..."
+    choice_usb
+
+    tries=$((tries - 1))
+    [ "$tries" -gt 0 ] || break
+    msginfo "Boot device not found yet, looking again in $SMGL_SCAN_WAIT" \
+      "seconds ($tries more tries) ..."
+    sleep "$SMGL_SCAN_WAIT"
+  done
 }
 
 menu() {
