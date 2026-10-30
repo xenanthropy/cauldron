@@ -1490,10 +1490,16 @@ function cauldron_iso_firmware() {
   cauldron_verbose "Getting the $spell source"
   cauldron_chroot summon "$spell"
   liberror_check || return $?
-  # (summon -p prints the source file names, which are in the spool)
-  src=$(cauldron_chroot -q summon -p source "$spell" | head -n 1)
-  src="/var/spool/sorcery/${src##*/}"
-  [[ -f "$build$src" ]] || return $ERR_ISO_FIRMWARE
+  # (summon -p prints the source file names, which are in the spool; take
+  # the first word that names one, whatever else the chroot prints)
+  src=
+  for name in $(cauldron_chroot -q summon -p source "$spell")
+  do
+    [[ -f "$build/var/spool/sorcery/${name##*/}" ]] || continue
+    src="/var/spool/sorcery/${name##*/}"
+    break
+  done
+  [[ -n "$src" ]] || return $ERR_ISO_FIRMWARE
 
   cauldron_verbose "Installing $(libcolor_file ${src##*/}) to a scratch directory"
   "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$build$scratch" || return $ERR_RM_FILE
