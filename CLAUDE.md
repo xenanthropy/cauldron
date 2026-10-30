@@ -54,6 +54,14 @@ Other ideas for later:
   in dialog menus). Enchantment's steps (`enchantment/modules/`) are separate
   from the front end (`enchanters/`), so a `dialog` front end can drive the
   same steps; `enchanters/menu` is an old start.
+- **Next after the first hardware install (decided Oct 2026):** a generic
+  ISO kernel, based on a distribution's broad config (e.g. Void's
+  `linux6.x` x86_64 dotconfig, which the maintainer has used on SMGL with
+  everything working out of the box) plus `linux-iso.fragment` for the
+  boot-critical built-ins; firmware selection needs a cap then (modinfo would
+  pull in all GPU firmware). The x86_64 ISO doesn't have to fit a CD (USB is
+  the norm on 64-bit machines); a CD-sized ISO matters more for a future
+  32-bit x86 ISO, whose machines may not boot from USB.
 - A graphical installer (e.g. Calamares) on a bigger "desktop" ISO: needs
   Qt, a display server, etc. in the live system; its own project.
 - Hardware-tailored kernels: in the compile-kernel step, `make localmodconfig`
