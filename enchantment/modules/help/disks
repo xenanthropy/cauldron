@@ -1,0 +1,115 @@
+                      GUIDE: DISKS, FILESYSTEMS AND SWAP
+      (arrows/PgUp/PgDn to scroll, / to search, q to quit; "help" lists
+                             all commands)
+
+1. LAYOUT
+---------
+Find the disk with @[lsblk -f]. A simple, good layout for a whole disk:
+
+  UEFI machine (GPT):              BIOS machine (MBR/dos):
+    1. EFI system  512 MiB FAT32     1. root   rest of the disk
+    2. root        rest of the disk
+    (+ swap partition, optional)     (+ swap partition, optional)
+
+Check how this machine booted with @[ls /sys/firmware/efi] (exists: UEFI).
+A separate /home makes reinstalling easier; a separate /boot is not needed.
+
+The kernel used here has no initramfs, so it mounts the root filesystem
+itself. That works for ext4, XFS and btrfs, but NOT for a root filesystem on
+LVM, LUKS (encrypted) or software RAID (mdadm): those need an initramfs.
+Other filesystems (/home, data) can be on them; set that up after the install.
+
+
+2. WHICH FILESYSTEM
+-------------------
+ext4    The safe default: mature, fast, can be checked and repaired, can grow
+        and shrink (shrinking only unmounted). Pick this if unsure.
+          @[mkfs.ext4 -L smgl /dev/sdX2]
+
+XFS     Fast with large files and many parallel writes (databases, media,
+        servers); can grow but never shrink.
+          @[mkfs.xfs -L smgl /dev/sdX2]
+
+btrfs   Copy-on-write: snapshots (roll back after an update gone wrong),
+        transparent compression (saves space; compiling a source distro writes
+        a lot), checksums of all data, subvolumes instead of partitions. More
+        to learn, and it needs the layout below to be used properly.
+          @[mkfs.btrfs -L smgl /dev/sdX2]
+
+Whatever you pick for root, also install its tools on the new system: in the
+spell-caches step add xfsprogs or btrfs-progs (e2fsprogs is always there).
+EFI system partition: always FAT32, @[mkfs.vfat -F 32 /dev/sdX1].
+
+
+3. BTRFS, PROPERLY
+------------------
+Put the system in subvolumes rather than the top of the filesystem, so it can
+be snapshotted and rolled back without touching /home. A common layout:
+
+  @            /                 @log        /var/log
+  @home        /home             @snapshots  /.snapshots
+
+Create them (once, on the freshly formatted filesystem):
+  @[mount /dev/sdX2 /mnt]
+  @[btrfs subvolume create /mnt/@]
+  @[btrfs subvolume create /mnt/@home]
+  @[btrfs subvolume create /mnt/@log]
+  @[btrfs subvolume create /mnt/@snapshots]
+  @[umount /mnt]
+
+Mount them for the install (compress=zstd compresses new data, noatime avoids
+a write on every read; $o just saves typing):
+  @[o=compress=zstd,noatime]
+  @[mount -o subvol=@,$o /dev/sdX2 $ENCHANT_TARGET]
+  @[mkdir -p $ENCHANT_TARGET/{home,var/log,.snapshots}]
+  @[mount -o subvol=@home,$o /dev/sdX2 $ENCHANT_TARGET/home]
+  @[mount -o subvol=@log,$o /dev/sdX2 $ENCHANT_TARGET/var/log]
+  @[mount -o subvol=@snapshots,$o /dev/sdX2 $ENCHANT_TARGET/.snapshots]
+  (UEFI: then mount the EFI system partition at $ENCHANT_TARGET/boot/efi)
+
+fstab lines for the new system (edit-confs step; btrfs needs no fsck, so the
+last field is 0):
+  /dev/sdX2  /            btrfs  subvol=@,compress=zstd,noatime          0 0
+  /dev/sdX2  /home        btrfs  subvol=@home,compress=zstd,noatime      0 0
+  /dev/sdX2  /var/log     btrfs  subvol=@log,compress=zstd,noatime       0 0
+  /dev/sdX2  /.snapshots  btrfs  subvol=@snapshots,compress=zstd,noatime 0 0
+
+The kernel has to be told the root subvolume: grub-mkconfig adds
+rootflags=subvol=@ by itself; check with
+  @[grep rootflags /boot/grub/grub.cfg]   (inside the chroot)
+
+Later, a snapshot of the system before a big update:
+  @[btrfs subvolume snapshot -r / /.snapshots/before-update]
+
+
+4. SWAP
+-------
+Swap is disk space the kernel uses when memory runs out. Without it, running
+out of memory kills programs. A source distro compiles big programs (gcc,
+llvm, rust, browsers), which can need several GiB of memory per make job.
+
+  RAM            swap
+  up to 4 GiB    2 x RAM
+  4-16 GiB       = RAM (or at least 4 GiB)
+  over 16 GiB    4-8 GiB, or none
+  hibernation    at least the size of RAM
+
+A swap partition (@[mkswap /dev/sdX3], @[swapon /dev/sdX3]; fstab:
+"/dev/sdX3 none swap sw 0 0") or a swap file, which is easier to resize:
+
+ext4 / XFS (here 4 GiB; inside the chroot, i.e. on the new system):
+  @[dd if=/dev/zero of=/swapfile bs=1M count=4096]
+  @[chmod 600 /swapfile && mkswap /swapfile]
+  fstab: "/swapfile none swap sw 0 0"
+
+btrfs: a swap file can't be copy-on-write, compressed or in a snapshotted
+subvolume, so give it its own subvolume and let btrfs create the file (which
+turns copy-on-write and compression off for it):
+  @[btrfs subvolume create /mnt/@swap]   (with the others, above)
+  mount it like the others at $ENCHANT_TARGET/swap (subvol=@swap), then
+  @[btrfs filesystem mkswapfile --size 4g $ENCHANT_TARGET/swap/swapfile]
+  fstab: "/dev/sdX2 /swap btrfs subvol=@swap,noatime 0 0" and
+         "/swap/swapfile none swap sw 0 0"
+
+Hibernation also needs resume=<swap partition, e.g. PARTUUID=...> on the
+kernel command line (GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub).

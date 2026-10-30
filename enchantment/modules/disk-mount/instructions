@@ -10,6 +10,7 @@ UEFI: mount the EFI system partition at /boot/efi of the target:
 Other separate filesystems go below it the same way, e.g.
   @[mkdir -p $ENCHANT_TARGET/home] and @[mount /dev/sda4 $ENCHANT_TARGET/home]
 
+btrfs with subvolumes: see @[guide disks] for the mount commands.
 Turn on swap if you made a swap partition: @[swapon /dev/sda3]
 Check the result with @[lsblk] or @[findmnt -R $ENCHANT_TARGET].
 

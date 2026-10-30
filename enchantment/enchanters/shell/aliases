@@ -4,6 +4,7 @@
 
 alias welcome="enchantment-shell welcome"
 alias help="enchantment-shell help"
+alias guide="enchantment-shell help"
 alias keymap="enchantment-shell keymap"
 alias 539="enchantment-shell keymap"
 alias todo="enchantment-shell todo"

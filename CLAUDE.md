@@ -520,6 +520,13 @@ sections below.
     reiserfs, no UEFI/GPT): rewritten. The other steps' texts deserve the
     same review. (Note: cauldron's `@VAR@` substitution in instructions uses
     `sed s/../../`, so values containing `/` would break it.)
+  - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
+    ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
+    @snapshots, @swap; commands verified on a scratch image with the live
+    system's btrfs-progs), swap sizing and swap files. XFS and btrfs are
+    built into the ISO kernel now: without an initramfs a root filesystem's
+    driver can't be a module. Root on LVM/LUKS/mdadm still can't work
+    without an initramfs (the guide says so).
   - Seen at boot of the installed system, not investigated: lvm's boot
     script prints "File locking initialisation failed." twice.
   - Under QEMU without KVM, `install caches` takes ~10 minutes (sorcery's

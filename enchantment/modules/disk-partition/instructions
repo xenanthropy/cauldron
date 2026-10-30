@@ -19,6 +19,7 @@ Partition with any of these:
    @[printf 'label: gpt\nsize=512MiB, type=uefi\ntype=linux\n' | sfdisk /dev/sda]
 
 Swap is optional: a swap partition, or a swap file later. Remember to write
-the new partition table before quitting the program.
+the new partition table before quitting the program. For help choosing a
+layout, a filesystem and swap: @[guide disks].
 
 Type @[next] when you're done.

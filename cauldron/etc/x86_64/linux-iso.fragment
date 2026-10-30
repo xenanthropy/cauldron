@@ -84,8 +84,10 @@ CONFIG_FAT_DEFAULT_UTF8=y
 CONFIG_NLS_CODEPAGE_437=y
 CONFIG_NLS_ISO8859_1=y
 CONFIG_NLS_UTF8=y
-CONFIG_XFS_FS=m
-CONFIG_BTRFS_FS=m
+# built in: SMGL kernels boot without an initramfs, so a root filesystem's
+# driver can't be a module (the installer offers ext4, XFS and btrfs for root)
+CONFIG_XFS_FS=y
+CONFIG_BTRFS_FS=y
 CONFIG_F2FS_FS=m
 CONFIG_EXFAT_FS=m
 CONFIG_NTFS3_FS=m

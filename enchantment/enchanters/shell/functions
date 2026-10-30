@@ -236,10 +236,19 @@ function enchant_shell_perform_help() {
     fi
   fi
 
-  enchant_shell_header
-  liberror_check || return $?
-  enchant_shell_print "$helpfile"
-  liberror_check || return $?
+  # on a terminal, page the text (the pager only pages what doesn't fit on
+  # the screen; short topics print as before)
+  if [[ -t 1 ]]
+  then
+    { enchant_shell_header && enchant_shell_print "$helpfile"; } |
+      "${ENCHANT_CMD_PAGER[@]}"
+    [[ "${PIPESTATUS[0]}" -eq 0 ]] || return $ERR_FILE_ACCESS
+  else
+    enchant_shell_header
+    liberror_check || return $?
+    enchant_shell_print "$helpfile"
+    liberror_check || return $?
+  fi
 
   return $ERR_OK
 }

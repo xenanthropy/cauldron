@@ -1,7 +1,8 @@
 @[disk-format step]
 Now create filesystems on the partitions you just made (the device names
 below are examples; @[lsblk] shows yours). For the root filesystem, ext4 is
-the safe choice; xfs and btrfs also work:
+the safe choice; xfs and btrfs also work (@[guide disks] compares them and
+shows how to set up btrfs subvolumes):
   @[mkfs.ext4 /dev/sda2]
   @[mkfs.xfs /dev/sda2]
   @[mkfs.btrfs /dev/sda2]
