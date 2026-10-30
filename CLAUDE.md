@@ -512,6 +512,14 @@ sections below.
     `enchantment next` and missed it. `bashrc` now falls back to the default
     path. Workaround on older ISOs:
     `source /usr/share/smgl/enchantment/enchanters/shell/aliases`.
+  - Also from the hardware test: eight steps' instructions tell the user to
+    type `$ENCHANT_TARGET`/`$ENCHANT_TMP`, which login shells didn't have
+    (now exported by `/etc/profile.d/enchantment.sh`; workaround on older
+    ISOs: `export ENCHANT_TARGET=/mnt/smgl ENCHANT_TMP=/tmp/enchantment`);
+    and the disk partition/format/mount texts were from ~2010 (hd* names,
+    reiserfs, no UEFI/GPT): rewritten. The other steps' texts deserve the
+    same review. (Note: cauldron's `@VAR@` substitution in instructions uses
+    `sed s/../../`, so values containing `/` would break it.)
   - Seen at boot of the installed system, not investigated: lvm's boot
     script prints "File locking initialisation failed." twice.
   - Under QEMU without KVM, `install caches` takes ~10 minutes (sorcery's
