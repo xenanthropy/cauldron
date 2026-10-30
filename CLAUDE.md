@@ -459,6 +459,10 @@ sections below.
       - udev: "specified group 'render' unknown" (also 'sgx'): SMGL's
         `/etc/group` lacks these groups (for the team).
       - old CPU microcode (0x0e); no early microcode loading on the ISO.
+      - cfg80211 is built in, so it still logs "failed to load
+        regulatory.db" at boot (before the live system is mounted); it
+        loads the file when a wifi device first asks for its regulatory
+        domain. Making cfg80211/mac80211 modules would silence it.
   - Install walkthrough in QEMU, BIOS (MBR disk) and UEFI (GPT + EFI system
     partition), every installer step in order on a serial console: partition
     → format → mount → select caches (grub2, efibootmgr, efivar, dosfstools)
