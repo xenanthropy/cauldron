@@ -15,3 +15,7 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
   wireless-regdb  installs only the CRDA file (regulatory.bin); kernels since
                   4.15 read /lib/firmware/regulatory.db + .p7s (without them
                   wifi falls back to the restrictive world regulatory domain)
+  wpa_supplicant  2.11 doesn't build against OpenSSL 4 (ASN1_STRING became
+                  opaque); adds a patch using ASN1_STRING_get0_data/_length
+                  in src/crypto/tls_openssl.c (distributions carry the same
+                  fix, e.g. LFS' wpa_supplicant-2.11-openssl_4_fixes-1.patch)

@@ -335,6 +335,15 @@ sections below.
     `GRUB_DISABLE_LINUX_PARTUUID=false` (`root=PARTUUID=` is handled by
     the kernel itself). Cauldron patches it (`grimoire_hacks/grub2`) and
     the installer's grub step tells the user to check it.
+  - wpa_supplicant 2.11 doesn't build against OpenSSL 4 (`ASN1_STRING` is
+    opaque now; `tls_openssl.c` uses `->data`/`->length`). Cauldron patches
+    it (`grimoire_hacks/wpa_supplicant`); other distributions carry the same
+    accessor fix.
+  - wireless-regdb only installs the CRDA file (`/usr/lib/crda/
+    regulatory.bin`); kernels since 4.15 load `/lib/firmware/regulatory.db`
+    (+ `.p7s`), so without it wifi stays in the restrictive world regulatory
+    domain ("failed to load regulatory.db" at boot). Cauldron patches the
+    INSTALL (`grimoire_hacks/wireless-regdb`).
   - grub2 builds one platform per cast (`i386-pc` *or* `x86_64-efi`); a
     cache for a hybrid ISO / installer has to be assembled from two casts
     (cauldron does this in `cauldron_iso_grub_cache`). A spell option to
@@ -441,7 +450,8 @@ sections below.
     copies them from the ISO if present, else downloads them from
     kernel.org, and unpacks them with the ISO kernel's config as `.config`.
 - **Workarounds still in place** (each should become a proper fix):
-  - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2}` (see the
+  - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
+    wireless-regdb,wpa_supplicant}` (see the
     README there and the team report above)
   - `etc/toolchain/sorcery/default_depends`: nghttp2 without python/boost
   - `iso.runtime` lists `fuse` (undeclared e2fsprogs dependency); `iso.install`
