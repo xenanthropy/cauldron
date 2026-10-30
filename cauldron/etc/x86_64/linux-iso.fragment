@@ -181,3 +181,36 @@ CONFIG_MT7921U=m
 CONFIG_BT=m
 CONFIG_BT_HCIBTUSB=m
 CONFIG_BT_INTEL=m
+
+# Intel graphics as a module: its GuC/DMC firmware lives in /lib/firmware on
+# the live system, which a built-in i915 probes too early to see (it then
+# disables the GPU: "declaring it wedged"); simpledrm/efifb show the console
+# until it loads
+CONFIG_DRM_I915=m
+
+# laptop platform devices behind the Intel LPSS I2C/SPI controllers: touchpads
+# and touchscreens (HID over I2C), accelerometers; and SD card readers
+CONFIG_MFD_INTEL_LPSS_PCI=m
+CONFIG_MFD_INTEL_LPSS_ACPI=m
+CONFIG_I2C_DESIGNWARE_CORE=m
+CONFIG_I2C_DESIGNWARE_PLATFORM=m
+CONFIG_I2C_DESIGNWARE_PCI=m
+# (the GPIO/pinctrl drivers provide the interrupts of I2C touchpads)
+CONFIG_GPIOLIB=y
+CONFIG_PINCTRL=y
+CONFIG_PINCTRL_ALDERLAKE=y
+CONFIG_PINCTRL_TIGERLAKE=y
+CONFIG_PINCTRL_METEORLAKE=y
+CONFIG_PINCTRL_JASPERLAKE=y
+CONFIG_PINCTRL_ELKHARTLAKE=y
+CONFIG_PINCTRL_INTEL_PLATFORM=y
+CONFIG_I2C_HID_ACPI=m
+CONFIG_HID_MULTITOUCH=m
+CONFIG_INPUT_TOUCHSCREEN=y
+CONFIG_TOUCHSCREEN_GOODIX=m
+CONFIG_IIO=m
+CONFIG_MXC4005=m
+CONFIG_MMC=m
+CONFIG_MMC_SDHCI=m
+CONFIG_MMC_SDHCI_PCI=m
+CONFIG_MMC_BLOCK=m
