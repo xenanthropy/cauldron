@@ -54,6 +54,8 @@ Other ideas for later:
   in dialog menus). Enchantment's steps (`enchantment/modules/`) are separate
   from the front end (`enchanters/`), so a `dialog` front end can drive the
   same steps; `enchanters/menu` is an old start.
+- A graphical installer (e.g. Calamares) on a bigger "desktop" ISO: needs
+  Qt, a display server, etc. in the live system; its own project.
 - Hardware-tailored kernels: in the compile-kernel step, `make localmodconfig`
   (or `localyesconfig`) in the target's kernel sources keeps only the drivers
   the ISO kernel loaded for this machine. The broader the ISO kernel's module
@@ -344,6 +346,9 @@ sections below.
     (+ `.p7s`), so without it wifi stays in the restrictive world regulatory
     domain ("failed to load regulatory.db" at boot). Cauldron patches the
     INSTALL (`grimoire_hacks/wireless-regdb`).
+  - eudev's rules use the groups `render` and `sgx`, which SMGL's
+    `/etc/group` (smgl-base / init.d) doesn't have ("specified group
+    'render' unknown" at boot), so render nodes fall back to root.
   - grub2 builds one platform per cast (`i386-pc` *or* `x86_64-efi`); a
     cache for a hybrid ISO / installer has to be assembled from two casts
     (cauldron does this in `cauldron_iso_grub_cache`). A spell option to
@@ -422,6 +427,25 @@ sections below.
       serial port too, which the QEMU tests rely on).
     - `/proc/sys/kernel/hotplug` doesn't exist without
       `CONFIG_UEVENT_HELPER`; the initramfs no longer depends on it.
+    - From its `dmesg`/`lspci -nnk` (hardware: Alder Lake-N, Intel AX101
+      CNVi wifi `8086:54f0`, BT `8087:0026`, NVMe, DSI panel):
+      - built-in i915 probed before `/lib/firmware` existed, found no
+        GuC/DMC firmware and declared the GPU wedged. i915 is a module now
+        (simpledrm shows the console until it loads), firmware comes from
+        the live system (`cauldron_iso_firmware`).
+      - its firmware doesn't report the sideways panel (nothing in the
+        kernel's quirk table either), so `grub.cfg` matches the DMI product
+        name ("MiniBook X") and adds `fbcon=rotate:1
+        video=DSI-1:panel_orientation=right_side_up` (`smgl_quirks`).
+        Better long term: a `drm_panel_orientation_quirks` entry upstream.
+      - no drivers for the LPSS I2C/SPI controllers (touchpad behind
+        I2C-HID, touchscreen, MXC6655 accelerometer) or the SD reader:
+        added to the fragment (with GPIOLIB/PINCTRL, which defconfig lacks).
+      - audio: "snd_hda_intel: Cannot probe codecs" — this model needs the
+        SOF DSP driver plus SOF firmware (not in linux-firmware); not done.
+      - udev: "specified group 'render' unknown" (also 'sgx'): SMGL's
+        `/etc/group` lacks these groups (for the team).
+      - old CPU microcode (0x0e); no early microcode loading on the ISO.
   - Install walkthrough in QEMU, BIOS (MBR disk) and UEFI (GPT + EFI system
     partition), every installer step in order on a serial console: partition
     → format → mount → select caches (grub2, efibootmgr, efivar, dosfstools)
