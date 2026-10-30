@@ -775,8 +775,9 @@ function cauldron_check_libs() {
 ## Sanity checks the iso runtime (the live system): every program and library
 ## must find its shared libraries (the runtime leaves out build-only spells, see
 ## CAULDRON_ISO_RUNTIME_EXCLUDE), the installer and the programs it relies on
-## must be there, and so must the system image it installs. Prints every
-## problem found and returns ERR_ISO_CHECK if there were any.
+## must be there, and so must the system image it installs; no SSH host keys
+## may be shipped. Prints every problem found and returns ERR_ISO_CHECK if
+## there were any.
 ##
 #-------------------------------------------------------------------------------
 function cauldron_iso_check() {
@@ -813,6 +814,28 @@ function cauldron_iso_check() {
       ! -e "$target/usr/$out" && ! -L "$target/usr/$out" ]]
     then
       echo "missing /$out"
+      ((problems++))
+    fi
+  done
+
+  # SSH host keys are a machine's secret identity: they must be made on each
+  # machine, never shipped, neither in the live system nor in the caches it
+  # installs (a spell that runs ssh-keygen at install time puts the build
+  # machine's keys into its cache)
+  cauldron_verbose "Checking for SSH host keys in $target..."
+  for out in "$target"/etc/ssh/ssh_host_*key
+  do
+    [[ -e "$out" ]] || continue
+    echo "SSH host key shipped in the live system: /${out#$target/}"
+    ((problems++))
+  done
+  for out in "$target"/var/cache/sorcery/*.tar*
+  do
+    [[ -f "$out" ]] || continue
+    if "${CAULDRON_CMD_TAR[@]}" -tf "$out" |
+      grep -q '^etc/ssh/ssh_host_.*key$'
+    then
+      echo "SSH host key in the spell cache ${out##*/}"
       ((problems++))
     fi
   done

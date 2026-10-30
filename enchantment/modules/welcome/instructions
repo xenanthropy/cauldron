@@ -15,6 +15,9 @@ network interfaces; replace wlan0 below with yours):
           @[wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf]
           @[dhcpcd wlan0]
 The installed system has the same tools (copy /etc/wpa_supplicant.conf over).
+To install from another computer over SSH instead:
+  @[passwd]  @[ssh-keygen -A]  @[/usr/sbin/sshd -o PermitRootLogin=yes]
+  then @[ssh root@ADDRESS] (@[ip addr] shows this machine's address)
 
 If you have any feedback for us, please drop by #sourcemage-cauldron
 on irc.freenode.net, file a bug on bugs.sourcemage.org,

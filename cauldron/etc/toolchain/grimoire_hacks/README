@@ -19,3 +19,10 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
                   opaque); adds a patch using ASN1_STRING_get0_data/_length
                   in src/crypto/tls_openssl.c (distributions carry the same
                   fix, e.g. LFS' wpa_supplicant-2.11-openssl_4_fixes-1.patch)
+  openssh         "make install" runs ssh-keygen -A on the build machine (the
+                  keys end up in the spell's cache, shared by every system
+                  installed from it) and only installs ssh_config/sshd_config
+                  if they don't exist yet (so caches built on a system that
+                  has them lack them). Use install-nosysconf +
+                  install_config_file, and let the init script make the
+                  host keys on first start (like the systemd unit does)

@@ -1,0 +1,29 @@
+diff -ru a/var/lib/sorcery/codex/test/crypto/openssh/INSTALL b/var/lib/sorcery/codex/test/crypto/openssh/INSTALL
+--- var/lib/sorcery/codex/test/crypto/openssh/INSTALL
++++ var/lib/sorcery/codex/test/crypto/openssh/INSTALL
+@@ -1,4 +1,11 @@
+-default_install &&
++# install the configuration files as config files (sorcery tracks them and
++# keeps local changes), and don't let "make install" generate host keys: it
++# runs ssh-keygen -A on the build machine, so the keys would end up in the
++# spell's cache and be shared by every system installed from it
++make install-nosysconf &&
++install_config_file ssh_config.out  "$INSTALL_ROOT/etc/ssh/ssh_config" &&
++install_config_file sshd_config.out "$INSTALL_ROOT/etc/ssh/sshd_config" &&
++install_config_file moduli.out      "$INSTALL_ROOT/etc/ssh/moduli" &&
+ 
+ if spell_installed systemd; then
+   install -m 644 -o root -g root "$SPELL_DIRECTORY/systemd/"*.service "$INSTALL_ROOT/lib/systemd/system/" &&
+diff -ru a/var/lib/sorcery/codex/test/crypto/openssh/init.d/sshd b/var/lib/sorcery/codex/test/crypto/openssh/init.d/sshd
+--- var/lib/sorcery/codex/test/crypto/openssh/init.d/sshd
++++ var/lib/sorcery/codex/test/crypto/openssh/init.d/sshd
+@@ -8,6 +8,9 @@
+ 
+ start() {
+   echo -n "Starting sshd..."
++  # host keys are made on this machine, the first time (the spell doesn't
++  # ship any); -A only creates the missing ones
++  /usr/bin/ssh-keygen -A > /dev/null
+   $PROGRAM
+   ITER=0
+   while [ ! -e /var/run/sshd.pid ] && [ "$ITER" -lt 10 ] ; do sleep 1; echo -n . ;ITER=$((++ITER)); done

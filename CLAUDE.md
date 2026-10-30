@@ -364,6 +364,19 @@ sections below.
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).
+- **Security: SSH host keys are shipped** (found Oct 2026):
+  - the official basesystem tarball (smgl-test-0.63-20251212) contains
+    `/etc/ssh/ssh_host_{dsa,ecdsa,ed25519,rsa,}_key` from 2015–2017: every
+    system installed from it shares those private keys until someone
+    regenerates them (`rm /etc/ssh/ssh_host_*; ssh-keygen -A`). Rebuild the
+    tarball without them, and tell users.
+  - the openssh spell's `make install` runs `ssh-keygen -A` on the casting
+    machine, so a cache (cauldron's, or anyone's `ARCHIVE=on` cache shared
+    with others) carries that machine's keys; it also leaves out
+    `ssh_config`/`sshd_config` when they already exist. The init.d script
+    never generates keys. Cauldron's fix: `grimoire_hacks/openssh`; and
+    `cauldron_iso_check` refuses an ISO with host keys in the live system or
+    in any of its caches.
 - **Installer text**: the welcome screen
   (`enchantment/modules/welcome/instructions`) still points to
   `#sourcemage-cauldron` on irc.freenode.net; update it to wherever the
@@ -492,7 +505,7 @@ sections below.
     kernel.org, and unpacks them with the ISO kernel's config as `.config`.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
-    wireless-regdb,wpa_supplicant}` (see the
+    wireless-regdb,wpa_supplicant,openssh}` (see the
     README there and the team report above)
   - `etc/toolchain/sorcery/default_depends`: nghttp2 without python/boost
   - `iso.runtime` lists `fuse` (undeclared e2fsprogs dependency); `iso.install`
