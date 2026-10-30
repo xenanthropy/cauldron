@@ -105,6 +105,12 @@ CONFIG_FRAMEBUFFER_CONSOLE=y
 # turn the console to match panels mounted sideways (the orientation comes from
 # the GPU driver or the kernel's quirk list; fbcon=rotate:N overrides it)
 CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
+# a 16x32 console font, which the kernel picks by itself on high resolution
+# screens (the default 8x16 font is tiny on a dense laptop panel)
+CONFIG_FONTS=y
+CONFIG_FONT_8x8=y
+CONFIG_FONT_8x16=y
+CONFIG_FONT_TER16x32=y
 
 # virtual machines
 CONFIG_VIRTIO_PCI=y
