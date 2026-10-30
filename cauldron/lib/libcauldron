@@ -2080,9 +2080,14 @@ function cauldron_enchant_init() {
     return $ERR_WRITE_FILE
   "${CAULDRON_CMD_RM[@]}" "$target/tmp/inittab" || return $ERR_RM_FILE
 
-  # set login shells to run enchantment
+  # set login shells to run enchantment; the steps' instructions tell the
+  # user to type $ENCHANT_TARGET and $ENCHANT_TMP, so login shells get them
   "${CAULDRON_CMD_MKDIR[@]}" "${profile%/*}" || return $ERR_MK_DIR
-  echo "[ -f /root/.bashrc ] && source /root/.bashrc" > "$profile" ||
+  echo "export ENCHANT_TARGET=\"${ENCHANT_TARGET:-/mnt/smgl}\"" > "$profile" ||
+    return $ERR_WRITE_FILE
+  echo "export ENCHANT_TMP=\"${ENCHANT_TMP:-/tmp/enchantment}\"" >> "$profile" ||
+    return $ERR_WRITE_FILE
+  echo "[ -f /root/.bashrc ] && source /root/.bashrc" >> "$profile" ||
     return $ERR_WRITE_FILE
   echo "$enchantment welcome" >> "$profile" ||
     return $ERR_WRITE_FILE

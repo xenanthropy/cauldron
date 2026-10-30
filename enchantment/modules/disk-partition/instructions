@@ -1,19 +1,24 @@
 @[disk-partition step]
-First, we'll need to create some partitions on your disk that we can install
-SMGL to. You'll need to know the device of your hard disk to do this. To find
-your disks, you can try @[ls /sys/block], @[cat /proc/partitions], or
-@[dmesg | grep -i disk]. You probably want something that starts with either hd
-or sd.
+First, create the partitions to install SMGL to. To see your disks, their
+partitions and filesystems, use @[lsblk -f] (or @[lsblk -o NAME,SIZE,MODEL]).
+Disks are named /dev/nvme0n1 (NVMe), /dev/sda (SATA, USB), /dev/mmcblk0
+(SD/eMMC) or /dev/vda (virtual machines); partitions /dev/nvme0n1p1, /dev/sda1.
 
-Then, use a program to partition your device:
+How this machine booted the ISO decides what you need:
+ @[ls /sys/firmware/efi]  # exists: UEFI; "No such file": BIOS
+ UEFI: a GPT disk with an EFI system partition (FAT32, 512 MiB is plenty;
+       reuse an existing one when keeping another OS) plus a root partition
+ BIOS: an MBR (dos) disk with a root partition, or GPT plus a 1 MiB
+       "BIOS boot" partition (no filesystem) for GRUB
 
-cfdisk, a curses-based menu front-end to fdisk: @[cfdisk /dev/sda]
-parted: @[parted /dev/sda]
-fdisk: @[fdisk /dev/sda]
+Partition with any of these:
+ @[cfdisk /dev/sda]  menus (choose gpt or dos for an empty disk)
+ @[fdisk /dev/sda]   interactive commands (m for help)
+ @[parted /dev/sda]  interactive or one-line commands
+ @[sfdisk /dev/sda]  scriptable; e.g. a whole disk for UEFI (erases it!):
+   @[printf 'label: gpt\nsize=512MiB, type=uefi\ntype=linux\n' | sfdisk /dev/sda]
 
-There is also @[sfdisk], if you're low-level enough to want to use it.
-
-Be sure to create a swap partition unless you know you don't need one.
-Remember to save your new partitioning scheme before quitting the program.
+Swap is optional: a swap partition, or a swap file later. Remember to write
+the new partition table before quitting the program.
 
 Type @[next] when you're done.

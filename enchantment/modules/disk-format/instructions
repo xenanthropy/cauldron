@@ -1,15 +1,16 @@
 @[disk-format step]
-Now create filesystems on the partitions you just created. Below is a list
-of example commands for different types of filesystems. The partitions given
-are examples only. Be sure to format all the partitions you need.
+Now create filesystems on the partitions you just made (the device names
+below are examples; @[lsblk] shows yours). For the root filesystem, ext4 is
+the safe choice; xfs and btrfs also work:
+  @[mkfs.ext4 /dev/sda2]
+  @[mkfs.xfs /dev/sda2]
+  @[mkfs.btrfs /dev/sda2]
 
-Examples:
-  @[mkfs.xfs /dev/sda1]
-  @[mke2fs /dev/sda2]
-  @[mkreiserfs /dev/sda3]
-  @[mkfs.ext3 /dev/sda4]
+UEFI: a new EFI system partition gets FAT32 (don't format one you are
+reusing from another OS):
+  @[mkfs.vfat -F 32 /dev/sda1]
 
-You probably want a swap partition:
-  @[mkswap /dev/sda5]
+Swap partition, if you made one:
+  @[mkswap /dev/sda3]
 
 Type @[next] to go to the next step.

@@ -1,20 +1,16 @@
 @[disk-mount step]
-You need to mount the filesystems you will use. Please be sure to mount your
-intended / and all sub-mounts (e.g. /usr) relative to the installer target mount:
-   @[$ENCHANT_TARGET] (e.g., mount /usr at @[$ENCHANT_TARGET]/usr)
+Mount the new system's filesystems under the installer's target directory,
+@[$ENCHANT_TARGET] (root first, then anything below it):
+  @[mount /dev/sda2 $ENCHANT_TARGET]
 
-Examples:
-  @[mount -t xfs /dev/sda1 $ENCHANT_TARGET]
-  @[mkdir $ENCHANT_TARGET/boot $ENCHANT_TARGET/usr]
-  @[mount -t ext2 /dev/sda2 $ENCHANT_TARGET/boot]
-  @[mount -t reiserfs /dev/sda3 $ENCHANT_TARGET/usr]
-  @[mount -t ext3 /dev/sda3 $ENCHANT_TARGET/var]
+UEFI: mount the EFI system partition at /boot/efi of the target:
+  @[mkdir -p $ENCHANT_TARGET/boot/efi]
+  @[mount /dev/sda1 $ENCHANT_TARGET/boot/efi]
 
-The above are examples only. Replace them with the partitions and filesystem
-types you used in the @[disk-format] step.
+Other separate filesystems go below it the same way, e.g.
+  @[mkdir -p $ENCHANT_TARGET/home] and @[mount /dev/sda4 $ENCHANT_TARGET/home]
 
-Don't forget to mount @[all] the (system) partitions you plan to use under
-@[$ENCHANT_TARGET]. Also, you may want to turn on swap via e.g.
-  @[swapon /dev/sda5]
+Turn on swap if you made a swap partition: @[swapon /dev/sda3]
+Check the result with @[lsblk] or @[findmnt -R $ENCHANT_TARGET].
 
 Type @[next] to go to the next step.
