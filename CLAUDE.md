@@ -472,6 +472,12 @@ sections below.
       - udev: "specified group 'render' unknown" (also 'sgx'): SMGL's
         `/etc/group` lacks these groups (for the team).
       - old CPU microcode (0x0e); no early microcode loading on the ISO.
+      - confirmed on the hardware with the 20261030 ISO: the DMI match in
+        `grub.cfg` rotates the console and selects the 16x32 font without
+        any typing, the stick is found automatically, and wifi works (AX101
+        with the selected iwlwifi firmware, wpa_supplicant + dhcpcd).
+        sshd on that ISO needed `-f /dev/null` (no sshd_config: the openssh
+        spell bug, fixed since by `grimoire_hacks/openssh`).
       - cfg80211 is built in, so it still logs "failed to load
         regulatory.db" at boot (before the live system is mounted); it
         loads the file when a wifi device first asks for its regulatory
