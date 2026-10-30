@@ -2,6 +2,9 @@ Spell option presets ("depends" .p files) installed into the build chroot's
 /etc/sorcery/local/depends/<spell>.p by cauldron_sorcerous_cauldron_defaults,
 so unattended casts don't fall back to unsuitable defaults:
 
+  linux-firmware  the release snapshot (the other branch is git, which now
+              needs rust); without an answer the spell has no SOURCE at all, so
+              "summon linux-firmware" (cauldron_iso_firmware) gets nothing
   locale      only en_US (+ en_US.UTF-8 and C.UTF-8) instead of all ~196
               locales (~130 MB); users pick their own with "cast -r locale"
   net-tools   don't stop to ask about network configuration
