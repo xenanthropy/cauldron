@@ -478,6 +478,11 @@ sections below.
         with the selected iwlwifi firmware, wpa_supplicant + dhcpcd).
         sshd on that ISO needed `-f /dev/null` (no sshd_config: the openssh
         spell bug, fixed since by `grimoire_hacks/openssh`).
+        dmesg: iwlwifi loaded `so-a0-hr-b0-89.ucode` (the newest the 6.18
+        driver supports, picked by `cauldron_iso_firmware`); i915 loaded
+        DMC, GuC and HuC firmware ("GUC: submission enabled", no longer
+        wedged). Harmless: "[drm] *ERROR* DSI link not ready" (common on
+        Alder Lake-N DSI panels). udev renames wlan0 to wlp0s20f3.
       - cfg80211 is built in, so it still logs "failed to load
         regulatory.db" at boot (before the live system is mounted); it
         loads the file when a wifi device first asks for its regulatory
