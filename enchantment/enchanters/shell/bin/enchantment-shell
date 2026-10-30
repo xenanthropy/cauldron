@@ -363,7 +363,7 @@ function enchant_shell_command_potion() {
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-function enchant_shell_command_help() {
+function enchant_shell_command_usage() {
   "${ENCHANT_CMD_CAT[@]}" << EndUsage
 Usage: $selfname [-h | --help] [-v | --version] [-f FILE | --config FILE]
                 [COMMAND [SUBCOMMAND ...]]
@@ -462,7 +462,7 @@ do
       shift
       ;;
     "h" )
-      enchant_shell_command_help
+      enchant_shell_command_usage
       exit $?
       ;;
     "v" )
@@ -564,7 +564,7 @@ case "$command" in
     liberror_check_fatal
     ;;
   * )
-    enchant_shell_command_help
+    enchant_shell_command_usage
     liberror_check_fatal
     ;;
 esac
