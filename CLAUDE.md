@@ -505,6 +505,13 @@ sections below.
     "no" although the cached binaries link them (grub-install failed on
     `libdevmapper`): it now passes each cache's recorded answers to sorcery
     and adds the caches of missing dependencies (here lvm, libaio).
+  - Found on the hardware: the short installer commands (`next`, `list`,
+    `install`, ... from `enchanters/shell/aliases`) didn't exist in the
+    login shell: `bashrc` only sourced the aliases when `ENCHANT_ENCHANTERS`
+    was set, which it never is there. The QEMU walkthroughs typed
+    `enchantment next` and missed it. `bashrc` now falls back to the default
+    path. Workaround on older ISOs:
+    `source /usr/share/smgl/enchantment/enchanters/shell/aliases`.
   - Seen at boot of the installed system, not investigated: lvm's boot
     script prints "File locking initialisation failed." twice.
   - Under QEMU without KVM, `install caches` takes ~10 minutes (sorcery's
