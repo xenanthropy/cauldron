@@ -438,6 +438,11 @@ sections below.
         name ("MiniBook X") and adds `fbcon=rotate:1
         video=DSI-1:panel_orientation=right_side_up` (`smgl_quirks`).
         Better long term: a `drm_panel_orientation_quirks` entry upstream.
+        Only machines matched there get these options; add others the same
+        way. It also gets `fbcon=font:TER16x32`: the kernel only picks its
+        16x32 font by itself when the 8x16 one would give more than ~20000
+        character cells (`get_default_font`, ~2560x1440 and up), and this
+        1920x1200 10" panel stays just below.
       - no drivers for the LPSS I2C/SPI controllers (touchpad behind
         I2C-HID, touchscreen, MXC6655 accelerometer) or the SD reader:
         added to the fragment (with GPIOLIB/PINCTRL, which defconfig lacks).
