@@ -594,6 +594,12 @@ sections below.
     run/sys/proc/dev (recursively, looping over stacked mounts), and the
     exit status of an interactive chroot shell is ignored. Tested with a
     stand-in ESP: it stays mounted in all cases.
+  - efivarfs (same install): the live system never mounted it, so
+    `efibootmgr` said "EFI variables are not supported" until the user
+    mounted it by hand. The live login profile now mounts it on UEFI
+    machines, and `enchant_chroot_init` mounts it inside the target's /sys
+    (the grub step no longer asks for it). Still to verify under OVMF at
+    the next ISO test (the agent sandbox has no UEFI).
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live

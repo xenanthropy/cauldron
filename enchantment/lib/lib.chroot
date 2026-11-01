@@ -86,6 +86,14 @@ function enchant_chroot_init() {
     # mount runfs
     "${ENCHANT_CMD_MOUNT[@]}" -t tmpfs run "$target/run" ||
       return $ERR_CHROOT_INIT
+    # on UEFI machines, the firmware variables (grub-install creates its boot
+    # entry there, efibootmgr lists them); unmounted with sys
+    if [[ -d "$target/sys/firmware/efi/efivars" ]]
+    then
+      "${ENCHANT_CMD_MOUNT[@]}" -t efivarfs efivarfs \
+        "$target/sys/firmware/efi/efivars" ||
+          return $ERR_CHROOT_INIT
+    fi
 
     # add the target path to the list of chrooted paths
     LIBCHROOT_PATHS[num]="$target"

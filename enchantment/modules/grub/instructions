@@ -17,7 +17,8 @@ partition; adjust /dev/sda):
 UEFI machines: the EFI system partition (FAT) must be mounted at /boot/efi in
 the target (do that before chrooting, e.g.
 @[mount /dev/sda1 $ENCHANT_TARGET/boot/efi]):
- @[mount -t efivarfs efivarfs /sys/firmware/efi/efivars]  # if not mounted yet
+ (@[enchantment chroot] mounts the firmware variables, /sys/firmware/efi/efivars,
+ by itself; @[efibootmgr] lists the boot entries)
  @[grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=smgl]
 If the firmware does not pick it up, also install the fallback loader:
  @[grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable]

@@ -2113,6 +2113,13 @@ function cauldron_enchant_init() {
     return $ERR_WRITE_FILE
   echo "[ -f /root/.bashrc ] && source /root/.bashrc" >> "$profile" ||
     return $ERR_WRITE_FILE
+  # UEFI variables (efibootmgr, grub-install's boot entry) need efivarfs,
+  # which nothing else mounts on the live system
+  { echo 'e=/sys/firmware/efi/efivars'
+    echo '[ -d "$e" ] && ! mountpoint -q "$e" &&'
+    echo '  mount -t efivarfs efivarfs "$e" 2> /dev/null'
+    echo 'unset e'
+  } >> "$profile" || return $ERR_WRITE_FILE
   echo "$enchantment welcome" >> "$profile" ||
     return $ERR_WRITE_FILE
 
