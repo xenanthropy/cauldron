@@ -361,6 +361,13 @@ sections below.
     cache for a hybrid ISO / installer has to be assembled from two casts
     (cauldron does this in `cauldron_iso_grub_cache`). A spell option to
     build several platforms would be simpler.
+  - zile 2.6.4 (rewritten in Vala) needs glib2, libgee and vala, but its
+    DEPENDS only lists help2man, ncurses and libgc, so it fails in
+    configure. (The ISO ships jed instead.)
+  - vim's stable branch is 9.0.1637 (June 2023); vim has had many
+    security fixes since. jed's SOURCE_URL is ftp://space.mit.edu; the
+    releases are on https://www.jedsoft.org/releases/jed/ (signatures as
+    `.asc`).
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).
@@ -532,6 +539,16 @@ sections below.
     edit-confs step pointed at `/mnt/root/...` and a non-existent
     `list-editors`; `todo` (re-print the current step) is now mentioned on the
     welcome screen, and `steps` is an alias of `list`.
+  - Editors (from the same install): `help editors` was a static 2010 list
+    (nano, elvis, jed) while the ISO had nano, busybox vi and ed. cauldron
+    now writes `help/editors` from `CAULDRON_ISO_EDITORS`, listing only the
+    editors present in `isofs/`. Added to the live system: vim (console
+    only; preset `depends/vim` + `default_depends` keep perl/python/... out;
+    vi links to it) and jed (Emacs key bindings, ~4 MB with slang). Real
+    emacs pulls in X/GTK (>100 MB) and helix needs rust, so neither is on
+    the ISO. Sandbox note: vim's source (a GitHub archive) can't be fetched
+    from the agent sandbox and wasn't found on any mirror; jed's was
+    pre-fetched from jedsoft.org.
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live
