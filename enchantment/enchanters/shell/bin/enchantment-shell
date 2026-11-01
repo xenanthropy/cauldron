@@ -235,6 +235,17 @@ function enchant_shell_command_variable() {
 ##
 #-------------------------------------------------------------------------------
 function enchant_shell_command_options() {
+  # page the list on a terminal (it is long), like the help topics
+  if [[ -t 1 ]]
+  then
+    enchant_shell_options_list "$@" | "${ENCHANT_CMD_PAGER[@]}"
+    return "${PIPESTATUS[0]}"
+  fi
+
+  enchant_shell_options_list "$@"
+}
+
+function enchant_shell_options_list() {
   local target="$ENCHANT_TARGET"
   local config="$target/etc/sorcery/local/depends"
   local depends="$target/var/state/sorcery/depends"
@@ -575,6 +586,11 @@ then
   echo "error: could not load libenchantment"
   exit 1
 fi
+
+# no color codes when the output goes to a pipe or file (e.g. "options | less"
+# would show them as text); the prompt is always read through $(...), so it
+# keeps its colors
+[[ -t 1 || "$command" == "prompt" ]] || LIBCOLOR_NOCOLOR="yes"
 
 # source installer-specific functions
 . "$ENCHANT_ENCHANTERS/$ENCHANT_INSTALLER/functions" ||

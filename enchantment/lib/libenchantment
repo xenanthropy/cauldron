@@ -55,9 +55,14 @@ function enchant_fatal_error() {
 . "$ENCHANT_COMMON/libcolor" ||
   enchant_fatal_error "error: cannot load base library libcolor"
 
-# test/set whether color output should be enabled
-[[ "$ENCHANT_COLOR" != "yes" || "$(grep -q 'nocolor' /proc/cmdline)" ]] &&
+# test/set whether color output should be enabled (ENCHANT_COLOR, "nocolor"
+# on the kernel command line); the enchanters also turn it off when their
+# output goes to a pipe or file, where the codes would show up as text
+if [[ "$ENCHANT_COLOR" != "yes" ]] ||
+  grep -qw 'nocolor' /proc/cmdline 2> /dev/null
+then
   LIBCOLOR_NOCOLOR="yes"
+fi
 
 # drop enchant_fatal_error if liberror was successfully loaded
 unset enchant_fatal_error

@@ -158,6 +158,8 @@ function libcolor_symlink() { libcolor_printf "$LIBCOLOR_SYMLINK_COLOR" "$@" ;}
 function libcolor_color() {
   local color=
 
+  [[ "$LIBCOLOR_NOCOLOR" == "yes" ]] && return 0
+
   while [[ "$#" -gt 0 ]]
   do
     eval color="\$LIBCOLOR_$1"
