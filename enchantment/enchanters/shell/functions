@@ -149,11 +149,26 @@ function enchant_shell_perform_todo() {
 
   [[ -z "$curstep" ]] && return $ERR_GET_CURRENT
 
+  # on a terminal, go through the pager: it only pages when the text doesn't
+  # fit on the screen (less -F), so long steps don't scroll out of sight on a
+  # console without scrollback
+  if [[ -t 1 ]]
+  then
+    enchant_shell_todo_text "$curstep" | "${ENCHANT_CMD_PAGER[@]}"
+    return "${PIPESTATUS[0]}"
+  fi
+
+  enchant_shell_todo_text "$curstep"
+}
+
+function enchant_shell_todo_text() {
+  local curstep="$1"
+
   # output the header
   enchant_shell_header
   liberror_check || return $?
 
-  # output the current module's instructions
+  # output the module's instructions
   enchant_shell_print "$ENCHANT_MODULES/$curstep/instructions"
   liberror_check || return $?
 

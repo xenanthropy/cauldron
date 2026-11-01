@@ -580,6 +580,10 @@ sections below.
     executable `/etc/sysconfig/bootmisc`, SMGL's rc.local) and sorcery's
     `TMPFS` option (compiling in RAM; tmpfs defaults to half of RAM, big
     spells set `TMPFS=off` themselves).
+  - Step texts longer than the screen (compile-kernel, edit-confs, grub,
+    welcome on an 80x25 console) scrolled out of sight on a console without
+    scrollback; `todo`/`next`/`prev` now print through `less -XFR`, which only
+    pages when the text doesn't fit (with a prompt naming the keys).
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live
