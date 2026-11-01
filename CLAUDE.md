@@ -376,6 +376,14 @@ sections below.
     (+ `.p7s`), so without it wifi stays in the restrictive world regulatory
     domain ("failed to load regulatory.db" at boot). Cauldron patches the
     INSTALL (`grimoire_hacks/wireless-regdb`).
+  - nscd (glibc, started at boot) watches `/etc/netgroup`, which nothing
+    installs, so it prints "stat failed for file `/etc/netgroup'" on the
+    console at every boot, in the middle of the login prompt (found on the
+    hardware). The default `nsswitch.conf` still names NIS/NIS+ for every
+    database, although glibc no longer ships those modules. Cauldron ships
+    an empty `netgroup` and a files/dns `nsswitch.conf` (`base_etc`).
+    Related: boot scripts still run while the gettys already show the
+    login prompt, so any late boot message lands in it.
   - eudev's rules use the groups `render` and `sgx`, which SMGL's
     `/etc/group` (smgl-base / init.d) doesn't have ("specified group
     'render' unknown" at boot), so render nodes fall back to root.

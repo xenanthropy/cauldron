@@ -1,0 +1,2 @@
+# /etc/netgroup: NIS-style netgroups ("man 5 netgroup"); usually empty.
+# It exists so nscd, which watches it, doesn't warn at boot.
