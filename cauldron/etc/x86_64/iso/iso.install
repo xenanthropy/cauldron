@@ -17,5 +17,9 @@ btrfs-progs
 # network / remote access
 openssh
 
+# editors (the base system has nano)
+vim
+jed
+
 # development: git is left out for now; the grimoire's git (2.56.0) depends on
 # rust (and so llvm), which would have to be built and shipped too

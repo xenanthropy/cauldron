@@ -1,6 +1,6 @@
 VIM_BRANCH="stable"
 VIM_FEATURES="normal"
-GVIM_MULTIBYTE="y"
+GVIM_MULTIBYTE="--enable-multibyte"
 VIM_X_DISABLE="y"
 GVIM_GUI="none"
 GVIM_SYMLINK="y"
