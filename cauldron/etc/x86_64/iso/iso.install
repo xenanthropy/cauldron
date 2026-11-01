@@ -17,6 +17,10 @@ btrfs-progs
 # network / remote access
 openssh
 
+# administration as a regular user (sudo; opendoas needs a system logger,
+# so it is left to the installed system: cast opendoas)
+sudo
+
 # editors (the base system has nano)
 vim
 jed

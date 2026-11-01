@@ -6,13 +6,19 @@ Set a password for the root user (pick a secure one, but not one you'll forget,
 and bear in mind that it can be bypassed with a screwdriver):
   @[passwd root]
 
-@[Recommended]: add at least one regular user for daily use:
-  @[useradd -m -d /home/mbolton] -g users @[mbolton]
+@[Recommended]: add at least one regular user for daily use; the "wheel" group
+is for users allowed to become root (with sudo, doas or su):
+  @[useradd -m -g users -G wheel mbolton]
   @[passwd mbolton]
+Replace @[mbolton] with whatever login you want (its home is /home/mbolton).
+An existing user can be added to wheel with @[usermod -aG wheel mbolton].
 
-Replace @[mbolton] with whatever login you want. Don't forget to change
-@[/home/mbolton] accordingly. You may also change the group (-g users) if you
-wish.
+To let wheel members run commands as root with sudo (select the sudo cache in
+the spell-caches step, or @[cast sudo] later), run @[visudo] and remove the
+"# " in front of this line (visudo checks the file before saving it):
+  %wheel ALL=(ALL:ALL) ALL
+Or doas, a smaller alternative (@[cast opendoas] on the installed system):
+put "permit persist :wheel" into /etc/doas.conf.
 
 Finally, exit the chroot to return to the installer:
   @[exit]

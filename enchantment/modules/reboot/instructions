@@ -4,9 +4,9 @@ into your installed system! Just type:
 
   @[reboot]
 
-If you installed @[smgl-setup] (installed by default unless changed), be sure to
-run @[man smgl-setup] when first logging in. It will provide you with
-information on what you can do with your newly installed system.
+When you first log in, run @[man smgl-setup]: it walks you through what to do
+with your new system (updating grimoires and sorcery, compile options, ...).
 
-We don't (yet) eject the CD during shutdown, so be sure to take it out during
-reboot or configure your BIOS not to try and boot from it.
+We don't (yet) eject CDs during shutdown, and no spell can dispel your USB
+stick from its port, so take the CD or stick out while the machine restarts
+(or tell the firmware not to boot from it first).

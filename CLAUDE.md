@@ -600,6 +600,15 @@ sections below.
     machines, and `enchant_chroot_init` mounts it inside the target's /sys
     (the grub step no longer asks for it). Still to verify under OVMF at
     the next ISO test (the agent sandbox has no UEFI).
+  - user-setup/reboot (same install): `smgl-setup` (the post-install man
+    page the reboot step points to) wasn't in the system tarball although
+    the text said "installed by default"; it is in `sys.runtime` now. The
+    user-setup step adds the user to `wheel` and explains sudo (`visudo`,
+    `%wheel ALL=(ALL:ALL) ALL`) and doas; `sudo` is offered as a cache
+    (`iso.install`, optional deps off in `default_depends`); opendoas
+    hard-depends on SYSTEM-LOGGER, so it is left to `cast opendoas`. For
+    the team: smgl-setup's man page dates from 2008 (stable grimoire, a
+    separate g++ spell) and could use a refresh.
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live

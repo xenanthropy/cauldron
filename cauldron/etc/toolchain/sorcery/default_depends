@@ -8,3 +8,8 @@ vim:cscope:off
 vim:gpm:off
 vim:LUA:off
 vim:RUBY:off
+sudo:openldap:off
+sudo:LIBSASL:off
+sudo:libselinux:off
+sudo:linux-pam:off
+sudo:SENDMAIL:off
