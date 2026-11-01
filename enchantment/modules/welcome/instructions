@@ -1,8 +1,9 @@
 @[Welcome to the SMGL @ENCHANT_ISO_VERSION@ install iso!]
 This is the guided shell prompt enchantment (installer).
 
-To see the list of all steps: @[list].
-To see the list of all commands: @[help].
+To see the list of all steps: @[list] (or @[steps]).
+To see the list of all commands: @[help]. To show the current step's
+instructions again: @[todo].
 To see this message again: @[welcome].
 
 To set a different keymap: @[keymap]
