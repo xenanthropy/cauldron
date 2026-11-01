@@ -149,6 +149,14 @@ function enchant_shell_perform_todo() {
 
   [[ -z "$curstep" ]] && return $ERR_GET_CURRENT
 
+  # a step name that doesn't exist (e.g. a typo): say so in one line
+  if [[ ! -f "$ENCHANT_MODULES/$curstep/instructions" ]]
+  then
+    libcolor_msg error "There is no step named '$curstep'." \
+      "Type $(libcolor_notice list) to see the steps."
+    return $ERR_OK
+  fi
+
   # on a terminal, go through the pager: it only pages when the text doesn't
   # fit on the screen (less -F), so long steps don't scroll out of sight on a
   # console without scrollback
