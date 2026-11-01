@@ -72,6 +72,8 @@ rsync
 
 # editors, docs, convenience
 nano
+vim
+zile
 ed
 busybox
 man-db

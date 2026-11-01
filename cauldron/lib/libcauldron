@@ -1951,17 +1951,41 @@ function cauldron_enchant() {
   cauldron_add_enchanters
   liberror_check || return $ERR_ENCHANT_ISO
 
-  # add available editors information
+  # list the editors present in the live system for "help editors" (the
+  # installer's step texts point there)
   if [[ "${#CAULDRON_ISO_EDITORS[@]}" -gt 0 ]]
   then
-    local editors="$target/${ENCHANT_MODULES#/}/welcome/editors"
-    echo "This iso provides the following editors by default:" \
-      > "$editors" || return $ERR_WRITE_FILE
-    for editor in "${CAULDRON_ISO_EDITORS[@]}"
+    local editors="$target/${ENCHANT_MODULES#/}/help/editors"
+    local entry=
+    local editor=
+    local dir=
+    local found=()
+
+    for entry in "${CAULDRON_ISO_EDITORS[@]}"
     do
-      echo "$editor" | sed 's/^\([^:]*\)/::@[\1]/'
-    done | column -t -s: >> "$editors" ||
-      return $ERR_WRITE_FILE
+      editor="${entry%%:*}"
+      # vim provides vi itself; don't list busybox's vi next to it
+      [[ "$editor" == "vi" && " ${found[*]} " == *" vim "* ]] && continue
+      for dir in usr/bin bin usr/busybox
+      do
+        if [[ -e "$target/$dir/$editor" || -L "$target/$dir/$editor" ]]
+        then
+          found+=( "$editor" )
+          printf '  @[%s]%*s %s\n' "$editor" "$(( 6 - ${#editor} ))" "" \
+            "${entry#*:}"
+          break
+        fi
+      done
+    done > "$editors.list" || return $ERR_WRITE_FILE
+
+    {
+      echo "Editors available on this iso:"
+      cat "$editors.list"
+      echo
+      echo "@[\$EDITOR FILE] opens FILE in nano; to make it another editor,"
+      echo "e.g. vim: @[export EDITOR=vim]"
+    } > "$editors" || return $ERR_WRITE_FILE
+    "${CAULDRON_CMD_RM[@]}" "$editors.list" || return $ERR_RM_FILE
   fi
 
   # save version information to the iso

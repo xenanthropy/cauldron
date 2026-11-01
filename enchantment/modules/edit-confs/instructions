@@ -1,9 +1,14 @@
 @[edit-confs step]
-(For editors available on this iso, type @[help editors])
+(Edit with @[$EDITOR FILE] (nano); other editors: @[help editors])
 
 Partitions and mounts: @[$ENCHANT_TARGET/etc/fstab]
-Edit fstab for your partitions and mounts so your system will find them again
-on bootup (@[lsblk -f] shows them; @[guide disks] has examples).
+Add a line per filesystem below "Add your file systems here" (@[lsblk -f]
+shows your partitions); e.g. for a UEFI disk with an ext4 root:
+  /dev/nvme0n1p2  /          ext4  defaults  0 1
+  /dev/nvme0n1p1  /boot/efi  vfat  defaults  0 2
+Fields: device, mount point, filesystem, options, dump (0), fsck order (1 for
+the root filesystem, 2 for others, 0 for btrfs and swap). Swap and btrfs
+subvolume lines: @[guide disks].
 
 Also, take a look at the files in @[$ENCHANT_TARGET/etc/sysconfig/] and edit
 any you feel should be different. Especially, you should make sure the

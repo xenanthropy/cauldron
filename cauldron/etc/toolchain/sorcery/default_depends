@@ -1,2 +1,10 @@
 nghttp2:python3:off
 nghttp2:boost:off
+vim:tcl:off
+vim:perl:off
+vim:python:off
+vim:python3:off
+vim:cscope:off
+vim:gpm:off
+vim:LUA:off
+vim:RUBY:off

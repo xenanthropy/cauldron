@@ -1,4 +1,7 @@
 Editors available on this iso:
-  @[nano] - a quite easy-to-use, small editor
-  @[elvis] - a small vi clone
-  @[jed] - an editor capable of emulating other editors
+  @[nano]   easy to use, with its key commands shown at the bottom (^ = Ctrl)
+  @[vi]     the vi editor
+(cauldron replaces this list with the editors actually on the iso)
+
+@[$EDITOR FILE] opens FILE in nano; to make it another editor,
+e.g. vim: @[export EDITOR=vim]
