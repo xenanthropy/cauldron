@@ -160,7 +160,8 @@ function enchant_shell_command_install() {
       ;;
     "kernel" )
       [[ $# -ne 3 ]] && return $ERR_INSTALLER_CMD
-      enchant_shell_install_msg "Installing kernel $1 into $ENCHANT_TARGET ..."
+      enchant_shell_install_msg "Installing kernel $1 into" \
+        "$ENCHANT_TARGET (\$ENCHANT_TARGET) ..."
       enchant_install_kernel "$@"
       liberror_check_fatal
       enchant_shell_install_msg "Kernel installed."
@@ -168,7 +169,8 @@ function enchant_shell_command_install() {
     "isokernel" | "iso-kernel" )
       [[ $# -ne 0 ]] && return $ERR_INSTALLER_CMD
       enchant_shell_install_msg "Installing the ISO kernel, its modules and" \
-        "firmware into $ENCHANT_TARGET ..."
+        "firmware into" \
+        "$ENCHANT_TARGET (\$ENCHANT_TARGET) ..."
       enchant_install_kernel
       liberror_check_fatal
       enchant_shell_install_msg "Kernel installed as" \
@@ -177,7 +179,7 @@ function enchant_shell_command_install() {
     "kernel-source" | "kernel-sources" )
       [[ $# -gt 1 ]] && return $ERR_INSTALLER_CMD
       enchant_shell_install_msg "Installing the kernel sources into" \
-        "$ENCHANT_TARGET/usr/src ..."
+        "$ENCHANT_TARGET/usr/src (\$ENCHANT_TARGET/usr/src) ..."
       enchant_install_kernel_source "$@"
       liberror_check_fatal
       enchant_shell_install_msg "Kernel sources installed."
@@ -185,7 +187,7 @@ function enchant_shell_command_install() {
     "system" | "basesystem" )
       [[ $# -ne 0 ]] && return $ERR_INSTALLER_CMD
       enchant_shell_install_msg "Unpacking the base system into" \
-        "$ENCHANT_TARGET (this takes a minute or two) ..."
+        "$ENCHANT_TARGET (\$ENCHANT_TARGET; this takes a minute or two) ..."
       enchant_install_system
       liberror_check_fatal
       enchant_shell_install_msg "Base system installed. Next:" \
@@ -208,7 +210,7 @@ function enchant_shell_command_install() {
       # can take either 0 or multiple arguments,
       # so don't check the number of arguments
       enchant_shell_install_msg "Installing the selected spell caches into" \
-        "$ENCHANT_TARGET (sorcery's output follows) ..."
+        "$ENCHANT_TARGET (\$ENCHANT_TARGET; sorcery's output follows) ..."
       enchant_install_caches "$@"
       liberror_check_fatal
       enchant_shell_install_msg "Spell caches installed."
