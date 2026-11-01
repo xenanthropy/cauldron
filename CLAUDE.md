@@ -62,6 +62,19 @@ Other ideas for later:
   pull in all GPU firmware). The x86_64 ISO doesn't have to fit a CD (USB is
   the norm on 64-bit machines); a CD-sized ISO matters more for a future
   32-bit x86 ISO, whose machines may not boot from USB.
+- **Optional initramfs (planned, maintainer's wish, Nov 2026):** SMGL
+  traditionally boots without one, and that stays the default; the installer
+  should offer one as a choice and explain it: needed for root on
+  LUKS/LVM/mdadm, a root filesystem driver built as a module (e.g. a
+  distribution-style kernel config like Void's), `root=UUID=`, early
+  microcode; not needed when the root filesystem's driver is built in. With
+  one, GRUB changes: `grub-mkconfig` picks up `/boot/initramfs-<ver>.img`
+  (or `initrd.img-<ver>`) by itself and `root=UUID=` works, so
+  `GRUB_DISABLE_LINUX_UUID` can go back to false. Generators in the test
+  grimoire: dracut 112 (dracut-ng), mkinitcpio 41.1, and SMGL's own
+  `linux-initramfs` scripts used by the `linux` spell. Plan: an installer
+  step between kernel and boot-loader (guide text + caches for the chosen
+  generator), tested in QEMU with root on ext4 and on LUKS.
 - A graphical installer (e.g. Calamares) on a bigger "desktop" ISO: needs
   Qt, a display server, etc. in the live system; its own project.
 - Hardware-tailored kernels: in the compile-kernel step, `make localmodconfig`

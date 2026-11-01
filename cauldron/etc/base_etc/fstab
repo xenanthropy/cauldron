@@ -13,11 +13,21 @@ tmpfs   /dev/shm        tmpfs   defaults                0 0
 
 # Add your file systems here.
 
-# Examples (uncomment and adjust; "lsblk -f" lists devices, labels, UUIDs).
-# A device can be named /dev/nvme0n1p2, LABEL=smgl, UUID=... or PARTUUID=...
+# Examples (uncomment and adjust). The device can be given as
+#   a device file   /dev/nvme0n1p2, /dev/sda2  (can change when disks are
+#                                               added or removed)
+#   a label         LABEL=home                 (set by mkfs -L, e2label, ...)
+#   a UUID          UUID=0a1b2c3d-4e5f-6789-abcd-ef0123456789
+#                   (vfat: UUID=1A2B-3C4D)     (made by mkfs; most distros
+#                                               use these)
+#   a partition id  PARTUUID=9f8e7d6c-...      (from the partition table)
+# "lsblk -f" shows labels and UUIDs, "blkid" shows PARTUUIDs too. All of them
+# work here; only the kernel's root= (in the GRUB config) needs a device file
+# or PARTUUID= when there is no initramfs.
 #
-# ext4 root:
+# ext4 root (the same line by UUID: the second one; copy yours from lsblk -f):
 #/dev/nvme0n1p2  /            ext4   defaults,noatime                  0 1
+#UUID=0a1b2c3d-4e5f-6789-abcd-ef0123456789  /  ext4  defaults,noatime  0 1
 # XFS root:
 #/dev/nvme0n1p2  /            xfs    defaults,noatime                  0 1
 # btrfs root with subvolumes (see "guide disks" on the install ISO):
