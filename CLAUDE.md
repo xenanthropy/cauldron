@@ -584,6 +584,16 @@ sections below.
     welcome on an 80x25 console) scrolled out of sight on a console without
     scrollback; `todo`/`next`/`prev` now print through `less -XFR`, which only
     pages when the text doesn't fit (with a prompt naming the keys).
+  - `enchantment chroot` (found on the hardware, Nov 2026): leaving the
+    interactive chroot reported "could not execute chroot command" whenever
+    the last command typed in it had failed, and then skipped the cleanup,
+    so the next chroot stacked proc/sys/... again ("umount ... efivars: not
+    mounted"). Worse, the cleanup unmounted *every* mount below the target,
+    including the user's EFI system partition on `boot/efi` (also after the
+    chroots `install caches` runs). `enchant_chroot_close` now unmounts only
+    run/sys/proc/dev (recursively, looping over stacked mounts), and the
+    exit status of an interactive chroot shell is ignored. Tested with a
+    stand-in ESP: it stays mounted in all cases.
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live

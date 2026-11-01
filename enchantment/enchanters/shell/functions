@@ -293,11 +293,22 @@ function enchant_shell_perform_chroot() {
     export LS_COLORS="$(${ENCHANT_CMD_DIRCOLORS[@]})"
   fi
 
+  local rc=0
   enchant_chroot "$@"
-  liberror_check || return $?
+  rc=$?
 
+  # always clean up the chroot's mounts, even if the command failed
   enchant_chroot_done
   liberror_check || return $?
+
+  # an interactive shell exits with the status of the last command typed in
+  # it, which says nothing about the chroot; only a command given as
+  # arguments ("enchantment chroot ln -sf ...") reports its failure
+  if [[ $# -gt 0 && $rc -ne 0 ]]
+  then
+    liberror_print_error "$rc" "$*"
+    return $rc
+  fi
 
   return $ERR_OK
 }

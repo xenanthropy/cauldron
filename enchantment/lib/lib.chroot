@@ -125,22 +125,21 @@ function enchant_chroot_close() {
 
   for target in "${chroot[@]}"
   do
-    # get a list of all mounted subdirs in the target in reverse order to ensure
-    # that subdirs are unmounted before their parents (only mount points below
-    # the target: the target itself is usually the new system's root
-    # partition, which must stay mounted)
-    local mounts=( $(awk -v t="$target/" 'index($2, t) == 1 { print $2 }' \
-      "/proc/mounts" | sort -r) )
-
-    # unmount the chroot mount points
-    for mnt in "${mounts[@]}"
+    # unmount only what enchant_chroot_init mounted (and whatever was mounted
+    # below those, e.g. efivarfs under sys): other mounts in the target, like
+    # its root filesystem and the EFI system partition on boot/efi, belong to
+    # the user and must stay. Loop, because a chroot that wasn't closed
+    # (an interrupted session) leaves the same mount stacked more than once.
+    local sub=
+    for sub in run sys proc dev
     do
-      if grep -q "$mnt" "/proc/mounts"
-      then
-        enchant_verbose "umounting in chroot: ${mnt#$target/}"
-        "${ENCHANT_CMD_UNMOUNT[@]}" "$mnt" ||
+      while awk -v m="$target/$sub" '$2 == m { f = 1 } END { exit !f }' \
+        /proc/mounts
+      do
+        enchant_verbose "umounting in chroot: $sub"
+        "${ENCHANT_CMD_UNMOUNT_RECURSIVE[@]}" "$target/$sub" ||
           return $ERR_CHROOT_DONE
-      fi
+      done
     done
   done
 
