@@ -21,7 +21,13 @@ Hostname: @[$ENCHANT_TARGET/etc/hostname]
 If you wish to set a hostname for your system, add it here.
 
 Networking: @[$ENCHANT_TARGET/etc/network/interfaces]
-Edit this file (@[man interfaces] for help) to set your networking.
+Read at boot by ifup (@[man interfaces]); the file has commented examples for
+wired DHCP, Wi-Fi and a fixed address. Interface names: @[ip link] (they are
+the same on the installed system). E.g. Wi-Fi, after copying the WPA config:
+  @[cp /etc/wpa_supplicant.conf $ENCHANT_TARGET/etc/]
+  auto wlan0
+  iface wlan0 inet dhcp
+          pre-up wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf
 
 Timezone: (replace "SOME/TIMEZONE" with your actual timezone)
   @[enchantment chroot ln -sf /usr/share/zoneinfo/SOME/TIMEZONE /etc/localtime]

@@ -39,6 +39,11 @@ separate choices:
   and `cauldron_enchant_init` (`inittab`/agetty ttys running the installer).
 - installed system: ship caches for several inits (`iso.install`) and let the
   enchantment installer ask which one to install, so one ISO serves all.
+- the maintainer wants this as its own planned project (Nov 2026), after the
+  current ISO works end to end; they don't plan to use simpleinit-msb
+  themselves. Note that the installer texts and base files assume
+  simpleinit + init.d today (e.g. `/etc/sysconfig/bootmisc`, the `network`
+  script running `ifup -a` from `/etc/network/interfaces`).
 - providers in the test grimoire: `INIT` = simpleinit-msb, systemd, openrc
   (+ epoch, upstart); `INITSCRIPTS` = init.d, openrc. systemd works well;
   openrc is missing many service scripts (could be ported from Gentoo).

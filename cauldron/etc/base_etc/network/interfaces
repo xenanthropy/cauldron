@@ -1,8 +1,26 @@
+# /etc/network/interfaces: read by ifup/ifdown (ifupdown), which SMGL's
+# "network" boot script runs as "ifup -a" (every "auto" interface below).
+# "ip link" lists the interface names; "man interfaces" has all options.
+
 auto lo
 iface lo inet loopback
 
-#auto eth0
-#iface eth0 inet static
-#	address XXX.XXX.XXX.XXX
-#	netmask XXX.XXX.XXX.XXX
-#	gateway XXX.XXX.XXX.XXX
+# Wired, address from DHCP (dhcpcd):
+#auto enp1s0
+#iface enp1s0 inet dhcp
+
+# Wi-Fi with DHCP. First create the WPA configuration once:
+#   wpa_passphrase 'NETWORK' 'PASSWORD' > /etc/wpa_supplicant.conf
+#   chmod 600 /etc/wpa_supplicant.conf
+# (the install ISO's /etc/wpa_supplicant.conf can be copied over instead)
+#auto wlan0
+#iface wlan0 inet dhcp
+#	pre-up wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf
+#	post-down pkill -f "wpa_supplicant -B -i wlan0"
+
+# Wired, fixed address:
+#auto enp1s0
+#iface enp1s0 inet static
+#	address 192.168.1.10/24
+#	gateway 192.168.1.1
+# (DNS servers go in /etc/resolv.conf: "nameserver 192.168.1.1")
