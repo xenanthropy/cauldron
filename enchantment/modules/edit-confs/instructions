@@ -17,8 +17,9 @@ any you feel should be different. Especially, you should make sure the
 start of this install, you'll need to edit the file called @[keymap] in that
 directory (type @[cat $ENCHANT_TMP/keymap] to see which you chose).
 
-Hostname: @[$ENCHANT_TARGET/etc/hostname]
-If you wish to set a hostname for your system, add it here.
+Hostname: @[$ENCHANT_TARGET/etc/hostname] (default: sourcemage). Add it to
+@[$ENCHANT_TARGET/etc/hosts] too, so the name resolves without a network:
+  127.0.1.1       sourcemage
 
 Networking: @[$ENCHANT_TARGET/etc/network/interfaces]
 Read at boot by ifup (@[man interfaces]); the file has commented examples for
@@ -29,7 +30,15 @@ the same on the installed system). E.g. Wi-Fi, after copying the WPA config:
   iface wlan0 inet dhcp
           pre-up wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf
 
-Timezone: (replace "SOME/TIMEZONE" with your actual timezone)
+Timezone: (replace "SOME/TIMEZONE" with yours, e.g. America/New_York;
+@[ls /usr/share/zoneinfo] lists them)
   @[enchantment chroot ln -sf /usr/share/zoneinfo/SOME/TIMEZONE /etc/localtime]
+The hardware clock is assumed to be UTC (@[UTC=yes] in sysconfig/hwclock);
+set UTC=no if the machine also runs Windows.
+
+Compiling: sorcery runs one compile job at a time unless told otherwise. To
+use all of this machine's CPU threads (@[nproc] counts them):
+  @[echo "MAKE_NJOBS=$(nproc)" >> $ENCHANT_TARGET/etc/sorcery/local/compile_config]
+(later: @[sorcery] -> Options -> Parallel/Cached/Distributed Compiling).
 
 Type @[next] to go to the next step.
