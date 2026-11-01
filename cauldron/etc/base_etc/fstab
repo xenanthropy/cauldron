@@ -1,35 +1,40 @@
-# /etc/fstab: static file system information.
-# <file system> <mount point> <type> <options> <dump> <pass>
+# /etc/fstab: static file system information, read by "mount -a" at boot.
+# <device> <mount point> <type> <options> <dump> <pass>
+#   dump: 0 (backup flag, unused)
+#   pass: fsck order: 1 = the root filesystem, 2 = other filesystems checked
+#         at boot, 0 = never (btrfs, vfat with care, swap, virtual ones)
 
-# Virtual, memory only, or non physical file systems
-proc    /proc           proc    defaults        0 0
-devpts  /dev/pts        devpts  defaults        0 0
-sysfs   /sys            sysfs   defaults        0 0
-
-# enable this to get POSIX shared memory support (recommended)
-tmpfs	/dev/shm	tmpfs	defaults	0 0
+# Virtual filesystems (SMGL's boot scripts mount these from here: keep them)
+proc    /proc           proc    defaults                0 0
+sysfs   /sys            sysfs   defaults                0 0
+devpts  /dev/pts        devpts  gid=5,mode=620          0 0
+# POSIX shared memory (needed by many programs)
+tmpfs   /dev/shm        tmpfs   defaults                0 0
 
 # Add your file systems here.
 
-# Examples:
-#/dev/sda2	/	ext4		defaults,noatime	0 1
-#/dev/sda1	/boot	ext4		defaults		0 2
-#LABEL=home	/home	xfs		defaults		0 2
-#/dev/sda3	swap	swap		defaults		0 0
+# Examples (uncomment and adjust; "lsblk -f" lists devices, labels, UUIDs).
+# A device can be named /dev/nvme0n1p2, LABEL=smgl, UUID=... or PARTUUID=...
 #
-# The schema is
-# <device> <mountpoint> <type> <options> <dump> <pass>
-# and is roughly executed as
-# mount -t <type> -o <options> <device> <mountpoint>
+# ext4 root:
+#/dev/nvme0n1p2  /            ext4   defaults,noatime                  0 1
+# XFS root:
+#/dev/nvme0n1p2  /            xfs    defaults,noatime                  0 1
+# btrfs root with subvolumes (see "guide disks" on the install ISO):
+#/dev/nvme0n1p2  /            btrfs  subvol=@,compress=zstd,noatime          0 0
+#/dev/nvme0n1p2  /home        btrfs  subvol=@home,compress=zstd,noatime      0 0
+#/dev/nvme0n1p2  /var/log     btrfs  subvol=@log,compress=zstd,noatime       0 0
+#/dev/nvme0n1p2  /.snapshots  btrfs  subvol=@snapshots,compress=zstd,noatime 0 0
+# EFI system partition (UEFI machines):
+#/dev/nvme0n1p1  /boot/efi    vfat   defaults,umask=0077               0 2
+# a separate /home:
+#LABEL=home      /home        ext4   defaults,noatime                  0 2
+# swap partition, or swap file (btrfs: a file in its own subvolume):
+#/dev/nvme0n1p3  none         swap   sw                                0 0
+#/swapfile       none         swap   sw                                0 0
+# /tmp in RAM (emptied at every boot; size= caps it):
+#tmpfs           /tmp         tmpfs  defaults,size=2G,mode=1777        0 0
 
-# <device> may be specified either as an explicit device file (e.g.
-# /dev/sda1) or using a UUID label (e.g. LABEL=boot). Note that if you
-# use a UUID label, that label present for the filesystem this can be
-# done using the filesystem tools, depending on what filesystem you
-# format a partition with
-
-# Note that, except for /, these need to be in "logical order" -
-# if you have both /usr and /usr/local, put /usr before /usr/local
-
-# For more information, see "man 5 fstab" from the man-pages spell.
-# also see fstab.examples for more examples from the smgl community.
+# Order matters: a mount point must come after the filesystem it lives on
+# (e.g. / before /home, /usr before /usr/local).
+# More: "man 5 fstab", and fstab.examples next to this file.

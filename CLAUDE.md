@@ -549,6 +549,14 @@ sections below.
     the ISO. Sandbox note: vim's source (a GitHub archive) can't be fetched
     from the agent sandbox and wasn't found on any mirror; jed's was
     pre-fetched from jedsoft.org.
+  - fstab (from the same install): the shipped `base_etc/fstab` now has
+    commented examples for ext4/XFS/btrfs subvolumes/ESP/swap/tmpfs and
+    `devpts` with `gid=5,mode=620` (SMGL's `mountall.sh` mounts proc, sys
+    and devpts from fstab, so those lines must stay). `guide disks` gained
+    zram (kernel `CONFIG_ZRAM=m` with zstd/lz4 backends; set up via the
+    executable `/etc/sysconfig/bootmisc`, SMGL's rc.local) and sorcery's
+    `TMPFS` option (compiling in RAM; tmpfs defaults to half of RAM, big
+    spells set `TMPFS=off` themselves).
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live

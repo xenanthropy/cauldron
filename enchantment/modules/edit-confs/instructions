@@ -7,8 +7,9 @@ shows your partitions); e.g. for a UEFI disk with an ext4 root:
   /dev/nvme0n1p2  /          ext4  defaults  0 1
   /dev/nvme0n1p1  /boot/efi  vfat  defaults  0 2
 Fields: device, mount point, filesystem, options, dump (0), fsck order (1 for
-the root filesystem, 2 for others, 0 for btrfs and swap). Swap and btrfs
-subvolume lines: @[guide disks].
+the root filesystem, 2 for others, 0 for btrfs and swap). The file itself has
+commented examples for ext4, XFS, btrfs subvolumes, the EFI partition, swap
+and /tmp in RAM; more in @[guide disks] (also zram).
 
 Also, take a look at the files in @[$ENCHANT_TARGET/etc/sysconfig/] and edit
 any you feel should be different. Especially, you should make sure the

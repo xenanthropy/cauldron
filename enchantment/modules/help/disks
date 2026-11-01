@@ -113,3 +113,38 @@ turns copy-on-write and compression off for it):
 
 Hibernation also needs resume=<swap partition, e.g. PARTUUID=...> on the
 kernel command line (GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub).
+
+
+5. ZRAM: COMPRESSED SWAP IN RAM
+-------------------------------
+zram is a swap device kept in RAM, compressed (zstd typically fits 2-3 pages
+in the space of one). When memory runs short the kernel swaps there first,
+which is far faster than a disk and saves SSD writes. It doesn't replace a
+disk swap for hibernation, and it uses some CPU. A common size is half of RAM;
+give it a higher priority than any disk swap, so it is used first.
+
+Try it on the running system:
+  @[modprobe zram]
+  @[zramctl --find --size 4G --algorithm zstd]   (prints e.g. /dev/zram0)
+  @[mkswap /dev/zram0 && swapon --priority 100 /dev/zram0]
+  @[swapon --show]                               (lists all swap)
+
+To set it up at every boot on the installed system, put those lines into
+/etc/sysconfig/bootmisc (SMGL runs that file at boot when it is executable:
+@[chmod +x /etc/sysconfig/bootmisc]). zram needs no fstab line.
+
+
+6. COMPILING IN RAM (SORCERY'S TMPFS OPTION)
+--------------------------------------------
+tmpfs is a filesystem in RAM. With sorcery's TMPFS option on, each spell is
+unpacked and compiled in a tmpfs mounted on its build directory under
+/usr/src, and only the finished result is installed to disk: faster builds
+and far fewer writes to the disk. Big spells mark themselves TMPFS=off and
+build on disk anyway (glibc, libreoffice, ...).
+
+The tmpfs can grow to half of RAM; anything beyond spills into swap (slow) or
+the build fails with "no space left on device". So it suits machines with
+plenty of RAM (16 GiB or more is comfortable); leave it off on small ones, or
+add zram/swap. Turn it on (in the installed system) with
+  @[sorcery]   then Options -> Feature Menu -> TMPFS
+or by adding @[TMPFS=on] to /etc/sorcery/local/config.
