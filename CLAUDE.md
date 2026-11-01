@@ -367,6 +367,10 @@ sections below.
     opaque now; `tls_openssl.c` uses `->data`/`->length`). Cauldron patches
     it (`grimoire_hacks/wpa_supplicant`); other distributions carry the same
     accessor fix.
+  - sudo 1.9.17p2 doesn't build against OpenSSL 4 either
+    (`lib/iolog/hostcheck.c` reads `iPAddress->length`; two lines). So a
+    plain `cast sudo` fails on any up-to-date system. Cauldron patches it
+    (`grimoire_hacks/sudo`); newer sudo releases may already have the fix.
   - wireless-regdb only installs the CRDA file (`/usr/lib/crda/
     regulatory.bin`); kernels since 4.15 load `/lib/firmware/regulatory.db`
     (+ `.p7s`), so without it wifi stays in the restrictive world regulatory
@@ -627,7 +631,7 @@ sections below.
     kernel.org, and unpacks them with the ISO kernel's config as `.config`.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
-    wireless-regdb,wpa_supplicant,openssh}` (see the
+    wireless-regdb,wpa_supplicant,openssh,sudo}` (see the
     README there and the team report above)
   - `etc/toolchain/sorcery/default_depends`: nghttp2 without python/boost
   - `iso.runtime` lists `fuse` (undeclared e2fsprogs dependency); `iso.install`

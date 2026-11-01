@@ -19,6 +19,9 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
                   opaque); adds a patch using ASN1_STRING_get0_data/_length
                   in src/crypto/tls_openssl.c (distributions carry the same
                   fix, e.g. LFS' wpa_supplicant-2.11-openssl_4_fixes-1.patch)
+  sudo            1.9.17p2 doesn't build against OpenSSL 4 (ASN1_STRING is
+                  opaque; lib/iolog/hostcheck.c reads ->length); adds a
+                  PRE_BUILD applying a patch using ASN1_STRING_length()
   openssh         "make install" runs ssh-keygen -A on the build machine (the
                   keys end up in the spell's cache, shared by every system
                   installed from it) and only installs ssh_config/sshd_config
