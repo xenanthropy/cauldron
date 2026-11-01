@@ -50,12 +50,12 @@ be snapshotted and rolled back without touching /home. A common layout:
   @home        /home             @snapshots  /.snapshots
 
 Create them (once, on the freshly formatted filesystem):
-  @[mount /dev/sdX2 /mnt]
-  @[btrfs subvolume create /mnt/@]
-  @[btrfs subvolume create /mnt/@home]
-  @[btrfs subvolume create /mnt/@log]
-  @[btrfs subvolume create /mnt/@snapshots]
-  @[umount /mnt]
+  @[mount /dev/sdX2 $ENCHANT_TARGET]
+  @[btrfs subvolume create $ENCHANT_TARGET/@]
+  @[btrfs subvolume create $ENCHANT_TARGET/@home]
+  @[btrfs subvolume create $ENCHANT_TARGET/@log]
+  @[btrfs subvolume create $ENCHANT_TARGET/@snapshots]
+  @[umount $ENCHANT_TARGET]
 
 Mount them for the install (compress=zstd compresses new data, noatime avoids
 a write on every read; $o just saves typing):
@@ -105,7 +105,7 @@ ext4 / XFS (here 4 GiB; inside the chroot, i.e. on the new system):
 btrfs: a swap file can't be copy-on-write, compressed or in a snapshotted
 subvolume, so give it its own subvolume and let btrfs create the file (which
 turns copy-on-write and compression off for it):
-  @[btrfs subvolume create /mnt/@swap]   (with the others, above)
+  @[btrfs subvolume create $ENCHANT_TARGET/@swap]  (with the others)
   mount it like the others at $ENCHANT_TARGET/swap (subvol=@swap), then
   @[btrfs filesystem mkswapfile --size 4g $ENCHANT_TARGET/swap/swapfile]
   fstab: "/dev/sdX2 /swap btrfs subvol=@swap,noatime 0 0" and
