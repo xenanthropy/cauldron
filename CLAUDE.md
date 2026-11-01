@@ -524,6 +524,14 @@ sections below.
     (`$ENCHANT_TARGET`) didn't exist on the live system, so the mount step's
     `mount ... $ENCHANT_TARGET` failed; `cauldron_enchant_init` creates it
     now (workaround: `mkdir -p $ENCHANT_TARGET`).
+  - Also from that install: the spell-caches/spell-sources steps promised
+    "a text menu for toggling" that never existed (`select caches` only
+    printed the list) and named the wrong files (`spell_caches`). `select
+    caches|sources` without an action now opens a `dialog` checklist
+    (`enchant_shell_select_menu`, `ENCHANT_CMD_DIALOG`); texts rewritten. The
+    edit-confs step pointed at `/mnt/root/...` and a non-existent
+    `list-editors`; `todo` (re-print the current step) is now mentioned on the
+    welcome screen, and `steps` is an alias of `list`.
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live

@@ -1,21 +1,19 @@
 @[spell-caches step]
-You may now select the spell caches (built packages) you would like installed
-that are provided on the ISO. You can accomplish this either using enchantment
-or by directly editing @[$ENCHANT_TMP/spell_caches]. The iso caches available
-for installation are present in /var/cache/sorcery/.
+Select the spell caches (built packages) on the ISO that you want installed on
+top of the basesystem; they are in /var/cache/sorcery/. You need at least
+@[grub2] (boot loader, BIOS and UEFI); on UEFI machines also @[efibootmgr] and
+@[dosfstools]; plus the tools for your filesystems (@[xfsprogs],
+@[btrfs-progs]) and anything else you like (e.g. @[openssh]). Dependencies
+they need are added automatically when they are installed.
 
-enchantment:
-  @[enchantment select caches] # presents a text menu for toggling caches
-  @[enchantment select caches add glob] # adds files matching the pattern
-  @[enchantment select caches del glob] # removes files matching the pattern
+  @[enchantment select caches]              # menu: space toggles, enter accepts
+  @[enchantment select caches show]         # list the selection
+  @[enchantment select caches add 'grub2*'] # add files matching a pattern
+  @[enchantment select caches del 'grub2*'] # remove files matching a pattern
+  @[enchantment select caches all] / @[none]
 
-manually:
-  @[$EDITOR "$ENCHANT_TMP/spell_caches"]
+The selection is a plain list of file names, one per line, which you can also
+edit directly: @[$EDITOR $ENCHANT_TMP/spell-caches]
 
-You can of course use any editor you like, in case you haven't set $EDITOR.
-
-You can re-edit @[$ENCHANT_TMP/spell_caches] any time during the install session
-and your changes will be remembered if you have potion functionality enabled.
-Likewise, you may always re-run @[enchantment select caches] at any time.
-
-When you are finished selecting your spell caches, type @[next].
+You can change it at any time until you install the caches in the basesystem
+step. When you are finished selecting, type @[next].

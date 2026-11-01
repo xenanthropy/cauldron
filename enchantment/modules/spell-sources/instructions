@@ -1,25 +1,15 @@
 @[spell-sources step]
-You may now select the spell sources you would like to install. You can
-accomplish this either using enchantment or editing the file directly. @[NOTE:]
-the iso sources are located in /var/spool/sorcery/. It is also highly
-recommended that you select at least one bootloader to build later. Bootloaders
-must be provided as sources rather than prebuilt caches (packages) because they
-come with varying options, some of which (depending on the bootloader at least)
-may be self-conflicting.
+Spell sources on the ISO (in /var/spool/sorcery/) can be copied to the new
+system, so their spells can be cast there without network access. This ISO
+may carry none (@[enchantment select sources show] tells you); then just skip
+this step: sorcery downloads what it needs once the new system is online.
 
-via text menu:
-  @[enchantment select sources] # presents a text menu for toggling sources
-  @[enchantment select sources add glob] # adds files matching the pattern
-  @[enchantment select sources del glob] # removes files matching the pattern
+  @[enchantment select sources]              # menu: space toggles, enter accepts
+  @[enchantment select sources show]         # list the selection
+  @[enchantment select sources add 'glob*']  # add files matching a pattern
+  @[enchantment select sources del 'glob*']  # remove files matching a pattern
 
-edit manually:
-  @[$EDITOR "$ENCHANT_TMP/spell_sources"]
+The selection is a plain list of file names, one per line, which you can also
+edit directly: @[$EDITOR $ENCHANT_TMP/spell-sources]
 
-You can of course use any editor you like, in case you haven't set $EDITOR.
-
-You can re-edit @[$ENCHANT_TMP/spell_sources] any time during the install
-session and your changes will be remembered if you have potion functionality
-enabled. Likewise, you may always re-run @[enchantment select sources] at any
-time.
-
-When you are finished selecting your spell sources, type @[next].
+When you are finished selecting, type @[next].

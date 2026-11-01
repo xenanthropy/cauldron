@@ -280,7 +280,7 @@ function enchant_shell_command_select() {
 function enchant_shell_select_list() {
   local list="$1"
   local dir="$2"
-  local action="${3:-show}"
+  local action="$3"
   local available=()
   local file=
   local glob=
@@ -288,15 +288,29 @@ function enchant_shell_select_list() {
 
   shift 3
 
+  # no action: a menu on a terminal (if dialog is there), else the list
+  if [[ -z "$action" ]]
+  then
+    action="show"
+    [[ -t 0 && -t 1 ]] &&
+      type -P "${ENCHANT_CMD_DIALOG[0]}" > /dev/null &&
+        action="menu"
+  fi
+
   [[ -d "$dir" ]] && available=( $(cd "$dir" && ls) )
   [[ -f "$list" ]] || : > "$list" || return $ERR_FILE_ACCESS
 
   case "$action" in
-    show )
+    menu|show )
       if [[ "${#available[@]}" -eq 0 ]]
       then
         echo "nothing available in $dir"
         return $ERR_OK
+      fi
+      if [[ "$action" == "menu" ]]
+      then
+        enchant_shell_select_menu "$list" "${available[@]}"
+        return $?
       fi
       for file in "${available[@]}"
       do
@@ -334,6 +348,55 @@ function enchant_shell_select_list() {
       return $ERR_INSTALLER_CMD
       ;;
   esac
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+## @param selection list file
+## @param files to choose from
+##
+## Lets the user toggle the selection in a dialog checklist (space toggles,
+## enter accepts, escape/cancel leaves the selection unchanged).
+##
+#-------------------------------------------------------------------------------
+function enchant_shell_select_menu() {
+  local list="$1"
+  local items=()
+  local chosen=
+  local file=
+  local state=
+  local rc=
+
+  shift
+
+  for file in "$@"
+  do
+    state="off"
+    grep -qxF "$file" "$list" && state="on"
+    items+=( "$file" "$state" )
+  done
+
+  # dialog draws on stdout and prints the result on stderr: swap them
+  chosen=$("${ENCHANT_CMD_DIALOG[@]}" --separate-output --no-items \
+    --backtitle "enchantment: $(basename "$list")" \
+    --title " Select (space toggles, enter accepts, esc cancels) " \
+    --checklist "" 0 0 0 "${items[@]}" 3>&1 1>&2 2>&3)
+  rc=$?
+  clear
+
+  if [[ "$rc" -ne 0 ]]
+  then
+    echo "selection unchanged"
+    return $ERR_OK
+  fi
+
+  : > "$list" || return $ERR_FILE_ACCESS
+  for file in $chosen
+  do
+    echo "$file" >> "$list" || return $ERR_FILE_ACCESS
+  done
+  echo "$(grep -c . "$list") selected"
 
   return $ERR_OK
 }
