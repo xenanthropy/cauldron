@@ -10,7 +10,7 @@ they need are added automatically when they are installed.
   @[enchantment select caches show]         # list the selection
   @[enchantment select caches add 'grub2*'] # add files matching a pattern
   @[enchantment select caches del 'grub2*'] # remove files matching a pattern
-  @[enchantment select caches all] / @[none]
+  @[enchantment select caches all]         # (or none) all or nothing
 
 The selection is a plain list of file names, one per line, which you can also
 edit directly: @[$EDITOR $ENCHANT_TMP/spell-caches]

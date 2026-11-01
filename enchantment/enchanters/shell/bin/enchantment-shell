@@ -472,12 +472,15 @@ MAIN COMMANDS
           sets items to install via the install command
           the SUBCOMMAND can be one of:
 
-          caches
+          caches [ACTION]
                   select built spells (packages) to install into the target
                   (ENCHANT_TARGET)
-          sources
+          sources [ACTION]
                   select spell (package) sources to install into the target
                   (ENCHANT_TARGET)
+
+          ACTION: none given = a checklist menu (a plain list when not on a
+          terminal); show; add GLOB...; del GLOB...; all; none
   install SUBCOMMAND
           installs a given component into the target (ENCHANT_TARGET)
           the SUBCOMMAND can be one of:
