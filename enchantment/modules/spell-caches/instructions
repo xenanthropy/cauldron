@@ -3,8 +3,9 @@ Select the spell caches (built packages) on the ISO that you want installed on
 top of the basesystem; they are in /var/cache/sorcery/. You need at least
 @[grub2] (boot loader, BIOS and UEFI); on UEFI machines also @[efibootmgr] and
 @[dosfstools]; plus the tools for your filesystems (@[xfsprogs],
-@[btrfs-progs]) and anything else you like (e.g. @[openssh]). Dependencies
-they need are added automatically when they are installed.
+@[btrfs-progs]) and anything else you like (e.g. @[openssh], or @[vim] and
+@[jed] next to the base system's nano). Dependencies they need are added
+automatically when they are installed.
 
   @[enchantment select caches]              # menu: space toggles, enter accepts
   @[enchantment select caches show]         # list the selection
