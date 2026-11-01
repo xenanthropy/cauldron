@@ -813,6 +813,20 @@ function cauldron_sorcerous_cauldron_defaults() {
 
     "${CAULDRON_CMD_PATCH[@]}" -Nt -d "$target" -p0 < "$patch" ||
       return $ERR_TOOLCHAIN_PATCH
+
+    # sorcery only runs spell scripts that are executable ("test -x"), and
+    # patch creates new files without the x bit: set it on the spell scripts
+    # a hack adds (e.g. a PRE_BUILD the spell didn't have)
+    local file=
+    for file in $(awk '/^\+\+\+ / { print $2 }' "$patch")
+    do
+      case "${file##*/}" in
+        PREPARE|CONFIGURE|DEPENDS|PRE_BUILD|BUILD|PRE_INSTALL|INSTALL|\
+        POST_INSTALL|FINAL|TRIGGERS|PRE_REMOVE|POST_REMOVE)
+          [[ -f "$target/$file" ]] && chmod +x "$target/$file"
+          ;;
+      esac
+    done
   done
 
   # make sure the chroot library is loaded so cauldron_chroot is available
