@@ -21,7 +21,9 @@ To install from another computer over SSH instead, run these three commands:
   @[ssh-keygen -A]                           (create the host keys)
   @[/usr/sbin/sshd -o PermitRootLogin=yes]   (start the SSH server)
 then on the other computer: @[ssh root@ADDRESS] (@[ip addr] shows this
-machine's address)
+machine's address). The host keys are new at every boot, so after a reboot
+ssh warns "REMOTE HOST IDENTIFICATION HAS CHANGED"; that is expected here:
+forget the old key there with @[ssh-keygen -R ADDRESS] and connect again.
 
 If you have any feedback for us, please drop by #sourcemage-cauldron
 on irc.freenode.net, file a bug on bugs.sourcemage.org,
