@@ -2092,6 +2092,10 @@ function cauldron_enchant_init() {
   echo "$enchantment welcome" >> "$profile" ||
     return $ERR_WRITE_FILE
 
+  # the mount point the instructions tell the user to mount the target on
+  "${CAULDRON_CMD_MKDIR[@]}" "$target${ENCHANT_TARGET:-/mnt/smgl}" ||
+    return $ERR_MK_DIR
+
   # install a login shell
   "${CAULDRON_CMD_CP[@]}" \
     "$CAULDRON_CONFIG/$CAULDRON_ARCH/iso/login.sh" \

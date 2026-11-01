@@ -520,6 +520,10 @@ sections below.
     reiserfs, no UEFI/GPT): rewritten. The other steps' texts deserve the
     same review. (Note: cauldron's `@VAR@` substitution in instructions uses
     `sed s/../../`, so values containing `/` would break it.)
+  - Found on the hardware with the 20261030b ISO: `/mnt/smgl`
+    (`$ENCHANT_TARGET`) didn't exist on the live system, so the mount step's
+    `mount ... $ENCHANT_TARGET` failed; `cauldron_enchant_init` creates it
+    now (workaround: `mkdir -p $ENCHANT_TARGET`).
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live
