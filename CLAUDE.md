@@ -371,6 +371,10 @@ sections below.
     (`lib/iolog/hostcheck.c` reads `iPAddress->length`; two lines). So a
     plain `cast sudo` fails on any up-to-date system. Cauldron patches it
     (`grimoire_hacks/sudo`); newer sudo releases may already have the fix.
+  - dosfstools 4.2 is built without `--enable-compat-symlinks`, so there is
+    no `mkfs.vfat` or `fsck.vfat`: the usual documentation fails, and the
+    boot-time fsck of a vfat fstab entry (the EFI system partition) can't
+    find its checker. Cauldron adds the flag (`grimoire_hacks/dosfstools`).
   - wireless-regdb only installs the CRDA file (`/usr/lib/crda/
     regulatory.bin`); kernels since 4.15 load `/lib/firmware/regulatory.db`
     (+ `.p7s`), so without it wifi stays in the restrictive world regulatory
@@ -649,6 +653,15 @@ sections below.
     `127.0.1.1` line of `/etc/hosts` (cauldron now ships `hosts` with
     `127.0.1.1 sourcemage`, matching the default hostname), so the name
     always resolves (sudo warns otherwise).
+  - Code scan (Nov 2026): `ERR_MODULE_FILE` was used but never defined (a
+    missing module list returned success); `enchantment install headers`
+    called `enchant_install_kernel_headers_${!ktype}` (indirect expansion,
+    so an empty name); the iso-kernel step's manual commands copied a
+    non-existent modprobe blacklist and left out the firmware and depmod;
+    the boot-loader step named removed steps (select-spells, install) and
+    lilo, which isn't on the ISO (also dropped from the step order). The
+    old `ward` checks still flag the dead toolchain build/cross calls; its
+    error-code check reads the wrong file for enchantment (false alarms).
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live
@@ -667,7 +680,7 @@ sections below.
     kernel.org, and unpacks them with the ISO kernel's config as `.config`.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
-    wireless-regdb,wpa_supplicant,openssh,sudo}` (see the
+    wireless-regdb,wpa_supplicant,openssh,sudo,dosfstools}` (see the
     README there and the team report above)
   - `etc/toolchain/sorcery/default_depends`: nghttp2 without python/boost
   - `iso.runtime` lists `fuse` (undeclared e2fsprogs dependency); `iso.install`

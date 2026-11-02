@@ -19,6 +19,10 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
                   opaque); adds a patch using ASN1_STRING_get0_data/_length
                   in src/crypto/tls_openssl.c (distributions carry the same
                   fix, e.g. LFS' wpa_supplicant-2.11-openssl_4_fixes-1.patch)
+  dosfstools      4.2 only installs mkfs.fat/fsck.fat; adds a BUILD with
+                  --enable-compat-symlinks, so mkfs.vfat and fsck.vfat exist
+                  (fsck at boot looks for fsck.vfat for a vfat fstab entry;
+                  documentation and the installer say mkfs.vfat)
   sudo            1.9.17p2 doesn't build against OpenSSL 4 (ASN1_STRING is
                   opaque; lib/iolog/hostcheck.c reads ->length); adds a
                   PRE_BUILD applying a patch using ASN1_STRING_length()

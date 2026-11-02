@@ -444,7 +444,7 @@ function enchant_install_kernel_headers_linux() {
 function enchant_install_kernel_headers() {
   local ktype="${1:-$ENCHANT_KERNEL_TYPE}"
 
-  enchant_install_kernel_headers_"${!ktype}"
+  enchant_install_kernel_headers_"$ktype"
 }
 
 #-------------------------------------------------------------------------------

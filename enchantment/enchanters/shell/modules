@@ -13,9 +13,7 @@ iso-kernel:boot-loader
 compile-kernel:boot-loader
 kernel:boot-loader
 boot-loader:grub
-boot-loader:lilo
 grub:user-setup
-lilo:user-setup
 boot-loader:user-setup
 user-setup:reboot
 reboot:reboot

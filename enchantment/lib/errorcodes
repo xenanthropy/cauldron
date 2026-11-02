@@ -80,6 +80,7 @@ liberror_add_error ERR_INSTALL_KSRC "could not install the kernel sources"
 liberror_add_error ERR_INSTALL_SYSTEM "could not install sys image"
 
 # lib.module
+liberror_add_error ERR_MODULE_FILE "the installer's module list is missing"
 liberror_add_error ERR_MODULE_NONE "no modules found"
 liberror_add_error ERR_MODULE_SCRIPT "could not process module script"
 liberror_add_error ERR_MODULE_ENTER "could not process module entry"
