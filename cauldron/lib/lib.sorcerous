@@ -685,6 +685,13 @@ function cauldron_sorcerous_update_grimoires() {
     # remove the downloaded grimoire tarball after successfully unpacking
     cauldron_chroot "${CAULDRON_CMD_RM_FORCE[@]}" "/tmp/${grimoire}.$grimtype"
     liberror_check || return $?
+
+    # the metadata "scribe add" would write: where updates come from (without
+    # it, "scribe update" asks to "repair" the grimoire's metadata)
+    echo "FROM_URL=$grimurl/${grimoire}.${grimtype}" \
+      > "$target/$codex/$grimoire/GRIMOIRE" || return $ERR_WRITE_FILE
+    "${CAULDRON_CMD_CHMOD[@]}" +x "$target/$codex/$grimoire/GRIMOIRE" ||
+      return $ERR_CHMOD_FILE
   done
 
   # reindex all available grimoires

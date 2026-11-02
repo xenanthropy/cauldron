@@ -662,6 +662,11 @@ sections below.
     lilo, which isn't on the ISO (also dropped from the step order). The
     old `ward` checks still flag the dead toolchain build/cross calls; its
     error-code check reads the wrong file for enchantment (false alarms).
+  - Grimoire metadata (found on the installed system): `scribe update` asked
+    "Repair Grimoire:/var/lib/sorcery/codex/test's Metadata?" because cauldron
+    unpacks grimoire tarballs itself and never wrote the `GRIMOIRE` file
+    (`FROM_URL=...`) that `scribe add` creates. `cauldron_sorcerous_install_
+    grimoires` writes it now (the mirror URL it downloaded from).
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live
