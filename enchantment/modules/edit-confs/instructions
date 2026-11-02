@@ -37,6 +37,11 @@ Timezone: (replace "SOME/TIMEZONE" with yours, e.g. America/New_York;
 The hardware clock is assumed to be UTC (@[UTC=yes] in sysconfig/hwclock);
 set UTC=no if the machine also runs Windows.
 
+Services: SMGL starts the executable scripts in $ENCHANT_TARGET/etc/init.d/
+runlevels/ at boot. The system logger (metalog) is on; the SSH server, if you
+installed openssh, is installed but off. To start it at every boot:
+  @[chmod +x $ENCHANT_TARGET/etc/init.d/runlevels/%3/sshd]
+
 Compiling: sorcery runs one compile job at a time unless told otherwise. To
 use all of this machine's CPU threads (@[nproc] counts them):
   @[echo "MAKE_NJOBS=$(nproc)" >> $ENCHANT_TARGET/etc/sorcery/local/compile_config]
