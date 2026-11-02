@@ -9,6 +9,11 @@ so unattended casts don't fall back to unsuitable defaults:
               locales (~130 MB); users pick their own with "cast -r locale"
   net-tools   don't stop to ask about network configuration
   python3     don't install the test suite (--disable-test-modules)
+  metalog     install and enable its init script (smgl-metalog): sorcery's
+              DEF_INSTALL_INIT/DEF_ENABLE_INIT default to off, so an
+              unattended cast never installs a spell's init script
+  openssh     install the sshd init script, but leave it disabled (the user
+              enables it: chmod +x /etc/init.d/runlevels/%3/sshd)
   vim         console only (no X/GUI), "normal" features, vi -> vim;
               GVIM_MULTIBYTE holds the configure flag itself (a bare "y"
               there ends up as a configure argument, which then thinks it

@@ -1,0 +1,5 @@
+METALOG_OPTS="--without-unicode"
+INIT_INSTALLED="smgl-metalog"
+INIT_NOT_INSTALLED=""
+INIT_ENABLED="smgl-metalog"
+INIT_DISABLED=""

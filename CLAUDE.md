@@ -437,6 +437,11 @@ sections below.
   - `update_sorcery_scripts` casts `basesystem`, which conflicts with
     `smgl-base` (`sorcery update` tries to replace smgl-base/smgl-system).
   - The default sustained list still names `module-init-tools`.
+  - `DEF_INSTALL_INIT`/`DEF_ENABLE_INIT` default to off, so an unattended
+    cast (cauldron's builds, scripted installs) never installs a spell's init
+    script: metalog's caches had no `smgl-metalog`, openssh's no `sshd`.
+    Cauldron's presets answer it per spell (`depends/metalog`: installed and
+    enabled; `depends/openssh`: installed, disabled).
   - `MAKE_NJOBS` defaults to 1 (`/etc/sorcery/compile_config`), and without
     distcc that is the whole `make -j`: a fresh install compiles on one
     core until the user finds the setting. A default of `$(nproc)` would
