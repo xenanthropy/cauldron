@@ -680,6 +680,19 @@ sections below.
     `syslog=smgl-metalog`), `none` with `CAULDRON_SYS_INIT=systemd`
     (journald). The grimoire's sysklogd is 1.5 (2007). opendoas, which
     hard-depends on SYSTEM-LOGGER, becomes installable.
+  - **smgl-devel-20261102** (669 MiB, sha512 135f2ce8c4b0...): full install
+    walkthrough in QEMU, UEFI and BIOS, passed with every fix above in
+    use: efivarfs mounted automatically (efibootmgr works on the live
+    system; grub-install via `enchantment chroot` creates its boot entry),
+    `/boot/efi` stays mounted after chroot exits, `enchantment hostname`,
+    sudo/vim/openssh caches, mkfs.vfat from dosfstools. Installed system:
+    no console warnings at boot (nscd now logs to metalog, which starts in
+    runlevel S and writes /var/log/everything/current), ping as a user,
+    user in wheel, fsck.vfat, sshd init script installed but disabled,
+    scribe GRIMOIRE metadata. Only QEMU-specific: "hwclock: select() to
+    /dev/rtc ... timed out" under TCG. Note: on terminals shorter than a
+    step text (e.g. 80x25, serial), `todo`/`next` and the login welcome
+    open in less (q quits); `select caches` opens the dialog menu.
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live
