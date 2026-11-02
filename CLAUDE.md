@@ -667,6 +667,14 @@ sections below.
     unpacks grimoire tarballs itself and never wrote the `GRIMOIRE` file
     (`FROM_URL=...`) that `scribe add` creates. `cauldron_sorcerous_install_
     grimoires` writes it now (the mirror URL it downloaded from).
+  - System logger (found on the installed system: nscd's 22 start-up lines
+    on the console, over the login prompt; nscd logs via syslog with
+    LOG_CONS, so `logfile` in nscd.conf doesn't help): the base system had
+    none. `CAULDRON_SYS_LOGGER` (config/sys.conf) adds one to the sys spells:
+    metalog by default (what `/etc/sysconfig/facilities` already names,
+    `syslog=smgl-metalog`), `none` with `CAULDRON_SYS_INIT=systemd`
+    (journald). The grimoire's sysklogd is 1.5 (2007). opendoas, which
+    hard-depends on SYSTEM-LOGGER, becomes installable.
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live

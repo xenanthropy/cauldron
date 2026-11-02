@@ -156,13 +156,16 @@ function cauldron_read_list() {
 #-------------------------------------------------------------------------------
 ##
 ## Prints the top-level spells for the installable system: the entries of
-## CAULDRON_SYS_SPELLS plus the init system chosen with CAULDRON_SYS_INIT.
+## CAULDRON_SYS_SPELLS plus the init system chosen with CAULDRON_SYS_INIT and
+## the system logger chosen with CAULDRON_SYS_LOGGER.
 ##
 #-------------------------------------------------------------------------------
 function cauldron_sys_spells() {
   cauldron_read_list "$CAULDRON_SYS_SPELLS"
   [[ -n "$CAULDRON_SYS_INIT" && "$CAULDRON_SYS_INIT" != "none" ]] &&
     echo "$CAULDRON_SYS_INIT"
+  [[ -n "$CAULDRON_SYS_LOGGER" && "$CAULDRON_SYS_LOGGER" != "none" ]] &&
+    echo "$CAULDRON_SYS_LOGGER"
   return 0
 }
 
