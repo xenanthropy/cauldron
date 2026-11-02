@@ -724,10 +724,10 @@ function cauldron_sorcerous_spell_cache() {
     # stdout is the cache path)
     cauldron_chroot_init >&2
     liberror_check || return $?
-    version=$(cauldron_chroot -q gaze DETAILS "$spell" | \
-      grep 'VERSION=' | \
-      head -n 1 | \
-      cut -d= -f2)
+    # (ask gaze for the evaluated version: DETAILS may compute it, e.g. vim's
+    # first VERSION= line is the scm branch's "$(get_scm_version)")
+    version=$(cauldron_chroot -q gaze -q version "$spell" | \
+      awk -F'|' -v s="$spell" '$3 == s { print $4; exit }')
     #cauldron_chroot -q gaze -q where -p "$spell"
     liberror_check || return $?
     cauldron_chroot_done >&2
