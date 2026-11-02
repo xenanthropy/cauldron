@@ -29,6 +29,8 @@ wireless-regdb
 man-db
 # "man smgl-setup": what to do after the first boot
 smgl-setup
+# ping, tracepath (iputils; the live ISO's ping is busybox's)
+iputils
 
 # python3 and perl record gdbm as a disabled optional dependency but still
 # link against it when it's present at build time (their DEPENDS pass no

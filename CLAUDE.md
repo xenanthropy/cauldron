@@ -398,6 +398,15 @@ sections below.
     security fixes since. jed's SOURCE_URL is ftp://space.mit.edu; the
     releases are on https://www.jedsoft.org/releases/jed/ (signatures as
     `.asc`).
+  - iputils (ping) is 20221126; upstream is at 2025 releases. Nothing in
+    `smgl-base`/`smgl-system` provides ping at all (found on the hardware:
+    the installed system had none); cauldron adds iputils to `sys.runtime`.
+  - sorcery records build-only dependencies as ordinary dependencies (e.g.
+    libssh `depends cmake`, its build system), so the ISO's installable
+    caches carry cmake and its dependencies (curl, jsoncpp, libarchive,
+    rhash, libuv: ~35 MiB) that nothing needs at run time. Leaving them out
+    would make sorcery try to build cmake offline when libssh is installed;
+    a build/run distinction in DEPENDS would solve it.
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).
@@ -621,6 +630,19 @@ sections below.
     hard-depends on SYSTEM-LOGGER, so it is left to `cast opendoas`. For
     the team: smgl-setup's man page dates from 2008 (stable grimoire, a
     separate g++ spell) and could use a refresh.
+  - ISO size (20261030b, 637 MiB; answered for the team, Nov 2026):
+    isofs.img 578 MiB = system.tar.xz 315 (already xz) + live runtime
+    ~125 compressed (583 MiB raw) + installable caches 93 (24 tarballs,
+    .tar.bz2; cmake 26 and grub2 19 the largest) + firmware ~19 (80 raw,
+    250 files picked by `cauldron_iso_firmware`) + kernel modules ~6;
+    plus kernel 15, initramfs 7, GRUB/EFI image. linux-firmware isn't
+    shipped whole (that would be ~1 GB); the installed system gets the same
+    selection via `install iso-kernel`.
+  - ping (first boot of the installed system): none existed (the live ISO's
+    is busybox's). iputils is in `sys.runtime` now (libcap/libidn2/libxslt
+    off) and the shipped `/etc/sysctl.conf` sets
+    `net.ipv4.ping_group_range = 0 2147483647` so users can ping without a
+    setuid binary.
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live

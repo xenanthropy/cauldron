@@ -13,3 +13,6 @@ sudo:LIBSASL:off
 sudo:libselinux:off
 sudo:linux-pam:off
 sudo:SENDMAIL:off
+iputils:libcap:off
+iputils:libidn2:off
+iputils:libxslt:off
