@@ -1,0 +1,8 @@
+#
+# /etc/hosts: host names known without asking a name server ("man 5 hosts").
+# The second line is this machine's own name (as in /etc/hostname); the
+# installer's "enchantment hostname NAME" keeps the two in sync.
+#
+127.0.0.1	localhost
+127.0.1.1	sourcemage
+::1		localhost

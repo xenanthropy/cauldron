@@ -386,7 +386,9 @@ sections below.
     login prompt, so any late boot message lands in it.
   - eudev's rules use the groups `render` and `sgx`, which SMGL's
     `/etc/group` (smgl-base / init.d) doesn't have ("specified group
-    'render' unknown" at boot), so render nodes fall back to root.
+    'render' unknown" at boot): the nodes get group root (render nodes are
+    0666 anyway; /dev/sgx_* are 0660, so root-only). Cauldron's shipped
+    `group` adds sgx (27) and render (28).
   - grub2 builds one platform per cast (`i386-pc` *or* `x86_64-efi`); a
     cache for a hybrid ISO / installer has to be assembled from two casts
     (cauldron does this in `cauldron_iso_grub_cache`). A spell option to
@@ -423,10 +425,10 @@ sections below.
     never generates keys. Cauldron's fix: `grimoire_hacks/openssh`; and
     `cauldron_iso_check` refuses an ISO with host keys in the live system or
     in any of its caches.
-- **Installer text**: the welcome screen
-  (`enchantment/modules/welcome/instructions`) still points to
-  `#sourcemage-cauldron` on irc.freenode.net; update it to wherever the
-  channel lives now.
+- **Installer text**: the welcome screen now points to
+  `#sourcemage-cauldron` on irc.libera.chat (was freenode; the maintainer
+  would rather funnel everything into `#sourcemage`). Open question for the
+  team: who receives `iso@sourcemage.org`, also named there?
 - **sorcery**
   - `update_sorcery_scripts` casts `basesystem`, which conflicts with
     `smgl-base` (`sorcery update` tries to replace smgl-base/smgl-system).
@@ -643,6 +645,10 @@ sections below.
     off) and the shipped `/etc/sysctl.conf` sets
     `net.ipv4.ping_group_range = 0 2147483647` so users can ping without a
     setuid binary.
+  - Hostname: `enchantment hostname NAME` writes `/etc/hostname` and the
+    `127.0.1.1` line of `/etc/hosts` (cauldron now ships `hosts` with
+    `127.0.1.1 sourcemage`, matching the default hostname), so the name
+    always resolves (sudo warns otherwise).
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live

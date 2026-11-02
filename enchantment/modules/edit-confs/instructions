@@ -17,9 +17,10 @@ any you feel should be different. Especially, you should make sure the
 start of this install, you'll need to edit the file called @[keymap] in that
 directory (type @[cat $ENCHANT_TMP/keymap] to see which you chose).
 
-Hostname: @[$ENCHANT_TARGET/etc/hostname] (default: sourcemage). Add it to
-@[$ENCHANT_TARGET/etc/hosts] too, so the name resolves without a network:
-  127.0.1.1       sourcemage
+Hostname: (default: sourcemage) set it with
+  @[enchantment hostname NAME]
+which writes /etc/hostname and the matching line in /etc/hosts, so the name
+resolves without a network (sudo complains when it doesn't).
 
 Networking: @[$ENCHANT_TARGET/etc/network/interfaces]
 Read at boot by ifup (@[man interfaces]); the file has commented examples for

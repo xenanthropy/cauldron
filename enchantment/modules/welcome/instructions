@@ -26,7 +26,7 @@ ssh warns "REMOTE HOST IDENTIFICATION HAS CHANGED"; that is expected here:
 forget the old key there with @[ssh-keygen -R ADDRESS] and connect again.
 
 If you have any feedback for us, please drop by #sourcemage-cauldron
-on irc.freenode.net, file a bug on bugs.sourcemage.org,
+on irc.libera.chat, file a bug on bugs.sourcemage.org,
 or just send an email to the mailing lists or to iso@sourcemage.org.
 
 Enter @[next] to advance to the next step in the installation.

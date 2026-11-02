@@ -88,6 +88,53 @@ function enchant_shell_command_prompt() {
   return $ERR_OK
 }
 
+#-------------------------------------------------------------------------------
+## @param new hostname
+##
+## Sets the installed system's hostname: writes it to /etc/hostname and makes
+## /etc/hosts resolve it (its 127.0.1.1 line), so the two can't disagree.
+##
+#-------------------------------------------------------------------------------
+function enchant_shell_command_hostname() {
+  local name="$1"
+  local etc="$ENCHANT_TARGET/etc"
+
+  if [[ $# -ne 1 ]]
+  then
+    echo "Usage: enchantment hostname NAME   (now: $(cat "$etc/hostname" \
+      2> /dev/null || echo "not set"))"
+    return $ERR_OK
+  fi
+
+  # letters, digits and hyphens, optionally dot-separated (RFC 1123)
+  if [[ ! "$name" =~ ^[A-Za-z0-9]([-A-Za-z0-9]*[A-Za-z0-9])?(\.[A-Za-z0-9]([-A-Za-z0-9]*[A-Za-z0-9])?)*$ ||
+    ${#name} -gt 63 ]]
+  then
+    libcolor_msg error "'$name' isn't a valid host name (letters, digits," \
+      "hyphens; at most 63 characters)."
+    return $ERR_OK
+  fi
+
+  [[ -d "$etc" ]] || {
+    echo "no system installed in $ENCHANT_TARGET yet (see the basesystem step)"
+    return $ERR_OK
+  }
+
+  echo "$name" > "$etc/hostname" || return $ERR_WRITE_FILE
+
+  if grep -q '^127\.0\.1\.1[[:space:]]' "$etc/hosts" 2> /dev/null
+  then
+    sed -i "s/^127\.0\.1\.1[[:space:]].*/127.0.1.1\t$name/" "$etc/hosts" ||
+      return $ERR_WRITE_FILE
+  else
+    printf '127.0.1.1\t%s\n' "$name" >> "$etc/hosts" ||
+      return $ERR_WRITE_FILE
+  fi
+
+  libcolor_msg notice "Hostname set to $name (/etc/hostname, /etc/hosts)."
+  return $ERR_OK
+}
+
 function enchant_shell_command_chroot() {
   # can take any number of arguments,
   # so don't check the number of arguments
@@ -491,6 +538,9 @@ MAIN COMMANDS
           set the current keymap via a menu of keymaps to choose from
   chroot
           chroot into the target directory (ENCHANT_TARGET by default)
+  hostname NAME
+          set the installed system's hostname (/etc/hostname and its
+          127.0.1.1 line in /etc/hosts)
   next
           proceed to the next module
   prev
@@ -618,6 +668,10 @@ case "$command" in
     ;;
   "chroot" )
     enchant_shell_command_chroot "$@"
+    liberror_check_fatal
+    ;;
+  "hostname" )
+    enchant_shell_command_hostname "$@"
     liberror_check_fatal
     ;;
   "todo" )
