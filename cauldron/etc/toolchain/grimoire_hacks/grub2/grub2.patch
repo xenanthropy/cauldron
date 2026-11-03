@@ -1,3 +1,19 @@
+--- var/lib/sorcery/codex/test/disk/grub2/DEPENDS
++++ var/lib/sorcery/codex/test/disk/grub2/DEPENDS
+@@ -23,7 +23,12 @@
+                   '--disable-grub-mkfont'    \
+                   'for grub-mkfont utility' &&
+ 
+-optional_depends  unifont  '' '' 'for the default font (needed for gfxterm)' &&
++# GRUB's configure only looks for unifont.{pcf,bdf,ttf}; the unifont spell
++# installs an .otf, so name it (freetype2 reads it; it becomes unicode.pf2)
++optional_depends  unifont                    \
++                  '--with-unifont=/usr/share/fonts/unifont/unifont.otf' \
++                  ''                         \
++                  'for the default font (needed for gfxterm)' &&
+ 
+ optional_depends  sdl \
+                   '--enable-grub-emu-sdl' \
 --- var/lib/sorcery/codex/test/disk/grub2/grub-default
 +++ var/lib/sorcery/codex/test/disk/grub2/grub-default
 @@ -8,12 +8,14 @@
