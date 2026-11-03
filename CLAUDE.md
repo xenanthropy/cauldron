@@ -114,6 +114,12 @@ units), BPF_SYSCALL + CGROUP_BPF (IPAddressAllow/Deny=), PSI (oomd),
 CFS_BANDWIDTH (CPUQuota=), NET_SCH_FQ_CODEL, XFS/BTRFS POSIX_ACL; present:
 DEVTMPFS, CGROUPS, AUTOFS, IPV6, FHANDLE, SECCOMP, ... Uploaded sources
 (sandbox): systemd-stable-254.27.tar.gz, systemd-261.4.tar.gz.
+Done (Nov 2026): those kernel options are in linux-iso.fragment for every
+ISO (they only make features available; unprivileged BPF stays off,
+BPF_UNPRIV_DEFAULT_OFF=y), config regenerated. User namespaces are on by
+default (maintainer's decision, browsers' sandboxes need them); the shipped
+/etc/sysctl.conf explains them and has `#user.max_user_namespaces = 0` to
+switch them off on simpleinit systems; the edit-confs step mentions it.
 
 Refinement (Nov 2026): how much actually differs. Of the ~104 spells in
 system.tar.xz and the ISO's installable caches, the ones whose DEPENDS

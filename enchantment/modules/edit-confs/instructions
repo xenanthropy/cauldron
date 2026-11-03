@@ -42,6 +42,12 @@ runlevels/ at boot. The system logger (metalog) is on; the SSH server, if you
 installed openssh, is installed but off. To start it at every boot:
   @[chmod +x $ENCHANT_TARGET/etc/init.d/runlevels/%3/sshd]
 
+User namespaces (sandboxes for programs, needed by web browsers, Flatpak,
+rootless containers and systemd) are on, as in most distributions. They have
+also been a way into the kernel for local attackers; with simpleinit you can
+turn them off by uncommenting @[user.max_user_namespaces = 0] in
+@[$ENCHANT_TARGET/etc/sysctl.conf] (the file explains what that breaks).
+
 Compiling: sorcery runs one compile job at a time unless told otherwise. To
 use all of this machine's CPU threads (@[nproc] counts them):
   @[echo "MAKE_NJOBS=$(nproc)" >> $ENCHANT_TARGET/etc/sorcery/local/compile_config]

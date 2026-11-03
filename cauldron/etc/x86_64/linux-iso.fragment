@@ -231,3 +231,22 @@ CONFIG_FB_DEVICE=y
 # programs that ask (madvise), as most distributions set it
 CONFIG_TRANSPARENT_HUGEPAGE=y
 CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y
+
+# for systemd (its README; harmless for other inits, used only when asked):
+# user namespaces (PrivateUsers= in systemd's own units; also browser
+# sandboxes, bubblewrap/Flatpak, rootless containers; can be switched off at
+# run time with the sysctl user.max_user_namespaces=0, see /etc/sysctl.conf)
+CONFIG_USER_NS=y
+# IPAddressAllow=/Deny= and other per-service BPF filters
+CONFIG_BPF_SYSCALL=y
+CONFIG_BPF_JIT=y
+CONFIG_CGROUP_BPF=y
+# pressure stall information (systemd-oomd)
+CONFIG_PSI=y
+# CPUQuota=
+CONFIG_CFS_BANDWIDTH=y
+# systemd's default network queueing discipline
+CONFIG_NET_SCH_FQ_CODEL=y
+# ACLs on XFS and btrfs, as ext4 and tmpfs already have
+CONFIG_XFS_POSIX_ACL=y
+CONFIG_BTRFS_FS_POSIX_ACL=y
