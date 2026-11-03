@@ -615,7 +615,10 @@ sections below.
   - Step texts longer than the screen (compile-kernel, edit-confs, grub,
     welcome on an 80x25 console) scrolled out of sight on a console without
     scrollback; `todo`/`next`/`prev` now print through `less -XFR`, which only
-    pages when the text doesn't fit (with a prompt naming the keys).
+    pages when the text doesn't fit (with a prompt naming the keys). Its
+    prompt says `MORE BELOW` until the end, then `(END)`: with -X the
+    screen keeps what was shown after quitting, which looked like the whole
+    text (on the hardware, the grub page's last steps went unseen).
   - `enchantment chroot` (found on the hardware, Nov 2026): leaving the
     interactive chroot reported "could not execute chroot command" whenever
     the last command typed in it had failed, and then skipped the cleanup,
