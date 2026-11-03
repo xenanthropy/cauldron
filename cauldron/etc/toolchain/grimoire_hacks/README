@@ -37,3 +37,5 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
                   has them lack them). Use install-nosysconf +
                   install_config_file, and let the init script make the
                   host keys on first start (like the systemd unit does)
+                  Also: run "systemctl daemon-reload" only when systemd is
+                  running (it fails in a chroot after systemd is cast)

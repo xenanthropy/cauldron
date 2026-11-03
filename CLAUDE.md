@@ -154,6 +154,26 @@ users (simpleinit stays the offline default).
    and a few minutes of compiling. Can be the first step towards 5 (same
    spell list, same installer command; 5 only adds prebuilt caches).
 
+**systemd experiment (Nov 2026, build chroot, then undone).** systemd
+254.27 builds in cauldron's build chroot (no linux-pam, no libseccomp:
+logind sessions will need pam_systemd, so the real build turns pam on).
+Order that worked: `cast flit-core` (jinja2 bug), dbus with
+`dbus:systemd:off`, systemd with acl and docbook-xsl answered on (spell
+bugs in the team report), then `cast -c` of the candidates with
+`<spell>:systemd:on`. It dispels eudev; casts acl, attr, dbus, jinja2,
+flit-core, libcap, docbook-dtd/-xsl, intltool, xml-parser-expat. Of 16
+recompiled candidates, these differ (units / tmpfiles / libsystemd):
+dbus, util-linux (fstrim, uuidd units; libsystemd), e2fsprogs (e2scrub
+units), mdadm (8 units), xfsprogs (xfs_scrub units), cryptsetup-luks
+(tmpfiles), shadow, procps-ng and lvm (libsystemd), openssh (its own
+units; needed the daemon-reload fix). Unchanged: man-db, iputils,
+nghttp2, kmod, dhcpcd, btrfs-progs. So the installer's recast list for
+option 6 is: systemd (+ closure), dbus, util-linux, e2fsprogs, shadow,
+procps-ng, lvm, openssh, plus mdadm/xfsprogs/cryptsetup-luks when
+installed. The variant caches (21 files, 60 MB) were kept in the agent
+sandbox only; the build chroot is back to its simpleinit state (same
+spells, the original caches).
+
 Steps for option 2: (a) bump the systemd spell to the latest release and
 build it once in a scratch chroot; (b) a systemd `base_etc`/config
 variant (no inittab/sysconfig init bits; getty@tty1..6 enabled; network:
@@ -573,6 +593,14 @@ sections below.
     man=true/false from that suggest's answer. (Also: with the suggest
     answered "on", sorcery cast docbook-xsl *after* systemd, so the first
     build still failed; suggest_depends aren't ordered before the spell.)
+  - openssh's INSTALL runs `systemctl daemon-reload` whenever systemd is
+    installed, which fails without a running systemd (a chroot, a build
+    machine, the installer), so `cast openssh` fails there after systemd
+    is cast. Run it only if `/run/systemd/system` exists (cauldron's
+    openssh hack does). Other spells' INSTALLs may do the same.
+  - sorcery's default sustained list has acl and attr, so `dispel acl`
+    does nothing without `--nosustain` (noticed undoing the systemd
+    experiment, which had cast them).
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).

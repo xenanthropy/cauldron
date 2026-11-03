@@ -1,7 +1,6 @@
-diff -ru a/var/lib/sorcery/codex/test/crypto/openssh/INSTALL b/var/lib/sorcery/codex/test/crypto/openssh/INSTALL
 --- var/lib/sorcery/codex/test/crypto/openssh/INSTALL
 +++ var/lib/sorcery/codex/test/crypto/openssh/INSTALL
-@@ -1,4 +1,11 @@
+@@ -1,8 +1,18 @@
 -default_install &&
 +# install the configuration files as config files (sorcery tracks them and
 +# keeps local changes), and don't let "make install" generate host keys: it
@@ -14,7 +13,14 @@ diff -ru a/var/lib/sorcery/codex/test/crypto/openssh/INSTALL b/var/lib/sorcery/c
  
  if spell_installed systemd; then
    install -m 644 -o root -g root "$SPELL_DIRECTORY/systemd/"*.service "$INSTALL_ROOT/lib/systemd/system/" &&
-diff -ru a/var/lib/sorcery/codex/test/crypto/openssh/init.d/sshd b/var/lib/sorcery/codex/test/crypto/openssh/init.d/sshd
+   install -m 644 -o root -g root "$SPELL_DIRECTORY/systemd/sshd.conf" "$INSTALL_ROOT/usr/lib/tmpfiles.d/" &&
+ 
+-  systemctl daemon-reload
++  # only when systemd is running (not in a chroot, a build or an installer)
++  if [ -d /run/systemd/system ]; then
++    systemctl daemon-reload
++  fi
+ fi
 --- var/lib/sorcery/codex/test/crypto/openssh/init.d/sshd
 +++ var/lib/sorcery/codex/test/crypto/openssh/init.d/sshd
 @@ -8,6 +8,9 @@
