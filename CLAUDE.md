@@ -363,6 +363,18 @@ sections below.
     `GRUB_DISABLE_LINUX_PARTUUID=false` (`root=PARTUUID=` is handled by
     the kernel itself). Cauldron patches it (`grimoire_hacks/grub2`) and
     the installer's grub step tells the user to check it.
+  - grub2's SMGL splash (`smgl-splash.png`, 640x480, 4 KB, installed to
+    /boot/grub) never shows (noticed on the hardware, Nov 2026), for two
+    reasons: `grub-default` sets `GRUB_BACKGROUND="smgl-splash.png"`, and
+    grub-mkconfig tests that path relative to its working directory
+    (cauldron's hack now uses `/boot/grub/smgl-splash.png`); and the
+    background needs the graphical terminal, which needs a font
+    (unicode.pf2), which grub2 only makes with the optional `unifont` +
+    `freetype2` dependencies (off in an unattended cast). Not decided:
+    turning those on for the ISO's grub2 cache (unifont pulls smgl-foma;
+    the cache's dependents then include them). Without a font,
+    grub-mkconfig quietly falls back to the text menu. The grub2 cache must
+    be recast (delete it in build/var/cache/sorcery) to pick up the hack.
   - wpa_supplicant 2.11 doesn't build against OpenSSL 4 (`ASN1_STRING` is
     opaque now; `tls_openssl.c` uses `->data`/`->length`). Cauldron patches
     it (`grimoire_hacks/wpa_supplicant`); other distributions carry the same
