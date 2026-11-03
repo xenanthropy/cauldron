@@ -670,8 +670,11 @@ sections below.
     mounts read-only and unmounts every miss (`release_mount`); it also
     reported the wrong device ("found: /dev/vda1"). Verified in QEMU (FAT
     disk scanned before the ISO): `blockdev --rereadpt` fails before,
-    works after. Workaround on older ISOs: `wipefs -a` the ESP, reboot the
-    ISO, then format it.
+    works after. Workaround on older ISOs: zero the ESP's first MiB
+    (`dd if=/dev/zero of=/dev/nvme0n1p1 bs=1M count=1`), reboot the ISO,
+    then format it. `wipefs -a` is not enough (tried on the hardware): it
+    only erases the "FAT32" string blkid looks for, and the kernel's vfat
+    driver doesn't check that string, so the scan still mounted it.
   - Battery (found on the hardware, Nov 2026: the laptop ran flat
     mid-install, as a console shows no charge): `acpi` (acpiclient, no
     dependencies) is in the live system and offered as a cache; the welcome
