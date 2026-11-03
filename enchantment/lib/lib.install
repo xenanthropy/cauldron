@@ -129,6 +129,7 @@ function enchant_install_caches() {
   local file=
   local dep=
   local index=0
+  local missing=
 
   # if no caches were passed in directly, use the selected ones
   if [[ "${#caches[@]}" -eq 0 && -r "$ENCHANT_CACHES_LIST" ]]
@@ -206,6 +207,20 @@ function enchant_install_caches() {
   liberror_check || return $ERR_INSTALL_CACHES
   enchant_chroot_done "$target"
   liberror_check || return $?
+
+  # cast's exit status doesn't tell: it returns 0 when it "drops" spells
+  # (e.g. it tried to compile one, and the download failed offline)
+  missing=()
+  for spell in "${spells[@]}"
+  do
+    grep -q "^$spell:" "$state/packages" 2> "$ENCHANT_NULL" ||
+      missing+=( "$spell" )
+  done
+  if [[ "${#missing[@]}" -gt 0 ]]
+  then
+    libcolor_msg error "not installed: ${missing[*]}"
+    return $ERR_INSTALL_CACHES
+  fi
 
   return $ERR_OK
 }

@@ -685,6 +685,24 @@ sections below.
     menus now use sorcery's dialog colours (cauldron copies the build's
     `/etc/sorcery/dialogrc` to `/etc/enchantment/dialogrc`,
     `ENCHANT_DIALOGRC`); not yet in a built ISO.
+  - Installable caches vs grimoire (found on the hardware, Nov 2026):
+    `install caches` with cryptsetup-luks dropped cryptsetup-luks, libssh,
+    cmake, libarchive and libuv. `sys purify` downloaded the newest grimoire
+    (Nov 2) into system.tar.xz, while the caches were built on Oct 28 from
+    the build chroot's older one; libarchive (3.8.10 -> 3.8.11) and libuv
+    (1.52.1 -> 1.53.0) had changed, sorcery only resurrects a cache whose
+    version matches its grimoire, so it tried to compile them, the
+    downloads failed offline, and their dependents were dropped. Yet
+    `install caches` reported success (cast returns 0). Fixed:
+    `cauldron_sorcerous_update_grimoires` gives sys/iso a copy of the build
+    chroot's grimoire; `cauldron_iso_check` fails when system.tar.xz's
+    grimoire VERSION differs from the build chroot's; `install caches`
+    checks sorcery's records afterwards and names what wasn't installed.
+    Reproduced in a chroot with the 20261102 tarball and caches (same five
+    dropped); with the build grimoire all five resurrect. Workaround on
+    that ISO: skip cryptsetup-luks (root on LUKS needs an initramfs anyway)
+    and `cast` it after first boot, or get online first so sorcery can
+    compile libuv/libarchive.
   - To do before a public test ISO (maintainer, Nov 2026): decide how much
     the installer configures before first boot; refresh smgl-setup's man
     page (2008: calls Debian's `interfaces` a recent switch, assumes the

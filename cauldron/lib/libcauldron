@@ -843,6 +843,27 @@ function cauldron_iso_check() {
     fi
   done
 
+  # the installer resurrects the caches with the system tarball's sorcery,
+  # which only takes a cache whose version matches its grimoire (otherwise it
+  # compiles the spell: offline that fails, and every spell depending on it
+  # is dropped), so the tarball must carry the grimoire the caches came from
+  cauldron_verbose "Checking the grimoire in $CAULDRON_SYS_NAME_FULL..."
+  for out in "${CAULDRON_SORCERY_GRIMOIRES[@]}"
+  do
+    out="var/lib/sorcery/codex/$out/VERSION"
+    [[ -f "$CAULDRON_BUILD/$out" && -f "$target/$CAULDRON_SYS_NAME_FULL" ]] ||
+      continue
+    if [[ "$("${CAULDRON_CMD_TAR[@]}" -xOf \
+      "$target/$CAULDRON_SYS_NAME_FULL" "$out" 2> /dev/null)" != \
+      "$(< "$CAULDRON_BUILD/$out")" ]]
+    then
+      echo "the grimoire in $CAULDRON_SYS_NAME_FULL (/$out) differs from" \
+        "the build chroot's, which built the caches (re-run sys purify" \
+        "and sys package)"
+      ((problems++))
+    fi
+  done
+
   [[ "$problems" -eq 0 ]] || return $ERR_ISO_CHECK
 
   return $ERR_OK

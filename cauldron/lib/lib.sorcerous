@@ -630,8 +630,9 @@ function cauldron_sorcerous_set_grimoires() {
 #-------------------------------------------------------------------------------
 ## @param chroot path (optional, default: CAULDRON_BUILD)
 ##
-## Updates the grimoires defined in CAULDRON_SORCERY_GRIMOIRES by running scribe
-## update in the given chroot path.
+## Installs the grimoires defined in CAULDRON_SORCERY_GRIMOIRES into the given
+## chroot path: the build chroot downloads them, any other target (sys, iso)
+## gets a copy of the build chroot's, which its spell caches were built from.
 ##
 #-------------------------------------------------------------------------------
 function cauldron_sorcerous_update_grimoires() {
@@ -666,25 +667,39 @@ function cauldron_sorcerous_update_grimoires() {
     cauldron_chroot "${CAULDRON_CMD_RM_FORCE[@]}" "/tmp/${grimoire}.$grimtype"
     liberror_check || return $?
 
-    # download the grimoire to be unpacked
-    (
-      cd "$target/tmp" &&
-      "${CAULDRON_CMD_URL_DL[@]}" "$grimurl/${grimoire}.${grimtype}" ||
-        return $ERR_URL_DL
-    )
-    liberror_check "$grimurl/${grimoire}.$grimtype" || return $?
-
-    # unpack the grimoire
     cauldron_chroot "${CAULDRON_CMD_MKDIR[@]}" "$codex"
     liberror_check "mkdir $codex" || return $?
-    cauldron_chroot \
-      "${CAULDRON_CMD_UNPACK_TARGETDIR[@]/TARGETDIR/$codex}" \
-      "/tmp/${grimoire}.${grimtype}"
-    liberror_check "unpack $grimoire" || return $?
 
-    # remove the downloaded grimoire tarball after successfully unpacking
-    cauldron_chroot "${CAULDRON_CMD_RM_FORCE[@]}" "/tmp/${grimoire}.$grimtype"
-    liberror_check || return $?
+    # sys and iso get the build chroot's grimoire, not a newer download: the
+    # caches were built from it, and sorcery only resurrects a cache whose
+    # version matches its grimoire (otherwise it compiles the spell, which
+    # fails offline in the installer, and drops everything depending on it)
+    if [[ "$target" != "$CAULDRON_BUILD" &&
+      -d "$CAULDRON_BUILD/$codex/$grimoire" ]]
+    then
+      cauldron_verbose "Copying grimoire $grimoire from the build chroot"
+      "${CAULDRON_CMD_CP_PRESERVE[@]}" "$CAULDRON_BUILD/$codex/$grimoire" \
+        "$target/$codex/" || return $ERR_CP_FILE
+    else
+      # download the grimoire to be unpacked
+      (
+        cd "$target/tmp" &&
+        "${CAULDRON_CMD_URL_DL[@]}" "$grimurl/${grimoire}.${grimtype}" ||
+          return $ERR_URL_DL
+      )
+      liberror_check "$grimurl/${grimoire}.$grimtype" || return $?
+
+      # unpack the grimoire
+      cauldron_chroot \
+        "${CAULDRON_CMD_UNPACK_TARGETDIR[@]/TARGETDIR/$codex}" \
+        "/tmp/${grimoire}.${grimtype}"
+      liberror_check "unpack $grimoire" || return $?
+
+      # remove the downloaded grimoire tarball after successfully unpacking
+      cauldron_chroot "${CAULDRON_CMD_RM_FORCE[@]}" \
+        "/tmp/${grimoire}.$grimtype"
+      liberror_check || return $?
+    fi
 
     # the metadata "scribe add" would write: where updates come from (without
     # it, "scribe update" asks to "repair" the grimoire's metadata)
