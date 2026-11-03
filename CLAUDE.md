@@ -370,11 +370,17 @@ sections below.
     (cauldron's hack now uses `/boot/grub/smgl-splash.png`); and the
     background needs the graphical terminal, which needs a font
     (unicode.pf2), which grub2 only makes with the optional `unifont` +
-    `freetype2` dependencies (off in an unattended cast). Not decided:
-    turning those on for the ISO's grub2 cache (unifont pulls smgl-foma;
-    the cache's dependents then include them). Without a font,
-    grub-mkconfig quietly falls back to the text menu. The grub2 cache must
-    be recast (delete it in build/var/cache/sorcery) to pick up the hack.
+    `freetype2` dependencies (off in an unattended cast); and even with
+    unifont on, GRUB's configure only looks for unifont.{pcf,bdf,ttf}
+    while the unifont spell installs unifont.otf, so no font is made.
+    Without a font, grub-mkconfig quietly falls back to the text menu.
+    Cauldron now turns both on (`default_depends`) and its grub2 hack
+    passes `--with-unifont=/usr/share/fonts/unifont/unifont.otf`. Built
+    (Nov 2026): "With unifont from .../unifont.otf", the grub2 cache has
+    usr/share/grub/unicode.pf2 (2.4 MB) and grub-mkfont. Cost on the ISO:
+    ~10 MB of caches (grub2 +1.1, freetype2 3.1, brotli 2.2, unifont 2.4,
+    smgl-foma 1.3). The splash itself is still to be seen at the next ISO
+    test (QEMU screenshot of the installed system's GRUB menu).
   - wpa_supplicant 2.11 doesn't build against OpenSSL 4 (`ASN1_STRING` is
     opaque now; `tls_openssl.c` uses `->data`/`->length`). Cauldron patches
     it (`grimoire_hacks/wpa_supplicant`); other distributions carry the same
