@@ -21,6 +21,9 @@ openssh
 # so it is left to the installed system: cast opendoas)
 sudo
 
+# laptops: battery charge in a console (acpi -b)
+acpi
+
 # editors (the base system has nano)
 vim
 jed

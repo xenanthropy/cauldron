@@ -79,4 +79,6 @@ busybox
 man-db
 groff
 dialog
+# laptops: battery charge (acpi -b)
+acpi
 gnupg-2.4

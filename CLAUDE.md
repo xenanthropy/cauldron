@@ -658,6 +658,11 @@ sections below.
     `127.0.1.1` line of `/etc/hosts` (cauldron now ships `hosts` with
     `127.0.1.1 sourcemage`, matching the default hostname), so the name
     always resolves (sudo warns otherwise).
+  - Battery (found on the hardware, Nov 2026: the laptop ran flat
+    mid-install, as a console shows no charge): `acpi` (acpiclient, no
+    dependencies) is in the live system and offered as a cache; the welcome
+    screen mentions `acpi -b`. Without it:
+    `cat /sys/class/power_supply/BAT*/capacity`. Not yet in a built ISO.
   - Code scan (Nov 2026): `ERR_MODULE_FILE` was used but never defined (a
     missing module list returned success); `enchantment install headers`
     called `enchant_install_kernel_headers_${!ktype}` (indirect expansion,
