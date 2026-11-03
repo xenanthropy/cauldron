@@ -723,6 +723,19 @@ sections below.
     Checked: nothing in smgl-base/smgl-system depends on the linux spell
     and system.tar.xz doesn't have it; in the test grimoire only
     wireguard-modules hard-depends on it.
+  - Idea (maintainer, Nov 2026; not started): build the ISO kernel with the
+    linux spell instead of cauldron's own `make` (`cauldron_iso_kernel`),
+    so `install iso-kernel` can resurrect a linux cache and sorcery tracks
+    the installed kernel (updates via `sorcery queue`). Findings: the test
+    grimoire's linux spell only offers its current line (`info/kernels`:
+    7.3, not the 6.18 LTS the ISO uses); it can run unattended with preset
+    answers (`MAKEMODE=oldconfig`, `CONFIG_RESTORE=<our .config>`,
+    `UPDATE_BL=n`); it installs /boot/vmlinuz-VERSION (+ System.map,
+    config) and /lib/modules; its build dependencies (bc, perl, bison, flex,
+    elfutils, xz) are all in system.tar.xz already, so resurrecting needs
+    nothing new. To check: cache size (does /usr/src/linux-VERSION end up
+    in it?) and whether the ISO's firmware selection should become
+    linux-firmware. Fits with the generic-kernel project.
   - To do before a public test ISO (maintainer, Nov 2026): decide how much
     the installer configures before first boot; refresh smgl-setup's man
     page (2008: calls Debian's `interfaces` a recent switch, assumes the
