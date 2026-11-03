@@ -570,7 +570,9 @@ sections below.
     only a `suggest_depends` (off by default), so the build fails at
     "compilation error: file ../man/custom-man.xsl line 12 element
     import". Either `depends docbook-xsl` when libxslt is there, or pass
-    man=true/false from that suggest's answer.
+    man=true/false from that suggest's answer. (Also: with the suggest
+    answered "on", sorcery cast docbook-xsl *after* systemd, so the first
+    build still failed; suggest_depends aren't ordered before the spell.)
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).
