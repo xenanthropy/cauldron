@@ -4,8 +4,9 @@ top of the basesystem; they are in /var/cache/sorcery/. You need at least
 @[grub2] (boot loader, BIOS and UEFI); on UEFI machines also @[efibootmgr] and
 @[dosfstools]; plus the tools for your filesystems (@[xfsprogs],
 @[btrfs-progs]) and anything else you like (e.g. @[openssh], or @[vim] and
-@[jed] next to the base system's nano). Dependencies they need are added
-automatically when they are installed.
+@[jed] next to the base system's nano). The menu lists these main caches;
+the others in /var/cache/sorcery are only their dependencies, which are added
+automatically when they are installed (@[add] still takes any of them by name).
 
   @[enchantment select caches]              # menu: space toggles, enter accepts
   @[enchantment select caches show]         # list the selection

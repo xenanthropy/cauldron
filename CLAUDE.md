@@ -705,9 +705,14 @@ sections below.
     that ISO: skip libssh/cryptsetup-luks (openssh doesn't use libssh; root
     on LUKS needs an initramfs anyway) and `cast` them after first boot, or
     get online first so sorcery can compile libuv/libarchive. Also: the
-    `select caches` menu lists every cache on the ISO, including ones that
+    `select caches` menu listed every cache on the ISO, including ones that
     are only there as dependencies (libssh, cmake, curl, ...), which
-    invites ticking them.
+    invited ticking them. Now cauldron writes the caches of the spells
+    named in `iso.install` to `/etc/enchantment/caches.main`
+    (`cauldron_iso_install_caches`), and the menu, `show` and `all` offer
+    only those (`ENCHANT_CACHES_MAIN`); `add` still takes any cache by
+    name, and the menu keeps selected entries it doesn't show. Tested in
+    the live tree (show/add/all, and the dialog driven over a pty).
   - To do before a public test ISO (maintainer, Nov 2026): decide how much
     the installer configures before first boot; refresh smgl-setup's man
     page (2008: calls Debian's `interfaces` a recent switch, assumes the

@@ -366,6 +366,7 @@ function enchant_shell_select_list() {
   local file=
   local glob=
   local mark=
+  local hidden=
 
   shift 3
 
@@ -380,6 +381,18 @@ function enchant_shell_select_list() {
 
   [[ -d "$dir" ]] && available=( $(cd "$dir" && ls) )
   [[ -f "$list" ]] || : > "$list" || return $ERR_FILE_ACCESS
+
+  # caches: offer only the main ones (the rest are their dependencies, added
+  # by "install caches"); "add" still takes any of them by name
+  hidden=0
+  if [[ "$list" == "$ENCHANT_CACHES_LIST" && -s "$ENCHANT_CACHES_MAIN" &&
+    "$action" != "add" && "$action" != "del" ]]
+  then
+    hidden="${#available[@]}"
+    available=( $(printf '%s\n' "${available[@]}" |
+      grep -xF -f "$ENCHANT_CACHES_MAIN") )
+    hidden=$((hidden - ${#available[@]}))
+  fi
 
   case "$action" in
     menu|show )
@@ -399,6 +412,8 @@ function enchant_shell_select_list() {
         grep -qxF "$file" "$list" && mark="x"
         echo "[$mark] $file"
       done
+      [[ "$hidden" -gt 0 ]] &&
+        echo "(and $hidden caches of their dependencies, added as needed)"
       ;;
     add )
       for glob in "$@"
@@ -448,6 +463,8 @@ function enchant_shell_select_menu() {
   local file=
   local state=
   local rc=
+  local shown=
+  local kept=
 
   shift
 
@@ -474,8 +491,12 @@ function enchant_shell_select_menu() {
     return $ERR_OK
   fi
 
+  # keep selected entries the menu didn't offer (e.g. added by name)
+  shown=$(printf '%s\n' "$@")
+  kept=$(grep -vxF -e "$shown" "$list")
+
   : > "$list" || return $ERR_FILE_ACCESS
-  for file in $chosen
+  for file in $chosen $kept
   do
     echo "$file" >> "$list" || return $ERR_FILE_ACCESS
   done

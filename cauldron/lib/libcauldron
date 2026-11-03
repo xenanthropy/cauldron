@@ -1130,6 +1130,8 @@ function cauldron_iso_install_caches() {
   local cachedir="/var/cache/sorcery"
   local spell=
   local cache=
+  local main=()
+  local mainlist="/etc/enchantment/caches.main"
 
   # alter the target if a compressed fs is desired
   [[ "$CAULDRON_ISO_SQUASH" == "yes" ]] &&
@@ -1142,6 +1144,12 @@ function cauldron_iso_install_caches() {
 
   # the listed caches plus their dependencies that system.tar.xz lacks
   caches=( $(cauldron_iso_spells install) )
+  main=( $(cauldron_read_list "${CAULDRON_ISO_CACHES[@]}") )
+
+  # the installer's "select caches" offers only the listed (main) caches;
+  # their dependencies get added when installing
+  "${CAULDRON_CMD_MKDIR[@]}" "$target/${mainlist%/*}" || return $ERR_MK_DIR
+  : > "$target/$mainlist" || return $ERR_WRITE_FILE
 
   # make sure we have at least one valid cache to deal with
   [[ "${#caches[@]}" -gt 0 ]] || return $ERR_ISO_CREATE
@@ -1168,6 +1176,11 @@ function cauldron_iso_install_caches() {
 
     "${CAULDRON_CMD_CP[@]}" "$cache" "$target/$cachedir" ||
       return $ERR_CP_FILE
+
+    if [[ " ${main[*]} " == *" $spell "* ]]
+    then
+      echo "${cache##*/}" >> "$target/$mainlist" || return $ERR_WRITE_FILE
+    fi
   done
 
   return $ERR_OK
