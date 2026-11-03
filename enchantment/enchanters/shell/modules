@@ -7,10 +7,6 @@ spell-sources:basesystem
 basesystem:spell-options
 spell-options:edit-confs
 edit-confs:kernel
-kernel:iso-kernel
-kernel:compile-kernel
-iso-kernel:boot-loader
-compile-kernel:boot-loader
 kernel:boot-loader
 boot-loader:grub
 grub:user-setup

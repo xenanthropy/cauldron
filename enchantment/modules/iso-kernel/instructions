@@ -15,4 +15,4 @@ manually (what that command does):
   @[cp -a /lib/firmware/. $ENCHANT_TARGET/lib/firmware/]
   @[depmod -b $ENCHANT_TARGET $(uname -r)]
 
-Type @[next] to go to the next step.
+Type @[next] to go on to the boot loader (or @[todo] for the kernel step).

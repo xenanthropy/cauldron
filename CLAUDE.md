@@ -713,6 +713,16 @@ sections below.
     only those (`ENCHANT_CACHES_MAIN`); `add` still takes any cache by
     name, and the menu keeps selected entries it doesn't show. Tested in
     the live tree (show/add/all, and the dialog driven over a pty).
+  - Kernel steps (maintainer's review, Nov 2026): `iso-kernel` and
+    `compile-kernel` were steps of their own after `kernel`, so `next`
+    from the kernel overview led into iso-kernel even after compiling.
+    They are now only `todo` pages (`enchanters/shell/modules`: kernel ->
+    boot-loader); the kernel step says which kernels sorcery tracks (only
+    the linux spell's), and compile-kernel's manual part says what that
+    means (no updates, no dispel, don't hand-build the spell's version).
+    Checked: nothing in smgl-base/smgl-system depends on the linux spell
+    and system.tar.xz doesn't have it; in the test grimoire only
+    wireguard-modules hard-depends on it.
   - To do before a public test ISO (maintainer, Nov 2026): decide how much
     the installer configures before first boot; refresh smgl-setup's man
     page (2008: calls Debian's `interfaces` a recent switch, assumes the

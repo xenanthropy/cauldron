@@ -9,6 +9,12 @@ spell install (sorcery downloads the sources itself; needs network):
   @[exit]
 
 manual install:
+ Sorcery doesn't know about a kernel built by hand: it won't update it, and
+ dispel won't remove it; that is up to you. It can live next to one from the
+ linux spell, but not as the same version (they would overwrite each other's
+ files in /boot and /lib/modules). A spell that builds kernel modules may
+ depend on the linux spell (wireguard-modules does).
+
  get the sources of the kernel this ISO runs (copied from the ISO if it has
  them, otherwise downloaded from kernel.org, so this needs network), unpacked
  to /usr/src/linux-VERSION with the ISO kernel's config as .config:
@@ -31,4 +37,4 @@ manual install:
 
 If you installed the ISO kernel too, the boot-loader step will list both.
 
-Type @[next] to go to the next step.
+Type @[next] to go on to the boot loader (or @[todo] for the kernel step).

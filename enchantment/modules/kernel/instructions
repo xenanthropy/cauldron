@@ -1,12 +1,15 @@
-@[kernel]
-You can install the ISO kernel (fast and easy), set up a custom kernel
-(recommended), or both (best of both worlds). Whatever you choose, you must
-install at least one kernel.
+@[kernel step]
+Install at least one kernel. The choices (each has its own instructions):
 
-For instructions on how to install the ISO kernel, type @[todo iso-kernel].
+  @[todo iso-kernel]      the kernel this ISO runs: copied over in a minute,
+                        works on this machine now
+  @[todo compile-kernel]  your own: the linux spell (sorcery builds and keeps
+                        track of it) or one you build by hand
 
-For instructions on how to install a custom kernel, type @[todo compile-kernel].
+Both together is fine too: the ISO kernel to boot right away, your own one
+later. Only a kernel from the linux spell is tracked by sorcery (updated
+with the rest of the system, removed by dispel); the ISO kernel and a
+hand-built one are files you look after yourself.
 
-To see the instructions for this step again, just type @[todo].
-
-When you are finished, type @[next].
+To see these instructions again, type @[todo]. When you have a kernel
+installed, type @[next] to go on to the boot loader.
