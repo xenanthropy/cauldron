@@ -658,6 +658,20 @@ sections below.
     `127.0.1.1` line of `/etc/hosts` (cauldron now ships `hosts` with
     `127.0.1.1 sourcemage`, matching the default hostname), so the name
     always resolves (sudo warns otherwise).
+  - Boot scan left the machine's own EFI partition mounted (found on the
+    hardware, Nov 2026: parted "unable to inform the kernel of the change",
+    cfdisk "device is in use"). When the boot medium isn't found among the
+    removable devices (a USB stick that shows up late), `scan_cdrom` tries
+    every partition in /proc/partitions as iso9660/udf/vfat; a vfat ESP
+    mounted fine, wasn't the ISO, and stayed mounted, read-write, on the
+    initramfs' `/mnt`, out of sight after switch_root (again at every
+    rescan). Besides blocking repartitioning, a later mount of a freshly
+    formatted ESP would reuse that stale superblock. `test_mount` now
+    mounts read-only and unmounts every miss (`release_mount`); it also
+    reported the wrong device ("found: /dev/vda1"). Verified in QEMU (FAT
+    disk scanned before the ISO): `blockdev --rereadpt` fails before,
+    works after. Workaround on older ISOs: `wipefs -a` the ESP, reboot the
+    ISO, then format it.
   - Battery (found on the hardware, Nov 2026: the laptop ran flat
     mid-install, as a console shows no charge): `acpi` (acpiclient, no
     dependencies) is in the live system and offered as a cache; the welcome

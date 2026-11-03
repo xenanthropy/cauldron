@@ -299,8 +299,9 @@ mount_iso() {
 
   if [ -f "$SMGL_ISOPATH/$SMGL_ISOFS" ] ;then
     msginfo "Attempting to loopmount $SMGL_ISOFS"
-    mount_squashfs
-    return $?
+    mount_squashfs && return 0
+    umount "$dst"
+    return 1
   fi
 
   return 0
@@ -349,6 +350,20 @@ try_mount() {
   return 1
 }
 
+## undo a test mount that turned out not to be the SMGL medium (the image
+## mount on $SMGL_ISOMNT, if any, then the device): every partition the scan
+## tries gets mounted, and anything left mounted here stays mounted, out of
+## sight, after switch_root (e.g. the disk's EFI system partition, which then
+## can't be repartitioned or formatted)
+release_mount() {
+  local mnt="$1"
+
+  if grep -q " $SMGL_ISOMNT " /proc/mounts ;then
+    umount "$SMGL_ISOMNT"
+  fi
+  umount "$mnt"
+}
+
 test_mount() {
   local dev="$1"
   local fstype="$2"
@@ -357,12 +372,15 @@ test_mount() {
 
   msginfo "Trying: $dev"
 
-  if try_mount "$dev" "$mnt" "$fstype" ;then
+  # read-only: the scan tries the machine's own disks too, and the overlay
+  # never writes to the boot medium
+  if try_mount "$dev" "$mnt" "$fstype" ro ;then
     if [ -f "$SMGL_ISOPATH/$SMGL_ID" ] ;then
       msggood "SMGL iso accessible at $SMGL_ISOPATH"
       found=0
     else
       msgerr "SMGL iso file not found: $SMGL_ISOPATH/$SMGL_ID"
+      release_mount "$mnt"
     fi
   else
     msgerr "couldn't mount $dev at $mnt"
