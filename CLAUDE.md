@@ -563,6 +563,16 @@ sections below.
         DMC, GuC and HuC firmware ("GUC: submission enabled", no longer
         wedged). Harmless: "[drm] *ERROR* DSI link not ready" (common on
         Alder Lake-N DSI panels). udev renames wlan0 to wlp0s20f3.
+      - installed system (20261102, Nov 2026): text scrolling on the
+        console tears. i915 is fine (DMC/GuC/HuC loaded, GuC submission
+        on); it is fbcon redrawing the whole screen in software on every
+        scroll (no acceleration since 5.11, no vsync), slowest with
+        rotation and the 16x32 font. A GPU-drawn console (kmscon) or a
+        graphical session avoids it. Found alongside: the ISO kernel had
+        no CONFIG_FB_DEVICE (no /dev/fb0, /proc/fb; fbterm and friends
+        can't run) and no CONFIG_TRANSPARENT_HUGEPAGE (i915: "Transparent
+        Hugepage support is recommended"); both on in the fragment now
+        (THP madvise), config regenerated; not yet in a built kernel.
       - cfg80211 is built in, so it still logs "failed to load
         regulatory.db" at boot (before the live system is mounted); it
         loads the file when a wifi device first asks for its regulatory

@@ -222,3 +222,12 @@ CONFIG_ZRAM=m
 CONFIG_ZRAM_BACKEND_LZ4=y
 CONFIG_ZRAM_BACKEND_ZSTD=y
 CONFIG_ZRAM_DEF_COMP_ZSTD=y
+
+# /dev/fb0 and /proc/fb, for programs that draw on the framebuffer (fbterm,
+# fbi, ...); the DRM drivers' fbdev emulation provides it
+CONFIG_FB_DEVICE=y
+
+# i915 asks for it ("Transparent Hugepage support is recommended"); only for
+# programs that ask (madvise), as most distributions set it
+CONFIG_TRANSPARENT_HUGEPAGE=y
+CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y
