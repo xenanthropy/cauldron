@@ -733,6 +733,11 @@ sections below.
     `mkrlconf` would copy the ISO's cmdline); syslinux 6.03's extlinux
     can't use ext4 with the 64bit feature (mkfs.ext4's default); lilo
     24.2 is BIOS/MBR only. To test them in QEMU at a later ISO round.
+    The grub page (46 lines) had grub-mkconfig at line 39: on the
+    maintainer's rotated console `less` showed the first screen only, so
+    the menu step went unseen. It now starts with the three steps
+    (grub-install, check /etc/default/grub, grub-mkconfig) and numbers
+    them below.
     systemd-boot gets a page with the init-system project (it comes with
     systemd); gummiboot (its 2015 predecessor) is left out.
     Checked: nothing in smgl-base/smgl-system depends on the linux spell

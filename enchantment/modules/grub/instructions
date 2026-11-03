@@ -1,46 +1,40 @@
-@[grub step]:
-GRUB 2 must have been installed into the target in the @[spell-caches] step
-(@[enchantment select caches add 'grub2*'], then @[enchantment install caches]).
-Its cache supports both BIOS and UEFI machines.
+@[grub page]
+Setting up GRUB takes three commands in the new system (details below):
+  1. @[grub-install ...]        put GRUB on the disk / EFI partition
+  2. check /etc/default/grub  (root=PARTUUID, extra kernel options)
+  3. @[grub-mkconfig -o /boot/grub/grub.cfg]   write the boot menu
+GRUB comes from the @[grub2] cache (spell-caches step); it supports both BIOS
+and UEFI. How this machine booted the ISO:
+  @[ls /sys/firmware/efi]  # exists: UEFI; "No such file": BIOS
 
-To find out how this machine booted the ISO:
- @[ls /sys/firmware/efi]  # exists: UEFI; "No such file": BIOS
+First enter the new system: @[enchantment chroot]
 
-chroot into the system:
- @[enchantment chroot]
-
-BIOS machines: install GRUB to the disk's boot sector (the whole disk, not a
-partition; adjust /dev/sda):
- @[grub-install --target=i386-pc /dev/sda]
- (on a GPT disk, this needs a small "BIOS boot" partition without a filesystem)
-
-UEFI machines: the EFI system partition (FAT) must be mounted at /boot/efi in
-the target (do that before chrooting, e.g.
-@[mount /dev/sda1 $ENCHANT_TARGET/boot/efi]):
- (@[enchantment chroot] mounts the firmware variables, /sys/firmware/efi/efivars,
- by itself; @[efibootmgr] lists the boot entries)
+1. Install GRUB
+ BIOS: to the disk's boot sector (the whole disk, not a partition):
+  @[grub-install --target=i386-pc /dev/sda]
+  (a GPT disk needs a small "BIOS boot" partition without a filesystem)
+ UEFI: the EFI system partition must be mounted at /boot/efi (do that before
+ the chroot: @[mount /dev/sda1 $ENCHANT_TARGET/boot/efi]; @[efibootmgr] lists
+ the firmware's boot entries):
  @[grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=smgl]
-If the firmware does not pick it up, also install the fallback loader:
- @[grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable]
+ If the firmware doesn't offer it at boot, add the fallback loader too:
+  @[grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable]
 
-The kernel finds its root filesystem without an initramfs only by device name
-or partition UUID (root=PARTUUID=), not by filesystem UUID (root=UUID=), so
-check that /etc/default/grub has these two lines (older grub2 caches have a
-misspelled GRUB_DISABLE_UUID=true instead):
- GRUB_DISABLE_LINUX_UUID=true
- GRUB_DISABLE_LINUX_PARTUUID=false
-e.g. @[sed -i 's/^GRUB_DISABLE_UUID=true$/GRUB_DISABLE_LINUX_UUID=true\nGRUB_DISABLE_LINUX_PARTUUID=false/' /etc/default/grub]
+2. Check /etc/default/grub
+ Without an initramfs the kernel finds its root filesystem by device name or
+ PARTUUID, not by filesystem UUID, so these two lines must be there:
+  GRUB_DISABLE_LINUX_UUID=true
+  GRUB_DISABLE_LINUX_PARTUUID=false
+ (older grub2 caches have a misspelled GRUB_DISABLE_UUID=true instead.)
+ Kernel options you needed for this ISO (e.g. fbcon=rotate:1 for a sideways
+ screen) go into GRUB_CMDLINE_LINUX_DEFAULT="..." here as well.
 
-If you had to add kernel options to boot this ISO (e.g. fbcon=rotate:1 or
-video=DSI-1:panel_orientation=right_side_up for a screen mounted sideways),
-add them to GRUB_CMDLINE_LINUX_DEFAULT="..." in /etc/default/grub as well.
+3. Write the boot menu (it lists the kernels in /boot, so do this after the
+ kernel step, and again after installing another kernel):
+  @[grub-mkconfig -o /boot/grub/grub.cfg]
+ and check that the "linux" lines say root=PARTUUID=... or root=/dev/...:
+  @[grep 'linux.*root=' /boot/grub/grub.cfg]
 
-Then write the GRUB menu (it finds the kernel installed in the kernel step):
- @[grub-mkconfig -o /boot/grub/grub.cfg]
-and check that the "linux" lines say root=PARTUUID=... or root=/dev/...:
- @[grep 'linux.*root=' /boot/grub/grub.cfg]
-
-Exit the chroot:
- @[exit]
+Leave the new system: @[exit]
 
 Type @[next] to go on to the user setup (or @[todo] for the boot-loader step).
