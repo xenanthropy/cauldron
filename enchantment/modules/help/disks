@@ -159,7 +159,10 @@ a truly blank disk anyway, before partitioning (this erases everything on it):
   @[wipefs -a /dev/sdX1 /dev/sdX2 /dev/sdX]  remove the filesystem and
                                              partition table signatures
                                              (partitions first, then the disk)
-  @[blkdiscard /dev/nvme0n1]                 SSDs: discard every block; takes
-                                             seconds, then the disk reads as
-                                             zeros (not for hard disks)
+
+  @[blkdiscard /dev/nvmeXn1]                 SSDs only: discard every block;
+                                             takes seconds, then the disk
+                                             reads as zeros (hard disks don't
+                                             support it: it just fails)
+
 Check the result with @[lsblk -f] (no FSTYPE left).
