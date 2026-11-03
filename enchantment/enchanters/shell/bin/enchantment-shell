@@ -458,6 +458,8 @@ function enchant_shell_select_menu() {
     items+=( "$file" "$state" )
   done
 
+  [[ -f "$ENCHANT_DIALOGRC" ]] && export DIALOGRC="$ENCHANT_DIALOGRC"
+
   # dialog draws on stdout and prints the result on stderr: swap them
   chosen=$("${ENCHANT_CMD_DIALOG[@]}" --separate-output --no-items \
     --backtitle "enchantment: $(basename "$list")" \

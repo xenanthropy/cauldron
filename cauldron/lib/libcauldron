@@ -1903,6 +1903,15 @@ function cauldron_enchant() {
   "${CAULDRON_CMD_CP[@]}" "$srcconf" "$config" ||
     return $ERR_ENCHANT_ISO
 
+  # sorcery's dialog colours, so the installer's menus look like sorcery's
+  # (the live system has no sorcery of its own)
+  if [[ -f "$CAULDRON_BUILD/etc/sorcery/dialogrc" ]]
+  then
+    "${CAULDRON_CMD_CP[@]}" "$CAULDRON_BUILD/etc/sorcery/dialogrc" \
+      "$confdir/dialogrc" ||
+      return $ERR_ENCHANT_ISO
+  fi
+
   # add all enabled enchantment components
   for component in "${CAULDRON_ENCHANT_COMPONENTS[@]}"
   do

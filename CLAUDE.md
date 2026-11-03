@@ -676,6 +676,20 @@ sections below.
     then format it. `wipefs -a` is not enough (tried on the hardware): it
     only erases the "FAT32" string blkid looks for, and the kernel's vfat
     driver doesn't check that string, so the scan still mounted it.
+  - Fresh local install on the hardware with smgl-devel-20261102 (Nov
+    2026, in progress): efibootmgr works on the live system with nothing
+    mounted by hand (efivarfs fix confirmed). The welcome screen opens in
+    less on the rotated 16x32 console (it is ~1 line too long for that
+    screen): to do, shorten it (e.g. move network/SSH into a `guide
+    network` page) so no one lands in a pager first thing. `select caches`
+    menus now use sorcery's dialog colours (cauldron copies the build's
+    `/etc/sorcery/dialogrc` to `/etc/enchantment/dialogrc`,
+    `ENCHANT_DIALOGRC`); not yet in a built ISO.
+  - To do before a public test ISO (maintainer, Nov 2026): decide how much
+    the installer configures before first boot; refresh smgl-setup's man
+    page (2008: calls Debian's `interfaces` a recent switch, assumes the
+    stable grimoire; the networking part ties in with the init-system
+    project).
   - Battery (found on the hardware, Nov 2026: the laptop ran flat
     mid-install, as a console shows no charge): `acpi` (acpiclient, no
     dependencies) is in the live system and offered as a cache; the welcome
