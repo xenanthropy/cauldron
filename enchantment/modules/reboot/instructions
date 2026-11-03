@@ -7,6 +7,6 @@ into your installed system! Just type:
 When you first log in, run @[man smgl-setup]: it walks you through what to do
 with your new system (updating grimoires and sorcery, compile options, ...).
 
-We don't (yet) eject CDs during shutdown, and no spell can dispel your USB
+We don't (yet) eject CDs during shutdown, and sorcery can't dispel your USB
 stick from its port, so take the CD or stick out while the machine restarts
 (or tell the firmware not to boot from it first).
