@@ -43,4 +43,4 @@ and check that the "linux" lines say root=PARTUUID=... or root=/dev/...:
 Exit the chroot:
  @[exit]
 
-Type @[next] to go to the next step.
+Type @[next] to go on to the user setup (or @[todo] for the boot-loader step).

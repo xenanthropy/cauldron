@@ -720,6 +720,10 @@ sections below.
     boot-loader); the kernel step says which kernels sorcery tracks (only
     the linux spell's), and compile-kernel's manual part says what that
     means (no updates, no dispel, don't hand-build the spell's version).
+    The same for the boot loader: `grub` is a page of the `boot-loader`
+    step (boot-loader -> user-setup), which also names the grimoire's
+    other boot loaders (limine 12.9, refind, syslinux, lilo; to cast later,
+    not on the ISO).
     Checked: nothing in smgl-base/smgl-system depends on the linux spell
     and system.tar.xz doesn't have it; in the test grimoire only
     wireguard-modules hard-depends on it.

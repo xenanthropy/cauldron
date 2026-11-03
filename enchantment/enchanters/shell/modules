@@ -8,8 +8,6 @@ basesystem:spell-options
 spell-options:edit-confs
 edit-confs:kernel
 kernel:boot-loader
-boot-loader:grub
-grub:user-setup
 boot-loader:user-setup
 user-setup:reboot
 reboot:reboot
