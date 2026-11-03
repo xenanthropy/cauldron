@@ -48,6 +48,68 @@ separate choices:
   (+ epoch, upstart); `INITSCRIPTS` = init.d, openrc. systemd works well;
   openrc is missing many service scripts (could be ported from Gentoo).
 
+**Init system: decisions and draft plan (Nov 2026, maintainer + research;
+nothing built yet).**
+Decided: simpleinit-msb stays the default (the team expects it); the first
+version adds systemd, openrc later (it needs service scripts, mostly the
+*system* ones, ported from Gentoo; one SMGL developer does run it); the live
+ISO itself stays on simpleinit; ISO size isn't a constraint; the maintainer
+may update the systemd spell (they used it; it was last touched ~2023).
+
+Findings that shape it:
+- systemd 254.27 (spell) `CONFLICTS` eudev and elogind, `PROVIDES` INIT,
+  DEVICE-MANAGER, LOGIN-DAEMON, SYSTEM-LOGGER; required DEPENDS include
+  dbus, dracut, python3 + jinja2, gperf, libcap, util-linux (SULOGIN).
+  `smgl-system` depends on INITSCRIPTS, so init.d stays installed under
+  systemd (unused). openrc conflicts with init.d (it provides INITSCRIPTS).
+- sorcery only installs SMGL init.d scripts (351 spells have `init.d/`);
+  nothing installs systemd units or openrc scripts. Units come from the
+  upstream build systems, which install them when they find systemd at
+  build time; 76 spells have `optional_depends systemd` for that (units,
+  sd_notify, logind). Caches built in a simpleinit build chroot therefore
+  have no units: a system switched to systemd at install time would have
+  systemd but its spells built as if it didn't exist.
+- the systemd spell's FINAL runs `systemd-machine-id-setup`, so a systemd
+  cache carries the build machine's /etc/machine-id (must be unique per
+  machine; same class of problem as the SSH host keys): remove it from the
+  sys tree/caches (systemd creates it at first boot when /etc/machine-id is
+  empty or missing) and make `cauldron_iso_check` refuse one.
+- the spell's SOURCE_URL is a systemd-stable GitHub archive; point releases
+  moved into the main systemd repository (check the URL when bumping), and
+  the agent sandbox can't fetch GitHub archives (needs an upload).
+
+Options weighed:
+1. one ISO, simpleinit system.tar.xz + systemd caches swapped in by the
+   installer (`enchantment install init systemd`): offline and simple to
+   use, but no units for the base system's spells (see above), and the
+   swap has to fix up the logger, gettys, networking afterwards.
+2. one ISO per init (recommended): cauldron already has
+   `CAULDRON_SYS_INIT` (and picks the logger from it); build the systemd
+   variant in its own `CAULDRON_TMP` (own build chroot, so systemd is
+   present while every spell is cast and units get installed), giving
+   `system.tar.xz` built for systemd and an ISO named for it. The
+   installer then needs no swap step at all, and cauldron installs the
+   init-specific texts (services, networking, logging, systemd-boot page)
+   at `iso enchant` time from `CAULDRON_SYS_INIT`. Costs a second full
+   build (hours) and the disk space of a second build tree (more than the
+   agent sandbox has free; a build machine with ~40 GB is comfortable).
+3. both tarballs on one ISO (~1 GB ISO), installer picks one: same build
+   cost as 2, larger download for everyone.
+4. network install of systemd from the installer: least work for
+   cauldron, but needs network and compiles systemd and recasts on the
+   user's machine during the install; little gain over casting it after
+   first boot.
+
+Steps for option 2: (a) bump the systemd spell to the latest release and
+build it once in a scratch chroot; (b) a systemd `base_etc`/config
+variant (no inittab/sysconfig init bits; getty@tty1..6 enabled; network:
+dhcpcd.service or systemd-networkd; journald instead of metalog; an empty
+machine-id); (c) `sys` with `CAULDRON_SYS_INIT=systemd` in a separate
+`CAULDRON_TMP`, check for units of the base spells; (d) `iso` for it with
+init-specific installer texts; (e) QEMU install + boot test, as for the
+simpleinit ISO. Open: name scheme of the two ISOs; whether the team wants
+to publish the systemd one at all at first.
+
 **Later / nice to have:** ISOs for other arches (32-bit x86, ppc) via the
 cross-compile path (`toolchain cross`, `cauldron_toolchain_build_cross`).
 Most config and data is already per-arch (`config/arch/*.conf`,
