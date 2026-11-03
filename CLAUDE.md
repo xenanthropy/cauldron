@@ -671,7 +671,8 @@ sections below.
     reported the wrong device ("found: /dev/vda1"). Verified in QEMU (FAT
     disk scanned before the ISO): `blockdev --rereadpt` fails before,
     works after. Workaround on older ISOs: zero the ESP's first MiB
-    (`dd if=/dev/zero of=/dev/nvme0n1p1 bs=1M count=1`), reboot the ISO,
+    (`dd if=/dev/zero of=/dev/nvme0n1p1 bs=1M count=1`; verified on the
+    hardware), reboot the ISO,
     then format it. `wipefs -a` is not enough (tried on the hardware): it
     only erases the "FAT32" string blkid looks for, and the kernel's vfat
     driver doesn't check that string, so the scan still mounted it.
