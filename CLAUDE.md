@@ -686,8 +686,10 @@ sections below.
     `/etc/sorcery/dialogrc` to `/etc/enchantment/dialogrc`,
     `ENCHANT_DIALOGRC`); not yet in a built ISO.
   - Installable caches vs grimoire (found on the hardware, Nov 2026):
-    `install caches` with cryptsetup-luks dropped cryptsetup-luks, libssh,
-    cmake, libarchive and libuv. `sys purify` downloaded the newest grimoire
+    `install caches` with libssh ticked (the maintainer's pick; libssh
+    needs cmake, which needs libarchive and libuv) dropped libssh, cmake,
+    libarchive and libuv (with cryptsetup-luks, which needs libssh, also
+    that). `sys purify` downloaded the newest grimoire
     (Nov 2) into system.tar.xz, while the caches were built on Oct 28 from
     the build chroot's older one; libarchive (3.8.10 -> 3.8.11) and libuv
     (1.52.1 -> 1.53.0) had changed, sorcery only resurrects a cache whose
@@ -700,9 +702,12 @@ sections below.
     checks sorcery's records afterwards and names what wasn't installed.
     Reproduced in a chroot with the 20261102 tarball and caches (same five
     dropped); with the build grimoire all five resurrect. Workaround on
-    that ISO: skip cryptsetup-luks (root on LUKS needs an initramfs anyway)
-    and `cast` it after first boot, or get online first so sorcery can
-    compile libuv/libarchive.
+    that ISO: skip libssh/cryptsetup-luks (openssh doesn't use libssh; root
+    on LUKS needs an initramfs anyway) and `cast` them after first boot, or
+    get online first so sorcery can compile libuv/libarchive. Also: the
+    `select caches` menu lists every cache on the ISO, including ones that
+    are only there as dependencies (libssh, cmake, curl, ...), which
+    invites ticking them.
   - To do before a public test ISO (maintainer, Nov 2026): decide how much
     the installer configures before first boot; refresh smgl-setup's man
     page (2008: calls Debian's `interfaces` a recent switch, assumes the
