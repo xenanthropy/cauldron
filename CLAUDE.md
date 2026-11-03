@@ -558,6 +558,13 @@ sections below.
     is being cast, so dbus fails with "Dependency libsystemd not found".
     Order needed: dbus without systemd, then systemd, then dbus again
     with systemd (cast -r dbus). Sorcery can't resolve the loop by itself.
+  - systemd 254.27's spell sets ACL support twice: `optional_depends acl`
+    passes acl=true/false, and CONFIGURE's `config_query_option
+    SYSTEMD_ACL "Enable ACL support?" y` adds acl=true afterwards, so with
+    the acl dependency off meson still requires libacl and fails
+    ("Dependency libacl not found"). Drop one of the two (the
+    optional_depends is the one that also installs acl). Likely the same
+    pattern for EFI (gnu-efi passes efi=..., SYSTEMD_EFI too).
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).
