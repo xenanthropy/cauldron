@@ -148,3 +148,18 @@ plenty of RAM (16 GiB or more is comfortable); leave it off on small ones, or
 add zram/swap. Turn it on (in the installed system) with
   @[sorcery]   then Options -> Feature Menu -> TMPFS
 or by adding @[TMPFS=on] to /etc/sorcery/local/config.
+
+7. STARTING OVER ON A USED DISK
+-------------------------------
+A new partition table only records where partitions start and end; the data
+inside stays. A new partition at the same place as an old one therefore still
+shows the old filesystem in @[lsblk -f] (type, label, UUID), even after a
+reboot. That is harmless: mkfs writes over it (and asks first). To begin from
+a truly blank disk anyway, before partitioning (this erases everything on it):
+  @[wipefs -a /dev/sdX1 /dev/sdX2 /dev/sdX]  remove the filesystem and
+                                             partition table signatures
+                                             (partitions first, then the disk)
+  @[blkdiscard /dev/nvme0n1]                 SSDs: discard every block; takes
+                                             seconds, then the disk reads as
+                                             zeros (not for hard disks)
+Check the result with @[lsblk -f] (no FSTYPE left).

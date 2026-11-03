@@ -715,7 +715,8 @@ sections below.
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live
-    system's btrfs-progs), swap sizing and swap files. XFS and btrfs are
+    system's btrfs-progs), swap sizing and swap files, wiping a used disk (old filesystems still
+    show in `lsblk -f` after repartitioning; `wipefs`, `blkdiscard`). XFS and btrfs are
     built into the ISO kernel now: without an initramfs a root filesystem's
     driver can't be a module. Root on LVM/LUKS/mdadm still can't work
     without an initramfs (the guide says so).

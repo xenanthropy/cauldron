@@ -20,6 +20,7 @@ Partition with any of these:
 
 Swap is optional: a swap partition, or a swap file later. Remember to write
 the new partition table before quitting the program. For help choosing a
-layout, a filesystem and swap: @[guide disks].
+layout, a filesystem and swap, and for wiping a used disk (old filesystems
+still show in lsblk after repartitioning): @[guide disks].
 
 Type @[next] when you're done.
