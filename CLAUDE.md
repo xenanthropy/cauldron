@@ -854,6 +854,18 @@ sections below.
     page (2008: calls Debian's `interfaces` a recent switch, assumes the
     stable grimoire; the networking part ties in with the init-system
     project).
+  - Directory modes (found on the hardware, Nov 2026: `gaze` as a user:
+    "mkdir: cannot create directory '/tmp/liblock-1000': Permission
+    denied"): system.tar.xz had /tmp and /var/tmp as 0755 (only root could
+    write: breaks nearly everything a user runs), /root 0755 instead of
+    0750, and no /var/spool/mail. smgl-fhs makes them with those modes in
+    its INSTALL, but caches don't record directory modes, and cauldron made
+    the directories with a plain mkdir. Now `CAULDRON_FHS_MODES`
+    (config/build.conf: tmp 1777, var/tmp 1777, root 0750, var/spool/mail
+    3775 group mail) applied by `cauldron_fhs_modes` at the end of sys
+    populate and iso populate, and `cauldron_sys_check` fails on a wrong
+    mode. Tested on a scratch tree. Fix on installed systems:
+    `chmod 1777 /tmp /var/tmp; chmod 0750 /root`.
   - Battery (found on the hardware, Nov 2026: the laptop ran flat
     mid-install, as a console shows no charge): `acpi` (acpiclient, no
     dependencies) is in the live system and offered as a cache; the welcome

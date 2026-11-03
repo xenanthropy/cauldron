@@ -434,6 +434,43 @@ function cauldron_clean_fs() {
 }
 
 #-------------------------------------------------------------------------------
+## @param target directory
+##
+## Gives the directories in CAULDRON_FHS_MODES their modes (and groups), creating
+## them if needed: /tmp and /var/tmp 1777, /root 0750, ... Spell caches don't
+## record directory modes, so a tree built from them has plain 0755 ones.
+##
+#-------------------------------------------------------------------------------
+function cauldron_fhs_modes() {
+  local target="$1"
+  local entry=
+  local dir=
+  local mode=
+  local group=
+  local gid=
+
+  [[ -d "$target" ]] || return $ERR_TARGET
+
+  for entry in "${CAULDRON_FHS_MODES[@]}"
+  do
+    IFS=: read -r dir mode group <<< "$entry"
+    "${CAULDRON_CMD_MKDIR[@]}" "$target/$dir" || return $ERR_MK_DIR
+    if [[ -n "$group" ]]
+    then
+      # the target's group id (the host may not have the group)
+      gid=$(awk -F: -v g="$group" '$1 == g {print $3}' "$target/etc/group")
+      if [[ -n "$gid" ]]
+      then
+        chgrp "$gid" "$target/$dir" || return $ERR_CHMOD_FILE
+      fi
+    fi
+    "${CAULDRON_CMD_CHMOD[@]}" "$mode" "$target/$dir" || return $ERR_CHMOD_FILE
+  done
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
 ## @param target chroot directory
 ##
 ## Ensures the existence of basic FHS directories, dev nodes, etc. in the target
@@ -675,6 +712,10 @@ function cauldron_populate_sys() {
   cauldron_sys_tidy "$target"
   liberror_check || return $?
 
+  # /tmp, /var/tmp, /root, ... with their proper modes
+  cauldron_fhs_modes "$target"
+  liberror_check || return $?
+
   ## ensure the sys chroot is properly bootstrapped
   #cauldron_fs_bootstrap "$target"
   #liberror_check || return $?
@@ -709,6 +750,17 @@ function cauldron_sys_check() {
 
   cauldron_chroot_init "$target"
   liberror_check || return $?
+
+  # directory modes (users can't write to a 0755 /tmp)
+  for out in "${CAULDRON_FHS_MODES[@]}"
+  do
+    if [[ "$(stat -c %a "$target/${out%%:*}" 2>/dev/null)" != \
+      "$(echo "${out#*:}" | cut -d: -f1 | sed 's/^0//')" ]]
+    then
+      echo "wrong mode on /${out%%:*} (want ${out#*:})"
+      ((problems++))
+    fi
+  done
 
   cauldron_verbose "Checking $target for missing shared libraries..."
   out=$(cauldron_check_libs)
@@ -1107,6 +1159,9 @@ function cauldron_iso_install_runtime() {
     "${CAULDRON_CMD_CHMOD[@]}" 0755 "$target/etc/profile.d/busybox.sh" ||
       return $ERR_CHMOD_FILE
   fi
+
+  # /tmp, /var/tmp, /root, ... with their proper modes
+  cauldron_fhs_modes "$target" || return $?
 
   # make sure sys is added to iso
   cauldron_verbose "Copying $(libcolor_file ${src##*/}) to the iso"
