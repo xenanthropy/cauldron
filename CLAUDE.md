@@ -565,6 +565,12 @@ sections below.
     ("Dependency libacl not found"). Drop one of the two (the
     optional_depends is the one that also installs acl). Likely the same
     pattern for EFI (gnu-efi passes efi=..., SYSTEMD_EFI too).
+  - systemd 254.27 builds with `man=auto`: with libxslt installed it builds
+    the man pages, which need the DocBook stylesheets, but docbook-xsl is
+    only a `suggest_depends` (off by default), so the build fails at
+    "compilation error: file ../man/custom-man.xsl line 12 element
+    import". Either `depends docbook-xsl` when libxslt is there, or pass
+    man=true/false from that suggest's answer.
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).
