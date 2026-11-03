@@ -722,8 +722,17 @@ sections below.
     means (no updates, no dispel, don't hand-build the spell's version).
     The same for the boot loader: `grub` is a page of the `boot-loader`
     step (boot-loader -> user-setup), which also names the grimoire's
-    other boot loaders (limine 12.9, refind, syslinux, lilo; to cast later,
-    not on the ISO).
+    other boot loaders, each with its own page (`todo limine|refind|
+    syslinux|lilo`; their spells aren't on the ISO: cast with network from
+    `enchantment chroot`). Written from the spells and upstream docs, not
+    yet tested: limine 12.9.4 depends on llvm/clang and only reads FAT
+    (kernel on the ESP, simplest with the ESP at /boot); rEFInd 0.14.2 is
+    UEFI only (`refind-install`; `/boot/refind_linux.conf` by hand, since
+    `mkrlconf` would copy the ISO's cmdline); syslinux 6.03's extlinux
+    can't use ext4 with the 64bit feature (mkfs.ext4's default); lilo
+    24.2 is BIOS/MBR only. To test them in QEMU at a later ISO round.
+    systemd-boot gets a page with the init-system project (it comes with
+    systemd); gummiboot (its 2015 predecessor) is left out.
     Checked: nothing in smgl-base/smgl-system depends on the linux spell
     and system.tar.xz doesn't have it; in the test grimoire only
     wireguard-modules hard-depends on it.

@@ -1,19 +1,23 @@
-@[lilo step]:
-Edit @[$ENCHANT_TARGET/etc/lilo.conf] to fit your setup (especially, you'll
-want to change the boot= and root= entries to point to your partitions, and
-you'll need to set the kernel version correctly).
+@[lilo page]
+LILO, the classic LInux LOader, boots BIOS machines only (not UEFI), from an
+MBR (dos) disk. It isn't on this ISO: cast it with network (see
+@[todo boot-loader]). LILO records where the kernel lies on the disk, so run
+@[lilo] again after every change to the kernel or to /etc/lilo.conf.
 
-To run lilo properly, you need to chroot into the new system and then install
-lilo.
+In @[enchantment chroot], write /etc/lilo.conf (your disk, root partition and
+kernel version; /etc/lilo.example.conf has more options):
+  boot=/dev/sda
+  prompt
+  timeout=50
+  default=smgl
+  image=/boot/vmlinuz-6.18.59
+      label=smgl
+      root=/dev/sda2
+      read-only
+Then install it to the disk's boot sector:
+ @[lilo -v]
+ @[exit]
 
-chroot into the installed system:
-  @[enchantment chroot]
+Not yet tested on this ISO: please report what works and what doesn't.
 
-run lilo so it installs to the boot record:
-  @[/sbin/lilo]
-
-exit the chroot:
-  @[ exit]
-
-Unless you got an error message when you were installing the boot loader,
-you should be done with this step. Type @[next] to go to the next step.
+Type @[next] to go on to the user setup (or @[todo] for the boot-loader step).

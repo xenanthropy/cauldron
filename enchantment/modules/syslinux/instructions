@@ -1,0 +1,29 @@
+@[syslinux page]
+SYSLINUX (EXTLINUX for ext2/3/4, XFS and btrfs) boots BIOS machines only, not
+UEFI. It isn't on this ISO: cast it with network (see @[todo boot-loader]).
+
+Version 6.03 can't install to an ext4 filesystem with the "64bit" feature,
+which mkfs.ext4 turns on by default. Check with
+@[dumpe2fs -h /dev/sda2 | grep features]; if it lists 64bit, the filesystem
+would have to be made again with @[mkfs.ext4 -O ^64bit] (or use GRUB).
+
+In @[enchantment chroot], with /boot on the root partition /dev/sda2:
+ @[mkdir -p /boot/syslinux]
+ @[extlinux --install /boot/syslinux]
+ @[dd bs=440 count=1 conv=notrunc if=/usr/share/syslinux/mbr.bin of=/dev/sda]
+   (GPT disks: gptmbr.bin instead of mbr.bin)
+ mark the root partition bootable, on MBR disks:
+ @[sfdisk -A /dev/sda 2]
+ or on GPT disks (the "legacy BIOS bootable" attribute):
+ @[sfdisk --part-attrs /dev/sda 2 LegacyBIOSBootable]
+Write /boot/syslinux/syslinux.cfg (your kernel version and root partition):
+  DEFAULT smgl
+  LABEL smgl
+    LINUX /boot/vmlinuz-6.18.59
+    APPEND root=/dev/sda2 rw
+ @[exit]
+After each new kernel, add it to syslinux.cfg.
+
+Not yet tested on this ISO: please report what works and what doesn't.
+
+Type @[next] to go on to the user setup (or @[todo] for the boot-loader step).

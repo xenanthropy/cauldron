@@ -1,0 +1,35 @@
+@[limine page]
+Limine is a small, modern boot loader for BIOS and UEFI. It isn't on this ISO:
+cast it with network (see @[todo boot-loader]). Its spell depends on llvm
+(clang), which is a long compile on a fresh system. When casting, choose the
+ports you need: uefi-x86-64 (UEFI) and/or bios.
+
+Limine only reads FAT: the kernel must be on the EFI system partition. The
+simplest layout is the EFI partition mounted at /boot instead of /boot/efi
+(change the mount and the fstab line before installing the kernel). The
+commands below assume that, and a UEFI machine.
+
+In @[enchantment chroot]:
+ @[mkdir -p /boot/EFI/limine]
+ @[cp /usr/share/limine/BOOTX64.EFI /boot/EFI/limine/]
+ @[blkid -s PARTUUID -o value /dev/sda2]   # your root partition's PARTUUID
+Write /boot/limine.conf (with your kernel version and that PARTUUID):
+  timeout: 3
+  /Source Mage
+      protocol: linux
+      path: boot():/vmlinuz-6.18.59
+      cmdline: root=PARTUUID=PUT-IT-HERE rw
+Register it with the firmware (the disk and the EFI partition's number):
+ @[efibootmgr --create --disk /dev/sda --part 1 --label Limine \]
+ @[  --loader '\EFI\limine\BOOTX64.EFI']
+ @[exit]
+
+BIOS machines: @[limine bios-install /dev/sda] and copy
+/usr/share/limine/limine-bios.sys to /boot (which must be FAT here too).
+The limine spell also installs /boot/limine/mk-limine-cfg.sh, which writes a
+limine.conf from the kernels in /boot; check its root= before using it.
+After each new kernel, add it to limine.conf.
+
+Not yet tested on this ISO: please report what works and what doesn't.
+
+Type @[next] to go on to the user setup (or @[todo] for the boot-loader step).

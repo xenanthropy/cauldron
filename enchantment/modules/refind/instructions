@@ -1,0 +1,20 @@
+@[refind page]
+rEFInd is a boot menu for UEFI machines (not BIOS). It finds the kernels in
+/boot by itself and starts them directly (the kernel has EFI boot support). It
+isn't on this ISO: cast it with network (see @[todo boot-loader]).
+
+The EFI system partition must be mounted at /boot/efi in the target. Then in
+@[enchantment chroot]:
+ @[refind-install]
+That copies rEFInd to the EFI partition, adds a driver for /boot's
+filesystem, and creates a firmware boot entry. rEFInd needs the kernel
+options in /boot/refind_linux.conf (one line per menu entry: a title, then
+the options):
+ @[blkid -s PARTUUID -o value /dev/sda2]   # your root partition's PARTUUID
+ @[echo '"Source Mage" "root=PARTUUID=PUT-IT-HERE rw"' > /boot/refind_linux.conf]
+(@[mkrlconf] would copy the options this ISO booted with: wrong here.)
+ @[exit]
+
+Not yet tested on this ISO: please report what works and what doesn't.
+
+Type @[next] to go on to the user setup (or @[todo] for the boot-loader step).

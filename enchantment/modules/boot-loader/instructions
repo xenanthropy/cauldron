@@ -2,14 +2,17 @@
 Set up a boot loader, which starts the kernel when the machine boots. Each
 choice has its own instructions:
 
-  @[todo grub]   GRUB, on this ISO (the @[grub2] cache, installed in the
-               basesystem step); works on BIOS and UEFI machines
+  @[todo grub]      GRUB, on this ISO (the @[grub2] cache); BIOS and UEFI
+  @[todo limine]    Limine: small and modern; BIOS and UEFI
+  @[todo refind]    rEFInd: a boot menu; UEFI only
+  @[todo syslinux]  SYSLINUX/EXTLINUX; BIOS only
+  @[todo lilo]      LILO, the LInux LOader; BIOS only
 
-The grimoire has others (@[limine], @[refind], @[syslinux], @[lilo]); they aren't
-on this ISO, so they need network and a @[cast] in the installed system (or in
-@[enchantment chroot]). The machine needs a working boot loader to start the
-new system the first time, so GRUB is the simple choice now; you can switch
-later.
+Only GRUB is on this ISO; the others need network to cast them into the new
+system now, from @[enchantment chroot] (copy the live system's DNS settings
+first: @[cp /etc/resolv.conf $ENCHANT_TARGET/etc/]). The new system needs a
+working boot loader to start the first time, so GRUB is the simple choice;
+you can switch later.
 
 To see these instructions again, type @[todo]. When the boot loader is set
 up, type @[next] to go on to the user setup.
