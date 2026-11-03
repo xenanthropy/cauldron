@@ -192,10 +192,16 @@ relying on sorcery to order them. From the experiment's build summary
   libidn, lz4 (small; reads journals compressed with it), and
   **systemd-boot** (needs `bootloader=true` + pyelftools; see the team
   report: the spell's gnu-efi switch doesn't do it).
-- ask (default to decide): policykit (unprivileged reboot/poweroff,
-  hostnamectl etc. from a user session; most desktops want it; needs
-  glib2, dbus-glib, duktape), libcryptsetup for crypttab/cryptenroll (the
-  spell's `optional_depends cryptsetup` names the wrong spell, see the team
+- on (maintainer, Nov 2026): policykit (unprivileged reboot/poweroff,
+  hostnamectl etc. from a user session; most desktops want it). What
+  polkit 128 really needs, from its meson files: glib2 >= 2.44, expat,
+  duktape, perl (undeclared; in the base system), gettext (msgfmt for the
+  action files), libsystemd for `session_tracking=logind`, linux-pam for
+  `authfw=pam`; dbus only at run time (`dependency('dbus-1', required:
+  false)`, used for install paths). Not needed: python3, dbus-glib (see the
+  team report). Cast it *after* systemd (it needs libsystemd).
+- ask (default off): libcryptsetup for crypttab/cryptenroll (the spell's
+  `optional_depends cryptsetup` names the wrong spell, see the team
   report).
 - off: audit, selinux, qrencode, microhttpd (journal-remote), p11-kit,
   libfido2, xkbcommon, dracut (until the initramfs project), lxml.
@@ -214,7 +220,26 @@ writes a small PAM set first (a `system-auth` modelled on systemd's
 systemd`: libseccomp, linux-pam (logind off), acl, pyelftools, libidn2, lz4,
 dbus (systemd off) -> systemd -> dbus, util-linux, e2fsprogs, procps-ng,
 lvm, shadow, openssh, sudo (with systemd/pam on) -> linux-pam again
-(logind on), plus mdadm/xfsprogs/cryptsetup-luks when installed. To verify
+(logind on), plus mdadm/xfsprogs/cryptsetup-luks when installed.
+Loops, and sorcery's tool for them: `runtime_depends` (libdepends) puts the
+dependency in the same cast queue without making the spell wait for it
+(no build-order edge; `suggest_depends` are handled the same way). systemd
+254 doesn't build against libdbus (meson: `dbus` option "libdbus support
+(for tests only)"; it has its own sd-bus); it needs the dbus daemon only at
+run time. So systemd's `depends dbus` should be `runtime_depends dbus`:
+then dbus is no longer forced before systemd, and its own `optional_depends
+systemd` orders it after systemd, which ends the dbus loop (to verify in a
+cast). Likewise systemd's `optional_depends policykit` only installs
+polkit rules (polkit is looked up with `required: false`, for a version
+check), while policykit needs libsystemd: building systemd with
+`polkit=true` and casting policykit afterwards avoids that loop. linux-pam
+<-> systemd is a real build-time loop in both directions (pam_systemd links
+libpam; linux-pam's logind option links libsystemd); linux-pam's logind
+support is minor, so leave `linux-pam:systemd:off` (or recast it once
+afterwards). SUB_DEPENDS can't help: it asks for a dependency built with
+given options, which still has to exist before the spell. Also wanted
+with PAM: `PAM_CHKPWD_SUID=y` (linux-pam's question), so screen lockers
+running as the user can check passwords via unix_chkpwd. To verify
 in the next build: logins get a logind session (`loginctl`), `systemctl
 --user` works, `bootctl install` works.
 
@@ -648,6 +673,12 @@ sections below.
     gnu-efi. With `bootloader=auto` and no pyelftools there is no
     systemd-boot, no bootctl, no systemd-stub. Fix: `optional_depends
     pyelftools "bootloader=true" "bootloader=false"`, and drop gnu-efi.
+    (`efi` still exists in 254: general EFI support, e.g. `systemctl
+    reboot --firmware-setup`, the boot loader interface, gpt-auto's ESP
+    mount. systemd-boot, systemd-stub and bootctl are built only when
+    `efi` is true *and* `bootloader` is auto/true *and* pyelftools is
+    found. The gnu-efi answer passes efi=false, then CONFIGURE's
+    SYSTEMD_EFI adds efi=true, and meson keeps the last one, as with acl.)
   - systemd's `optional_depends cryptsetup ... libcryptsetup=true` names
     `crypto/cryptsetup`, version 0.1 from 2004 (saout.de), instead of
     `cryptsetup-luks` (2.8.1, which provides libcryptsetup).
@@ -659,6 +690,28 @@ sections below.
     hashes (login.defs' ENCRYPT_METHOD is bypassed). Use yescrypt or
     sha512, ideally through a shared `system-auth` that the others include.
     Also openssh `--with-pam` keeps sshd_config's default `UsePAM no`.
+  - policykit (128, gnome2-libs; much of the spell dates from polkit
+    0.9x, 2008-2009): `depends dbus-glib` and `depends python3` are not
+    used by polkit 128's build (glib's GDBus replaced dbus-glib in 0.104,
+    2012); dbus is only a run-time need (runtime_depends); perl is used
+    (src/polkitbackend/toarray.pl) but not declared; BUILD still creates the
+    0.9x `polkituser` account; PRE_BUILD applies a `patches` directory the
+    spell doesn't have. More important: polkit installs its PAM file to
+    `/usr/lib/pam.d/polkit-1` (meson's default `pam_prefix`), but the
+    linux-pam spell is built without a vendor directory and reads only
+    /etc/pam.d, so polkit's password prompts fall back to `/etc/pam.d/other`
+    (deny everything) and always fail. Pass `pam_prefix=/etc/pam.d` (or
+    build linux-pam with `vendordir=/usr/lib`). That file includes
+    `system-auth`, which SMGL doesn't ship (the PAM set planned above
+    provides it).
+  - systemd's `depends dbus` is only a run-time need (see the loops note
+    in section 1): `runtime_depends dbus` would end the dbus <-> systemd
+    loop. Its `optional_depends policykit` doesn't need polkit at build
+    time either.
+  - `cryptsetup` (0.1, 2004) is superseded by `cryptsetup-luks`, which
+    CONFLICTS with it, but it was never turned into a deprecated
+    placeholder (an empty spell that depends on cryptsetup-luks); it still
+    points at saout.de. Deprecating it needs the team's approval.
   - sorcery's default sustained list has acl and attr, so `dispel acl`
     does nothing without `--nosustain` (noticed undoing the systemd
     experiment, which had cast them).
