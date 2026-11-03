@@ -100,6 +100,39 @@ Options weighed:
    user's machine during the install; little gain over casting it after
    first boot.
 
+Refinement (Nov 2026): how much actually differs. Of the ~104 spells in
+system.tar.xz and the ISO's installable caches, the ones whose DEPENDS
+mention systemd or a login daemon are only shadow (optional systemd),
+procps-ng (optional elogind), and in the caches mdadm (suggest) and
+nghttp2; plus eudev, which systemd replaces. gcc, glibc, binutils,
+python3 etc. don't change. Some spells find systemd's pkg-config file
+without declaring it and then install units (likely util-linux,
+e2fsprogs, man-db, iputils, lvm; to be confirmed by building them with
+systemd present and diffing their install logs). So a whole second build
+isn't needed: "variant caches" in the same build chroot would do. Today
+`CAULDRON_SYS_INIT` only adds the init spell to the sys spell list, picks
+the logger (systemd: none) and suffixes the tarball's release name; it
+changes nothing else, and setting it to systemd in the one build chroot
+would leave systemd installed there (optional dependencies then default
+to on for every later cast), hence the separate CAULDRON_TMP in option 2.
+Maintainer's view: two ISOs per arch (four with 32-bit) is too much to
+maintain; network + recompiling a few spells is acceptable for systemd
+users (simpleinit stays the offline default).
+5. variant caches, one ISO (recommended now): after the normal build, in
+   the same build chroot: cast systemd (dispels eudev), recast the
+   affected spells with their systemd options on, keep those caches and
+   systemd's closure in a separate directory (same file names as the
+   simpleinit caches, so not in /var/cache/sorcery), then put eudev and
+   the simpleinit caches back. The ISO carries them under e.g.
+   /var/cache/sorcery-systemd; `enchantment install init systemd` copies
+   them into the target's cache directory and casts systemd + the
+   affected spells: offline, no compiling, one ISO per arch.
+6. the maintainer's network variant: ship systemd's caches (or not even
+   those), and `enchantment install init systemd` recasts (`cast -c`)
+   the affected spells with systemd on; simpler build side, needs network
+   and a few minutes of compiling. Can be the first step towards 5 (same
+   spell list, same installer command; 5 only adds prebuilt caches).
+
 Steps for option 2: (a) bump the systemd spell to the latest release and
 build it once in a scratch chroot; (b) a systemd `base_etc`/config
 variant (no inittab/sysconfig init bits; getty@tty1..6 enabled; network:
