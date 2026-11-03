@@ -100,6 +100,21 @@ Options weighed:
    user's machine during the install; little gain over casting it after
    first boot.
 
+systemd version (from systemd 261.4's NEWS/README, Nov 2026): v255
+removed support for an unmerged /usr (separate /bin and /usr/bin, /lib and
+/usr/lib), which is SMGL's layout (system.tar.xz: 336 programs directly in
+/bin + /sbin, 141 files in /lib). So 254.x is the last systemd for SMGL as
+it is (likely why the spell stayed on the systemd-stable 254 branch;
+254.27 updated ~spring 2026). Going newer needs a merged /usr: a team
+decision (sorcery/spells install into /bin, /sbin, /lib directly). Later
+releases also drop cgroup v1 (258), System V script support (260) and
+need libxcrypt >= 4.4 (259). Kernel options systemd wants that the ISO
+kernel lacks: USER_NS ("effectively required": PrivateUsers= in its own
+units), BPF_SYSCALL + CGROUP_BPF (IPAddressAllow/Deny=), PSI (oomd),
+CFS_BANDWIDTH (CPUQuota=), NET_SCH_FQ_CODEL, XFS/BTRFS POSIX_ACL; present:
+DEVTMPFS, CGROUPS, AUTOFS, IPV6, FHANDLE, SECCOMP, ... Uploaded sources
+(sandbox): systemd-stable-254.27.tar.gz, systemd-261.4.tar.gz.
+
 Refinement (Nov 2026): how much actually differs. Of the ~104 spells in
 system.tar.xz and the ISO's installable caches, the ones whose DEPENDS
 mention systemd or a login daemon are only shadow (optional systemd),
