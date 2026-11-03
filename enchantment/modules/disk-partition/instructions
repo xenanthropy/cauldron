@@ -6,7 +6,8 @@ Disks are named /dev/nvme0n1 (NVMe), /dev/sda (SATA, USB), /dev/mmcblk0
 
 How this machine booted the ISO decides what you need:
  @[ls /sys/firmware/efi]  # exists: UEFI; "No such file": BIOS
- UEFI: a GPT disk with an EFI system partition (FAT32, 512 MiB is plenty;
+ UEFI: a GPT disk with an EFI system partition (FAT32; 512 MiB is plenty,
+       or 1 GiB if kernels will live on it, as with Limine: @[todo limine];
        reuse an existing one when keeping another OS) plus a root partition
  BIOS: an MBR (dos) disk with a root partition, or GPT plus a 1 MiB
        "BIOS boot" partition (no filesystem) for GRUB

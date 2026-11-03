@@ -6,8 +6,10 @@ ports you need: uefi-x86-64 (UEFI) and/or bios.
 
 Limine only reads FAT: the kernel must be on the EFI system partition. The
 simplest layout is the EFI partition mounted at /boot instead of /boot/efi
-(change the mount and the fstab line before installing the kernel). The
-commands below assume that, and a UEFI machine.
+(the disk-mount step mentions it; if it is already mounted at /boot/efi,
+move it and change the fstab line before installing the kernel). About
+15 MiB per kernel (more with an initramfs): 512 MiB holds plenty, 1 GiB
+leaves room. The commands below assume that layout, and a UEFI machine.
 
 In @[enchantment chroot]:
  @[mkdir -p /boot/EFI/limine]

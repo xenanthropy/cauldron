@@ -6,6 +6,10 @@ Mount the new system's filesystems under the installer's target directory,
 UEFI: mount the EFI system partition at /boot/efi of the target:
   @[mkdir -p $ENCHANT_TARGET/boot/efi]
   @[mount /dev/sda1 $ENCHANT_TARGET/boot/efi]
+NOTE: if you plan to use the Limine boot loader (@[todo limine]): it only reads
+FAT partitions, so mount the EFI system partition at /boot instead (and say
+/boot in fstab later). Your kernels are then stored on it (~15 MiB each).
+Using GRUB or haven't heard of Limine? Ignore this.
 
 Other separate filesystems go below it the same way, e.g.
   @[mkdir -p $ENCHANT_TARGET/home] and @[mount /dev/sda4 $ENCHANT_TARGET/home]

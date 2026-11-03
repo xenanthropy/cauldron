@@ -726,7 +726,9 @@ sections below.
     syslinux|lilo`; their spells aren't on the ISO: cast with network from
     `enchantment chroot`). Written from the spells and upstream docs, not
     yet tested: limine 12.9.4 depends on llvm/clang and only reads FAT
-    (kernel on the ESP, simplest with the ESP at /boot); rEFInd 0.14.2 is
+    (kernel on the ESP, simplest with the ESP at /boot; so the
+    disk-partition step suggests 1 GiB for an ESP holding kernels, and the
+    disk-mount step has a note on mounting it at /boot for Limine); rEFInd 0.14.2 is
     UEFI only (`refind-install`; `/boot/refind_linux.conf` by hand, since
     `mkrlconf` would copy the ISO's cmdline); syslinux 6.03's extlinux
     can't use ext4 with the 64bit feature (mkfs.ext4's default); lilo
