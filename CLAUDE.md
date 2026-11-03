@@ -174,6 +174,50 @@ installed. The variant caches (21 files, 60 MB) were kept in the agent
 sandbox only; the build chroot is back to its simpleinit state (same
 spells, the original caches).
 
+**systemd's options: proposed defaults (Nov 2026, draft for the
+maintainer).** Since the systemd install goes over the network, size isn't
+a constraint; pick what most systemd users expect, and cast the chosen
+optional dependencies *before* systemd (with the answers preset) instead of
+relying on sorcery to order them. From the experiment's build summary
+(`meson` "Features"), what the spell's defaults gave and what to change:
+- on, keep: kmod, acl (also needed for udev's `uaccess`, which gives the
+  logged-in user access to GPU/audio/input devices), xz, zstd, libgcrypt,
+  gnutls, openssl, elfutils (coredump backtraces), pcre2 (`journalctl -g`),
+  man pages (libxslt + docbook-xsl); CONFIGURE's binfmt, hostnamed,
+  timedated, localed.
+- turn on: **linux-pam** (pam_systemd registers logins with logind: no
+  logind session, no XDG_RUNTIME_DIR, no `uaccess`, no user manager
+  without it), **libseccomp** (units' SystemCallFilter= is ignored
+  without it; small, no dependencies), libidn2 instead of the deprecated
+  libidn, lz4 (small; reads journals compressed with it), and
+  **systemd-boot** (needs `bootloader=true` + pyelftools; see the team
+  report: the spell's gnu-efi switch doesn't do it).
+- ask (default to decide): policykit (unprivileged reboot/poweroff,
+  hostnamectl etc. from a user session; most desktops want it; needs
+  glib2, dbus-glib, duktape), libcryptsetup for crypttab/cryptenroll (the
+  spell's `optional_depends cryptsetup` names the wrong spell, see the team
+  report).
+- off: audit, selinux, qrencode, microhttpd (journal-remote), p11-kit,
+  libfido2, xkbcommon, dracut (until the initramfs project), lxml.
+  Hard-coded off in BUILD: homed, userdb, sysusers, firstboot.
+PAM is the part with knock-on work: shadow (`login`, `su`, `passwd`),
+openssh and sudo must be recast `--with-pam`, openssh also needs `UsePAM
+yes` in sshd_config, and the PAM stack has to call pam_systemd. The pam.d
+files spells ship are standalone pam_unix lines without pam_systemd
+(sorcery's `install_pam_confs` installs a spell's `pam.d/` files only when
+missing), and shadow's and openssh's `passwd` lines say `md5`, so password
+changes through PAM would store MD5-crypt hashes. Plan: the installer
+writes a small PAM set first (a `system-auth` modelled on systemd's
+`usr/share/factory/etc/pam.d/system-auth`: pam_unix with yescrypt/sha512,
+`-session optional pam_systemd.so`; `login`, `su`, `sshd`, `sudo`,
+`passwd`, `other` including it), then casts. Cast order for `install init
+systemd`: libseccomp, linux-pam (logind off), acl, pyelftools, libidn2, lz4,
+dbus (systemd off) -> systemd -> dbus, util-linux, e2fsprogs, procps-ng,
+lvm, shadow, openssh, sudo (with systemd/pam on) -> linux-pam again
+(logind on), plus mdadm/xfsprogs/cryptsetup-luks when installed. To verify
+in the next build: logins get a logind session (`loginctl`), `systemctl
+--user` works, `bootctl install` works.
+
 Steps for option 2: (a) bump the systemd spell to the latest release and
 build it once in a scratch chroot; (b) a systemd `base_etc`/config
 variant (no inittab/sysconfig init bits; getty@tty1..6 enabled; network:
@@ -598,6 +642,23 @@ sections below.
     machine, the installer), so `cast openssh` fails there after systemd
     is cast. Run it only if `/run/systemd/system` exists (cauldron's
     openssh hack does). Other spells' INSTALLs may do the same.
+  - systemd 254.27's `optional_depends gnu-efi "efi=true" "efi=false"`
+    no longer builds systemd-boot: since v253 sd-boot is built by meson's
+    `bootloader` option and needs pyelftools (python-pypi/pyelftools), not
+    gnu-efi. With `bootloader=auto` and no pyelftools there is no
+    systemd-boot, no bootctl, no systemd-stub. Fix: `optional_depends
+    pyelftools "bootloader=true" "bootloader=false"`, and drop gnu-efi.
+  - systemd's `optional_depends cryptsetup ... libcryptsetup=true` names
+    `crypto/cryptsetup`, version 0.1 from 2004 (saout.de), instead of
+    `cryptsetup-luks` (2.8.1, which provides libcryptsetup).
+  - systemd and linux-pam depend on each other optionally (pam=true;
+    linux-pam's `logind=enabled`), the same kind of loop as dbus: linux-pam
+    first without systemd, then systemd, then linux-pam again.
+  - The pam.d files of shadow (`login`, `passwd`) and openssh (`sshd`) use
+    `pam_unix.so ... md5`, so with linux-pam on, `passwd` stores MD5-crypt
+    hashes (login.defs' ENCRYPT_METHOD is bypassed). Use yescrypt or
+    sha512, ideally through a shared `system-auth` that the others include.
+    Also openssh `--with-pam` keeps sshd_config's default `UsePAM no`.
   - sorcery's default sustained list has acl and attr, so `dispel acl`
     does nothing without `--nosustain` (noticed undoing the systemd
     experiment, which had cast them).
