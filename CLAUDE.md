@@ -547,6 +547,17 @@ sections below.
     rhash, libuv: ~35 MiB) that nothing needs at run time. Leaving them out
     would make sorcery try to build cmake offline when libssh is installed;
     a build/run distinction in DEPENDS would solve it.
+  - jinja2 3.1.6 builds with the flit_core backend (pip: "BackendUnavailable:
+    Cannot import 'flit_core.buildapi'"), but its DEPENDS lists only
+    python3, pip, markupsafe (+ suggest babel): add `depends flit-core`
+    (the spell exists, python-pypi/flit-core). Any system without
+    flit-core installed fails to cast jinja2, so systemd too (found
+    building systemd, Nov 2026).
+  - dbus and systemd depend on each other: systemd `depends dbus`, and
+    dbus `optional_depends systemd`, which defaults to on while systemd
+    is being cast, so dbus fails with "Dependency libsystemd not found".
+    Order needed: dbus without systemd, then systemd, then dbus again
+    with systemd (cast -r dbus). Sorcery can't resolve the loop by itself.
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).
