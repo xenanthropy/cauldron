@@ -11,7 +11,11 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
                   know (it's GRUB_DISABLE_LINUX_UUID); grub-mkconfig then
                   writes root=UUID=, which needs an initramfs SMGL doesn't
                   make, so the installed system can't find its root. Use
-                  root=PARTUUID= (the kernel handles it by itself) instead
+                  root=PARTUUID= (the kernel handles it by itself) instead.
+                  Also GRUB_BACKGROUND="smgl-splash.png": grub-mkconfig
+                  tests the path as given (relative to wherever it runs),
+                  so the splash the spell installs to /boot/grub never
+                  shows; use the full path
   wireless-regdb  installs only the CRDA file (regulatory.bin); kernels since
                   4.15 read /lib/firmware/regulatory.db + .p7s (without them
                   wifi falls back to the restrictive world regulatory domain)
