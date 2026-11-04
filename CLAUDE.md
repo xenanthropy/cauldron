@@ -736,6 +736,14 @@ sections below.
     rhash, libuv: ~35 MiB) that nothing needs at run time. Leaving them out
     would make sorcery try to build cmake offline when libssh is installed;
     a build/run distinction in DEPENDS would solve it.
+  - With grub2's font on (unifont + freetype2, for the splash), installing
+    the grub2 cache also installs freetype2 -> brotli -> cmake -> curl,
+    jsoncpp, libarchive, rhash, libuv, nghttp2: brotli `depends cmake` (its
+    build system, recorded as a run-time dependency, see above), and
+    freetype2 `depends brotli` (only needed for WOFF2 fonts; could be
+    optional). In the QEMU install walkthrough (TCG, Nov 2026) `install
+    caches` for grub2, efibootmgr, efivar, dosfstools, sudo, vim, openssh
+    took over 30 minutes, ~14 of the ~25 spells being that chain.
   - jinja2 3.1.6 builds with the flit_core backend (pip: "BackendUnavailable:
     Cannot import 'flit_core.buildapi'"), but its DEPENDS lists only
     python3, pip, markupsafe (+ suggest babel): add `depends flit-core`
@@ -1281,6 +1289,27 @@ sections below.
     initramfs (static libtirpc missing)
   - the installer's grub step tells the user to fix `/etc/default/grub` by
     hand for caches built before the grub2 hack.
+- **No CA certificates in system.tar.xz or the live system** (found Nov
+  2026, preparing the systemd QEMU test; affects every ISO/tarball before
+  this fix, including smgl-devel-20261102 and the maintainer's install from
+  it): /etc/ssl/certs was empty, so no https download could be verified
+  (sorcery, wget, the installer's network check). The 144 certificates were
+  there (/usr/share/ca-certificates/mozilla), but the bundle and hash links
+  are made by `update-ca-certificates` in the ca-certificates spell's FINAL,
+  and a cache never contains what FINAL makes (the cache is made from the
+  files the install wrote). cauldron builds sys and isofs from caches, so
+  no FINAL runs. `cauldron_sys_check` only asked whether wget was built
+  with https, and the earlier systemd test hid it (the sandbox copies its
+  own CA bundle into the target). Fix: `CAULDRON_FINAL_CMDS`
+  (config/build.conf), run by `cauldron_finals` after sys populate and iso
+  populate (update-ca-certificates --fresh; groff's zsoelim link, also
+  missing); sys and iso checks fail without /etc/ssl/certs/
+  ca-certificates.crt. On an installed system: `update-ca-certificates
+  --fresh`. Other FINALs of base spells checked: groups/shells/shadow are in
+  cauldron's base_etc; texinfo's /usr/share/info/dir is missing too (minor:
+  `info` lists nothing until install-info runs). Worth knowing for the
+  team: a cache doesn't reproduce a cast where FINAL does real work
+  (resurrecting does run FINAL, a plain unpack doesn't).
 - `iso package` failed with "grub-mkimage: cannot open
   /usr/lib/grub/i386-pc/moddep.lst" (Nov 2026): after grub2 was recast for
   x86_64-efi, the build chroot's i386-pc directory survived with two files
