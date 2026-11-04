@@ -256,6 +256,9 @@ function enchant_install_init() {
   local file=
   local recast=()
   local missing=()
+  local njobs_file=
+  local njobs_temp=
+  local rc=
 
   case "$init" in
     simpleinit|simpleinit-msb )
@@ -343,25 +346,43 @@ function enchant_install_init() {
     grep -q "^$spell:" "$state/packages" && recast+=( "$spell" )
   done < "$data/recast"
 
+  # sorcery compiles with one job (MAKE_NJOBS=1) unless the user set it: use
+  # every core for these casts, and put the setting back afterwards
+  njobs_file="$target/etc/sorcery/local/compile_config"
+  if ! grep -q '^MAKE_NJOBS=' "$njobs_file" 2> "$ENCHANT_NULL"
+  then
+    njobs_temp="yes"
+    if [[ -s "$njobs_file" ]]
+    then
+      echo >> "$njobs_file" || return $ERR_INSTALL_INIT
+    fi
+    echo "MAKE_NJOBS=\"$(nproc)\"" >> "$njobs_file" || return $ERR_INSTALL_INIT
+    libcolor_msg info "compiling with $(nproc) jobs (MAKE_NJOBS) for now"
+  fi
+
   enchant_chroot_init "$target"
   liberror_check || return $?
 
   # simpleinit-msb and eudev own files systemd installs (/sbin/init, ...) or
   # conflict with it; nothing else depends on them
-  enchant_chroot env PROMPT_DELAY=0 dispel --nosustain simpleinit-msb eudev
-  liberror_check || return $ERR_INSTALL_INIT
+  rc=$ERR_OK
+  enchant_chroot env PROMPT_DELAY=0 dispel --nosustain simpleinit-msb eudev &&
+    enchant_chroot env PROMPT_DELAY=0 cast "$init" || rc=$ERR_INSTALL_INIT
 
-  enchant_chroot env PROMPT_DELAY=0 cast "$init"
-  liberror_check || return $ERR_INSTALL_INIT
-
-  if [[ "${#recast[@]}" -gt 0 ]]
+  if [[ "$rc" -eq "$ERR_OK" && "${#recast[@]}" -gt 0 ]]
   then
-    enchant_chroot env PROMPT_DELAY=0 cast -c "${recast[@]}"
-    liberror_check || return $ERR_INSTALL_INIT
+    enchant_chroot env PROMPT_DELAY=0 cast -c "${recast[@]}" ||
+      rc=$ERR_INSTALL_INIT
   fi
 
   enchant_chroot_done "$target"
-  liberror_check || return $?
+
+  if [[ "$njobs_temp" == "yes" ]]
+  then
+    "${ENCHANT_CMD_SEDFILE[@]}" '/^MAKE_NJOBS=/d' "$njobs_file"
+  fi
+
+  [[ "$rc" -eq "$ERR_OK" ]] || return $rc
 
   # sshd only goes through PAM (and so pam_systemd) with UsePAM
   file="$target/etc/ssh/sshd_config"

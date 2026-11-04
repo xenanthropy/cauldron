@@ -274,8 +274,12 @@ later don't hit this either. policykit then built in the same target
 libsystemd, polkit-agent-helper-1 is setuid root, no polkituser, and
 /usr/lib/pam.d/polkit-1 authenticates through system-auth. Note: on one
 core (sorcery's MAKE_NJOBS=1 default) cmake alone took over an hour in the
-sandbox; the init-system step's time estimate assumes MAKE_NJOBS is set
-(edit-confs mentions it, but that step comes later). Still to do: a QEMU install + boot with it
+sandbox. So `install init systemd` now sets `MAKE_NJOBS` to the core count
+in the target's /etc/sorcery/local/compile_config for its casts when the
+user hasn't set one, and removes it again afterwards (also on failure); the
+step text says so and where to set it for good (sorcery -> Option Menu ->
+Parallel/Cached/Distributed Compiling -> EXTRA_JOBS). Maintainer: fine to
+change it temporarily; tested with a stubbed chroot. Still to do: a QEMU install + boot with it
 (logind sessions, `systemctl --user`, networkd, `bootctl install`).
 
 Loops, and sorcery's tool for them: `runtime_depends` (libdepends) puts the
