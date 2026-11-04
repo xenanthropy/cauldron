@@ -264,10 +264,12 @@ function cauldron_iso_grub() {
     liberror_check || return $?
   fi
 
-  # recasting grub2 removed the platforms built before; put them back
+  # recasting grub2 removed the platforms built before; put them back (the
+  # directory can survive with stray files sorcery doesn't track, e.g.
+  # efiemu*.o, so look for the module list rather than the directory)
   for platform in "${CAULDRON_ISO_GRUB_PLATFORMS[@]}"
   do
-    [[ -d "$build/usr/lib/grub/$platform" ]] && continue
+    [[ -f "$build/usr/lib/grub/$platform/moddep.lst" ]] && continue
     "${CAULDRON_CMD_CP_PRESERVE[@]}" "$grubdir/$platform" \
       "$build/usr/lib/grub/" ||
         return $ERR_CP_FILE
@@ -1429,7 +1431,8 @@ function cauldron_iso_bootloader() {
       # GRUB modules for each platform, loaded by the boot images at runtime
       for platform in "${CAULDRON_ISO_GRUB_PLATFORMS[@]}"
       do
-        [[ -d "$build/usr/lib/grub/$platform" ]] || return $ERR_ISO_GRUB
+        [[ -f "$build/usr/lib/grub/$platform/moddep.lst" ]] ||
+          return $ERR_ISO_GRUB
         "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$target/boot/grub/$platform" ||
           return $ERR_RM_FILE
         "${CAULDRON_CMD_CP_PRESERVE[@]}" "$build/usr/lib/grub/$platform" \

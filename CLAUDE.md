@@ -1281,6 +1281,12 @@ sections below.
     initramfs (static libtirpc missing)
   - the installer's grub step tells the user to fix `/etc/default/grub` by
     hand for caches built before the grub2 hack.
+- `iso package` failed with "grub-mkimage: cannot open
+  /usr/lib/grub/i386-pc/moddep.lst" (Nov 2026): after grub2 was recast for
+  x86_64-efi, the build chroot's i386-pc directory survived with two files
+  sorcery doesn't track (efiemu32.o, efiemu64.o), so `cauldron_iso_grub`
+  thought the platform was there and didn't copy it back from
+  CAULDRON_ISO_GRUB_DIR. It now checks for moddep.lst.
 - Known leftover: sorcery keeps the old `libssl.so.3`/`libcrypto.so.3` across
   the openssl 3→4 upgrade and records them in the openssl 4.1.0 cache, so
   they ship in `system.tar.xz` (unused once everything is rebuilt).
