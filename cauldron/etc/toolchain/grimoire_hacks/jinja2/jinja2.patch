@@ -1,0 +1,10 @@
+--- var/lib/sorcery/codex/test/python-pypi/jinja2/DEPENDS
++++ var/lib/sorcery/codex/test/python-pypi/jinja2/DEPENDS
+@@ -1,5 +1,7 @@
+ depends python3    &&
+ depends pip        &&
++# jinja2 builds with the flit_core backend
++depends flit-core  &&
+ 
+ depends markupsafe &&
+ 

@@ -221,6 +221,27 @@ systemd`: libseccomp, linux-pam (logind off), acl, pyelftools, libidn2, lz4,
 dbus (systemd off) -> systemd -> dbus, util-linux, e2fsprogs, procps-ng,
 lvm, shadow, openssh, sudo (with systemd/pam on) -> linux-pam again
 (logind on), plus mdadm/xfsprogs/cryptsetup-luks when installed.
+**Tested (Nov 2026, in an overlay over the build chroot, discarded
+afterwards):** with cauldron's systemd/dbus/policykit/jinja2 hacks and the
+answers above preset (`default_depends`, plus `POLKIT_AFW=pam`,
+`POLKIT_SES=systemd`, `PAM_CHKPWD_SUID=y` in `depends/*.p`), one `cast
+systemd` (after `dispel eudev`) built libseccomp, linux-pam (which
+triggers a recast of shadow), attr, acl, lz4, libidn2, pyelftools,
+docbook-dtd/-xsl, duktape, glib2, jinja2 + flit-core, then systemd, then
+dbus (via the SYSTEMD sub-depends, compiled with systemd: links
+libsystemd, dbus.service/dbus.socket), then policykit. systemd's meson
+summary: PAM, SECCOMP, bootloader, efi, polkit, libidn2, lz4, man pages
+on; `systemd-bootx64.efi`, `linuxx64.efi.stub`, `bootctl` and
+`pam_systemd.so` installed. Without the jinja2 hack the queue broke at
+jinja2 (flit-core came later) and systemd was dropped. Caveat: sorcery
+resurrects a cache without checking its options, and resurrecting also
+restores the answers recorded in it: a leftover dbus cache built without
+systemd came back as `dbus:systemd:off`. So the installer should cast with
+`-c`, or make sure no such caches exist (the ISO ships none for dbus).
+`cast --deps` is no dry run: it builds the dependencies (and here only
+part of the queue). shadow keeps its recorded `linux-pam:off`: the
+installer has to preset `shadow:linux-pam:on` (likewise openssh, sudo).
+
 Loops, and sorcery's tool for them: `runtime_depends` (libdepends) puts the
 dependency in the same cast queue without making the spell wait for it
 (no build-order edge; `suggest_depends` are handled the same way). systemd
@@ -645,7 +666,8 @@ sections below.
     python3, pip, markupsafe (+ suggest babel): add `depends flit-core`
     (the spell exists, python-pypi/flit-core). Any system without
     flit-core installed fails to cast jinja2, so systemd too (found
-    building systemd, Nov 2026).
+    building systemd, Nov 2026; cauldron's `grimoire_hacks/jinja2` adds
+    it).
   - dbus and systemd depend on each other: systemd `depends dbus`, and
     dbus `optional_depends systemd`, which defaults to on while systemd
     is being cast, so dbus fails with "Dependency libsystemd not found".
@@ -1155,7 +1177,7 @@ sections below.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
     wireless-regdb,wpa_supplicant,openssh,sudo,dosfstools,systemd,dbus,
-    policykit}` (see the README there and the team report above). New
+    policykit,jinja2}` (see the README there and the team report above). New
     hack files that are spell scripts get their x bit set
     (`cauldron_sorcerous_cauldron_defaults`): sorcery only runs a
     SUB_DEPENDS etc. that is executable ("missing SUB_DEPENDS!" otherwise).

@@ -60,3 +60,5 @@ grimoire, hacks included, is what system.tar.xz carries:
   policykit       128 doesn't use dbus-glib or python3 (dropped); dbus is a
                   run-time dependency; perl and gettext are used but weren't
                   declared; no 0.9x "polkituser" account
+  jinja2          3.1.6 builds with the flit_core backend but doesn't depend
+                  on flit-core (needed by systemd)
