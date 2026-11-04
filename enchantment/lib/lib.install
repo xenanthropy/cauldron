@@ -227,6 +227,173 @@ function enchant_install_caches() {
 
 #-------------------------------------------------------------------------------
 ##
+## @param init system: systemd (simpleinit, the base system's own, is a no-op)
+##
+## Switches the installed system (ENCHANT_TARGET) to another init system. The
+## base system comes with simpleinit-msb; for systemd, sorcery in the target
+## casts systemd (with linux-pam, libseccomp, systemd-boot, polkit, dbus with
+## systemd support) and recompiles the installed spells that build systemd
+## units/libsystemd or PAM support. That downloads and compiles, so it needs
+## network access in the live system.
+##
+## The data comes from $ENCHANT_MODULES/init-system/<init>/ (see the README
+## there): sorcery answers, spell option presets, a PAM stack and the list of
+## spells to recompile. simpleinit-msb is dispelled first: it owns /sbin/init,
+## halt, reboot, ... too, and dispelling it after systemd would delete
+## systemd's.
+##
+#-------------------------------------------------------------------------------
+function enchant_install_init() {
+  local init="$1"
+  local target="$ENCHANT_TARGET"
+  local data="$ENCHANT_MODULES/init-system/$init"
+  local state="$target/var/state/sorcery"
+  local config="$target/etc/sorcery/local/depends"
+  local line=
+  local spell=
+  local dep=
+  local answer=
+  local file=
+  local recast=()
+  local missing=()
+
+  case "$init" in
+    simpleinit|simpleinit-msb )
+      libcolor_msg info \
+        "simpleinit-msb is the base system's init: nothing to install"
+      return $ERR_OK
+      ;;
+    systemd )
+      ;;
+    * )
+      return $ERR_INSTALLER_CMD
+      ;;
+  esac
+
+  [[ -f "$state/packages" && -d "$data" ]] || return $ERR_INSTALL_INIT
+
+  if grep -q "^$init:" "$state/packages"
+  then
+    libcolor_msg info "$init is already installed in $target"
+    return $ERR_OK
+  fi
+
+  # sorcery's answers: change recorded ones in place (they win over
+  # default_depends), including those of casts not committed yet
+  touch "$state/default_depends" || return $ERR_INSTALL_INIT
+  while read -r line
+  do
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    IFS=: read -r spell dep answer <<< "$line"
+    if grep -qE "^$spell:$dep(\([^)]*\))?:" "$state/depends" 2> "$ENCHANT_NULL"
+    then
+      "${ENCHANT_CMD_SEDFILE[@]}" -E \
+        "s/^($spell:$dep(\([^)]*\))?):(on|off):/\1:$answer:/" \
+        "$state/depends" || return $ERR_INSTALL_INIT
+    else
+      echo "$line" >> "$state/default_depends" || return $ERR_INSTALL_INIT
+    fi
+    file="$state/abandoned/$spell"
+    if [[ -f "$file" ]]
+    then
+      "${ENCHANT_CMD_SEDFILE[@]}" -E \
+        "s/^($spell:$dep(\([^)]*\))?):(on|off):/\1:$answer:/" "$file" ||
+        return $ERR_INSTALL_INIT
+    fi
+  done < "$data/depends"
+
+  # systemd replaces eudev as the DEVICE-MANAGER (lvm, cryptsetup-luks,
+  # init.d, ... recorded eudev, which conflicts with systemd)
+  "${ENCHANT_CMD_SEDFILE[@]}" \
+    "s/:eudev(DEVICE-MANAGER):/:$init(DEVICE-MANAGER):/" "$state/depends" ||
+    return $ERR_INSTALL_INIT
+
+  # spell option presets
+  "${ENCHANT_CMD_MKDIR[@]}" "$config" || return $ERR_INSTALL_INIT
+  # (sorcery may leave the last line without a newline)
+  for file in "$data/presets"/*.p
+  do
+    [[ -f "$file" ]] || continue
+    if [[ -s "$config/${file##*/}" ]]
+    then
+      echo >> "$config/${file##*/}" || return $ERR_INSTALL_INIT
+    fi
+    cat "$file" >> "$config/${file##*/}" || return $ERR_INSTALL_INIT
+  done
+
+  # the PAM stack (sorcery doesn't replace existing pam.d files)
+  if [[ -d "$data/pam.d" ]]
+  then
+    "${ENCHANT_CMD_MKDIR[@]}" "$target/etc/pam.d" &&
+      "${ENCHANT_CMD_CP[@]}" "$data/pam.d"/* "$target/etc/pam.d/" ||
+      return $ERR_INSTALL_INIT
+  fi
+
+  # name resolution for sorcery's downloads
+  if [[ -s /etc/resolv.conf ]]
+  then
+    "${ENCHANT_CMD_CP[@]}" /etc/resolv.conf "$target/etc/resolv.conf" ||
+      return $ERR_INSTALL_INIT
+  fi
+
+  # the installed spells to recompile
+  while read -r spell
+  do
+    [[ -z "$spell" || "$spell" == \#* ]] && continue
+    grep -q "^$spell:" "$state/packages" && recast+=( "$spell" )
+  done < "$data/recast"
+
+  enchant_chroot_init "$target"
+  liberror_check || return $?
+
+  # simpleinit-msb and eudev own files systemd installs (/sbin/init, ...) or
+  # conflict with it; nothing else depends on them
+  enchant_chroot env PROMPT_DELAY=0 dispel --nosustain simpleinit-msb eudev
+  liberror_check || return $ERR_INSTALL_INIT
+
+  enchant_chroot env PROMPT_DELAY=0 cast "$init"
+  liberror_check || return $ERR_INSTALL_INIT
+
+  if [[ "${#recast[@]}" -gt 0 ]]
+  then
+    enchant_chroot env PROMPT_DELAY=0 cast -c "${recast[@]}"
+    liberror_check || return $ERR_INSTALL_INIT
+  fi
+
+  enchant_chroot_done "$target"
+  liberror_check || return $?
+
+  # sshd only goes through PAM (and so pam_systemd) with UsePAM
+  file="$target/etc/ssh/sshd_config"
+  # (the first setting wins, and a line appended at the end could land in a
+  # Match block, so replace the commented default or put it first)
+  if [[ -f "$file" ]] && ! grep -q '^UsePAM' "$file"
+  then
+    if grep -q '^#UsePAM' "$file"
+    then
+      "${ENCHANT_CMD_SEDFILE[@]}" '0,/^#UsePAM.*/s//UsePAM yes/' "$file"
+    else
+      "${ENCHANT_CMD_SEDFILE[@]}" '1i UsePAM yes' "$file"
+    fi || return $ERR_INSTALL_INIT
+  fi
+
+  # cast's exit status doesn't tell whether everything was installed
+  for spell in "$init" dbus linux-pam policykit "${recast[@]}"
+  do
+    grep -q "^$spell:" "$state/packages" 2> "$ENCHANT_NULL" ||
+      missing+=( "$spell" )
+  done
+  if [[ "${#missing[@]}" -gt 0 ]]
+  then
+    libcolor_msg error "not installed: ${missing[*]}"
+    return $ERR_INSTALL_INIT
+  fi
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+##
 ## @param sys iaage archive file
 ##
 ## Unpacks the given sys image to the target system. If the sys image is not

@@ -240,6 +240,20 @@ function enchant_shell_command_install() {
       enchant_shell_install_msg "Base system installed. Next:" \
         "enchantment install caches"
       ;;
+    "init" )
+      [[ $# -ne 1 ]] && return $ERR_INSTALLER_CMD
+      if [[ "$1" != simpleinit* ]]
+      then
+        enchant_shell_install_msg "Installing $1 into" \
+          "$ENCHANT_TARGET (\$ENCHANT_TARGET): sorcery downloads and" \
+          "compiles it and recompiles a few spells (network needed; this" \
+          "takes a while; sorcery's output follows) ..."
+      fi
+      enchant_install_init "$@"
+      liberror_check_fatal
+      [[ "$1" == simpleinit* ]] ||
+        enchant_shell_install_msg "$1 installed. See: todo $1"
+      ;;
     "spells" )
       [[ $# -ne 0 ]] && return $ERR_INSTALLER_CMD
       enchant_install_sources
@@ -600,6 +614,10 @@ MAIN COMMANDS
                   (ENCHANT_TARGET)
           system (or basesystem)
                   install a basesystem into the target (ENCHANT_TARGET)
+          init INIT
+                  switch the target to another init system (systemd; the
+                  base system has simpleinit-msb): casts and recompiles in
+                  the target, needs network (see: todo init-system)
           isokernel (or iso-kernel)
                   install the iso kernel and modules into the target
                   (ENCHANT_TARGET)

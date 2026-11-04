@@ -1,0 +1,11 @@
+--- var/lib/sorcery/codex/test/security-libs/linux-pam/BUILD
++++ var/lib/sorcery/codex/test/security-libs/linux-pam/BUILD
+@@ -1,5 +1,8 @@
+ if [ "${PAM_DOCS}" == "y" ]; then
+   OPTS="docs=enabled ${OPTS}"
++else
++  # meson's default (auto) builds the docs whenever xmllint/xsltproc exist
++  OPTS="docs=disabled ${OPTS}"
+ fi &&
+ 
+ OPTS="sbindir=${INSTALL_ROOT}/lib/security

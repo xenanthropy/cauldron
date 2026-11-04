@@ -62,3 +62,8 @@ grimoire, hacks included, is what system.tar.xz carries:
                   declared; no 0.9x "polkituser" account
   jinja2          3.1.6 builds with the flit_core backend but doesn't depend
                   on flit-core (needed by systemd)
+  linux-pam       1.7.3 passes docs=enabled when PAM_DOCS=y but nothing
+                  otherwise, so meson's "auto" builds the docs whenever
+                  xmllint/xsltproc are installed (libxslt is in the base
+                  system); their validation fetches http://docbook.org/... and
+                  fails offline. Pass docs=disabled

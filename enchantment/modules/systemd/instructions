@@ -1,0 +1,25 @@
+@[systemd page]
+After @[enchantment install init systemd], the new system boots with systemd.
+Some things work differently from simpleinit-msb:
+
+Services: @[systemctl enable --now sshd] (instead of telinit enable);
+  @[systemctl status sshd], @[systemctl list-units --failed]. The init.d
+  scripts are still installed (the smgl-system spell needs them), but unused.
+Logins: a getty runs on tty1, and on tty2..6 once you switch to them.
+  Logins are registered with logind (@[loginctl]), which gives users their
+  seat's devices and a @[systemctl --user] instance.
+Logs: in the journal (@[journalctl -b], @[journalctl -u sshd]). metalog stays
+  installed but has no unit; @[dispel metalog] if you don't want it.
+Network: systemd-networkd and systemd-resolved are enabled. For a wired
+  connection with DHCP, write /etc/systemd/network/20-wired.network:
+    [Match]
+    Name=en*
+    [Network]
+    DHCP=yes
+  and let resolved handle DNS:
+  @[ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf]
+  (wifi: e.g. cast iwd, or wpa_supplicant, plus a .network file for wl*)
+Time: systemd-timesyncd keeps the clock in sync (@[timedatectl]).
+Hostname, locale, keymap: @[hostnamectl], @[localectl] (after first boot).
+
+To see this again, type @[todo systemd].

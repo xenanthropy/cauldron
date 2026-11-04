@@ -278,6 +278,21 @@ init-specific installer texts; (e) QEMU install + boot test, as for the
 simpleinit ISO. Open: name scheme of the two ISOs; whether the team wants
 to publish the systemd one at all at first.
 
+**Planned (maintainer, Nov 2026), once the init-system work is done and
+the code has had another review pass:**
+- A detailed how-to for *running* cauldron, for the maintainer and the
+  team, so nobody depends on an agent session to build ISOs: requirements
+  (host, disk space, root, network, an SMGL tarball), the full sequence
+  (toolchain, sys, iso and their sub-steps), what each step produces and how
+  long it takes, configuration overrides, resuming and cleaning up after a
+  failed run (mounts!), checking and boot-testing the result in QEMU,
+  publishing (sha512, signatures), and the common failures with their fixes.
+  §7 here is only a sketch, and much has changed since it was written.
+- Automated builds, GitHub-Actions style: e.g. a weekly ISO built from the
+  current test grimoire, so breakage shows up early. Needs a runner with
+  ~40 GB of disk and several hours (a hosted runner's limits are tight),
+  and somewhere to publish the result.
+
 **Later / nice to have:** ISOs for other arches (32-bit x86, ppc) via the
 cross-compile path (`toolchain cross`, `cauldron_toolchain_build_cross`).
 Most config and data is already per-arch (`config/arch/*.conf`,
@@ -741,6 +756,24 @@ sections below.
     CONFLICTS with it, but it was never turned into a deprecated
     placeholder (an empty spell that depends on cryptsetup-luks); it still
     points at saout.de. Deprecating it needs the team's approval.
+  - linux-pam 1.7.3 passes `docs=enabled` when PAM_DOCS=y, and nothing
+    otherwise, so meson's `auto` builds the man pages whenever xmllint and
+    xsltproc exist (libxslt is in the base system); their validation fetches
+    `http://docbook.org/xml/5.0/rng/docbookxi.rng` and fails without network
+    ("xmllint ... misc_conv.3.xml failed with status 5"). Pass
+    `docs=disabled` otherwise (cauldron's `grimoire_hacks/linux-pam`).
+  - simpleinit-msb and systemd both install /sbin/init, halt, poweroff,
+    reboot, shutdown, telinit (systemd's CONFLICTS has `simpleinit-msb`
+    commented out). Casting systemd overwrites them; dispelling
+    simpleinit-msb afterwards deletes them (sorcery's reaper removes every
+    regular file and symlink in the install log), leaving systemd without
+    /sbin/init; a later recast of simpleinit-msb takes them back. So switch
+    by dispelling simpleinit-msb *first* (the installer does), or make the
+    two conflict.
+  - Spell option files (`/etc/sorcery/local/depends/SPELL.p`) are read and
+    rewritten by sorcery word by word: a comment line becomes a row of
+    bogus variables (and a syntax error at the next cast); the last line
+    may lack a newline. Presets have to be plain `VAR="value"` lines.
   - sorcery's default sustained list has acl and attr, so `dispel acl`
     does nothing without `--nosustain` (noticed undoing the systemd
     experiment, which had cast them).
@@ -1177,7 +1210,7 @@ sections below.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
     wireless-regdb,wpa_supplicant,openssh,sudo,dosfstools,systemd,dbus,
-    policykit,jinja2}` (see the README there and the team report above). New
+    policykit,jinja2,linux-pam}` (see the README there and the team report above). New
     hack files that are spell scripts get their x bit set
     (`cauldron_sorcerous_cauldron_defaults`): sorcery only runs a
     SUB_DEPENDS etc. that is executable ("missing SUB_DEPENDS!" otherwise).

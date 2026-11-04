@@ -1,0 +1,22 @@
+@[init-system step]
+The init system starts and stops everything else. The base system you just
+installed uses @[simpleinit-msb] with SMGL's init.d scripts, Source Mage's
+classic setup. If that is what you want, there is nothing to do here: type
+@[next].
+
+To use @[systemd] instead (journald, logind, unit files, systemd-boot):
+  @[enchantment install init systemd]
+This needs network in the live system (see @[todo welcome]): sorcery downloads
+and compiles systemd, linux-pam, polkit and a few libraries, and recompiles the
+installed spells that gain systemd or PAM support (util-linux, e2fsprogs,
+shadow, openssh, ...). Expect anywhere from 20 minutes to a few hours,
+depending on the machine. It also replaces simpleinit-msb and eudev, and writes
+a PAM setup (/etc/pam.d/system-auth and system-login).
+
+Afterwards, @[todo systemd] explains networking, services and logs under
+systemd, and @[todo systemd-boot] its boot loader (you can still use GRUB).
+
+You can also switch later, from the installed system, by casting systemd; the
+installer's command does the extra work (answers, PAM, recompiles) for you.
+
+When you are ready, type @[next].

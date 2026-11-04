@@ -1,0 +1,10 @@
+util-linux
+e2fsprogs
+procps-ng
+lvm
+shadow
+openssh
+sudo
+mdadm
+xfsprogs
+cryptsetup-luks

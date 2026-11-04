@@ -1,0 +1,23 @@
+@[systemd-boot page]
+systemd-boot is a small UEFI boot menu; it comes with systemd (after
+@[enchantment install init systemd]). It is UEFI only, and it only reads the
+EFI system partition (FAT): the kernel must be there. The simplest layout is
+the EFI partition mounted at /boot (the disk-mount step mentions it, for
+Limine; about 15 MiB per kernel, 512 MiB to 1 GiB is plenty). Not tested yet
+on this ISO.
+
+In @[enchantment chroot]:
+ @[bootctl install]            # copies systemd-boot, adds a firmware entry
+ @[blkid -s PARTUUID -o value /dev/sda2]   # your root partition's PARTUUID
+Write /boot/loader/entries/smgl.conf (your kernel version and PARTUUID):
+  title   Source Mage
+  linux   /vmlinuz-6.18.59
+  options root=PARTUUID=PUT-IT-HERE rw
+and /boot/loader/loader.conf:
+  default smgl.conf
+  timeout 3
+ @[bootctl list]               # checks the entry
+ @[exit]
+
+New kernels need their own entry (or edit this one). @[bootctl update]
+updates systemd-boot itself after systemd is recast.

@@ -1,0 +1,19 @@
+Data for "enchantment install init systemd" (enchant_install_init in
+lib/lib.install). Everything here is written into the target before sorcery
+casts anything there:
+
+  depends   answers for sorcery, one "spell:dependency:on|off" per line.
+            A recorded answer in the target's depends database is changed
+            in place (it would win otherwise); anything else goes into
+            /var/state/sorcery/default_depends.
+  presets/  spell option files, appended to /etc/sorcery/local/depends/
+            (only VAR="value" lines: sorcery rewrites these files word by
+            word, so comments turn into garbage). linux-pam's
+            PAM_CHKPWD_SUID=y makes unix_chkpwd setuid root, so programs
+            running as the user (screen lockers) can check passwords
+  pam.d/    the PAM stack: a shared system-auth (and system-login for login
+            services, which adds pam_systemd), copied to /etc/pam.d/
+            (sorcery installs a spell's own pam.d files only when missing,
+            so these stay)
+  recast    spells recompiled (cast -c) if installed, so they pick up
+            systemd (units, libsystemd) and PAM

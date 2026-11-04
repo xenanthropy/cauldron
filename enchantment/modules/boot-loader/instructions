@@ -7,6 +7,7 @@ choice has its own instructions:
   @[todo refind]    rEFInd: a boot menu; UEFI only
   @[todo syslinux]  SYSLINUX/EXTLINUX; BIOS only
   @[todo lilo]      LILO, the LInux LOader; BIOS only
+  @[todo systemd-boot]  systemd-boot: with systemd (init-system step); UEFI
 
 Only GRUB is on this ISO; the others need network to cast them into the new
 system now, from @[enchantment chroot] (copy the live system's DNS settings

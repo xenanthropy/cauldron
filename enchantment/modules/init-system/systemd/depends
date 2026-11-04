@@ -1,0 +1,40 @@
+# systemd's options (see CLAUDE.md, "systemd's options")
+systemd:linux-pam:on
+systemd:libseccomp:on
+systemd:acl:on
+systemd:kmod:on
+systemd:pyelftools:on
+systemd:docbook-xsl:on
+systemd:policykit:on
+systemd:libidn2:on
+systemd:libidn:off
+systemd:lz4:on
+systemd:cryptsetup-luks:off
+systemd:audit:off
+systemd:libselinux:off
+systemd:libqrencode:off
+systemd:libmicrohttpd:off
+systemd:p11-kit:off
+systemd:libfido2:off
+systemd:libxkbcommon:off
+systemd:dracut:off
+systemd:lxml:off
+# linux-pam before systemd: no logind support (it would need libsystemd)
+linux-pam:systemd:off
+linux-pam:audit:off
+linux-pam:db:off
+linux-pam:libselinux:off
+linux-pam:libtirpc:off
+policykit:gobject-introspection:off
+policykit:gtk-doc:off
+policykit:docbook-xsl:off
+dbus:systemd:on
+# the recast spells: PAM and systemd support
+shadow:linux-pam:on
+shadow:systemd:on
+openssh:linux-pam:on
+sudo:linux-pam:on
+util-linux:linux-pam:on
+procps-ng:systemd:on
+procps-ng:elogind:off
+mdadm:systemd:on
