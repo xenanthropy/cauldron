@@ -322,8 +322,8 @@ backup, real dispel, restore gives back /sbin/init, udevd and sorcery's
 records (`gaze installed`); the settings land as described. Seen in the
 systemd target: presets enable getty@tty1, networkd (+ wait-online),
 resolved, timesyncd, oomd, dbus, man-db.timer, and the sysupdate timers
-(harmless without sysupdate config). Still to do: a QEMU install + boot with it
-(logind sessions, `systemctl --user`, networkd, `bootctl install`).
+(harmless without sysupdate config). QEMU install + boot: done, see the
+QEMU test above.
 
 Loops, and sorcery's tool for them: `runtime_depends` (libdepends) puts the
 dependency in the same cast queue without making the spell wait for it
