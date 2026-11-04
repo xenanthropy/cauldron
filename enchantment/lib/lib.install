@@ -349,6 +349,17 @@ function enchant_install_init_settings() {
       ln -sfn /dev/null "$target/etc/systemd/system/rc.service" ||
       return $ERR_INSTALL_INIT
   fi
+
+  # util-linux built with systemd installs tmpfiles for uuidd, but nothing
+  # creates the user (the systemd spell is built without sysusers)
+  if [[ -f "$target/usr/lib/tmpfiles.d/uuidd-tmpfiles.conf" ]] &&
+    ! grep -q '^uuidd:' "$target/etc/passwd"
+  then
+    "${ENCHANT_CMD_CHROOT[@]}" "$target" groupadd -r uuidd &&
+      "${ENCHANT_CMD_CHROOT[@]}" "$target" useradd -r -g uuidd \
+        -d /run/uuidd -s /sbin/nologin -c "UUID generator helper daemon" \
+        uuidd || return $ERR_INSTALL_INIT
+  fi
 }
 
 #-------------------------------------------------------------------------------
@@ -459,6 +470,14 @@ function enchant_install_init() {
     fi
     cat "$file" >> "$config/${file##*/}" || return $ERR_INSTALL_INIT
   done
+
+  # kernel messages on the console (see the file)
+  if [[ -d "$data/sysctl.d" ]]
+  then
+    "${ENCHANT_CMD_MKDIR[@]}" "$target/etc/sysctl.d" &&
+      "${ENCHANT_CMD_CP[@]}" "$data/sysctl.d"/* "$target/etc/sysctl.d/" ||
+      return $ERR_INSTALL_INIT
+  fi
 
   # the PAM stack (sorcery doesn't replace existing pam.d files)
   if [[ -d "$data/pam.d" ]]

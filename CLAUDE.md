@@ -269,7 +269,30 @@ default on with python3 present; cauldron's build presets avoid it, an
 installed system doesn't have them), so the data answers
 `nghttp2:python3:off`, `nghttp2:boost:off`. Worth considering: shipping
 cauldron's `default_depends` in system.tar.xz, so users casting cmake etc.
-later don't hit this either. policykit then built in the same target
+later don't hit this either. **QEMU test of the real thing (Nov 2026):**
+the new ISO installed with simpleinit in QEMU (UEFI); then `install init
+systemd` ran against that disk (from the sandbox's host chroot: the guest
+can't use the sandbox's proxy, and GitHub archives need uploads) and
+succeeded, including the openssh and sudo recasts; the system then booted
+through GRUB, and after the `todo systemd-boot` steps (bootctl install,
+kernel on the ESP, a loader entry; done from the live ISO) through
+systemd-boot. Results: `systemctl is-system-running` = running, 0 failed
+units, no journal errors; networkd + the page's 20-wired.network got DHCP
+(routable), resolved in stub mode via the page's resolv.conf link; the
+migrated LANG shows in localectl; dbus active, polkit dbus-activated; a
+user login on the serial getty gets logind session (class user, active),
+XDG_RUNTIME_DIR=/run/user/1000, `systemctl --user` running with its own
+D-Bus, and pkcheck for login1.reboot answers auth_admin_keep. Found and
+fixed by it: the uuidd user (util-linux's systemd tmpfiles need it; the
+systemd spell is built with sysusers=false, so no sysusers.d processing;
+created by `enchant_install_init_settings`); kernel audit notices for
+systemd's BPF programs ("audit: type=1334 ... op=UNLOAD") all over the
+console, since nothing listens to audit: the installer now writes
+/etc/sysctl.d/10-console-messages.conf with kernel.printk = 4 4 1 7 (as
+Debian does; the journal still has them). bootctl install puts its entry
+first in the firmware boot order, replaces EFI/BOOT/BOOTX64.EFI (GRUB's
+--removable copy) and warns about a world-readable ESP: the systemd-boot
+page says so (umask=0077). policykit then built in the same target
 (cmake, duktape, glib2, policykit; with polkit and lz4 on): polkitd links
 libsystemd, polkit-agent-helper-1 is setuid root, no polkituser, and
 /usr/lib/pam.d/polkit-1 authenticates through system-auth. Note: on one

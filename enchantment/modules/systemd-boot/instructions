@@ -3,17 +3,24 @@ systemd-boot is a small UEFI boot menu; it comes with systemd (after
 @[enchantment install init systemd]). It is UEFI only, and it only reads the
 EFI system partition (FAT): the kernel must be there. The simplest layout is
 the EFI partition mounted at /boot (the disk-mount step mentions it, for
-Limine; about 15 MiB per kernel, 512 MiB to 1 GiB is plenty). Not tested yet
-on this ISO.
+Limine; about 15 MiB per kernel, 512 MiB to 1 GiB is plenty). Tested in
+QEMU (UEFI) with the ESP at /boot/efi and the kernel copied onto it.
+
+bootctl install puts its firmware entry ("Linux Boot Manager") first in the
+boot order, and replaces EFI/BOOT/BOOTX64.EFI (where grub-install --removable
+put GRUB). It also warns when the ESP is readable by everyone: mount it with
+umask=0077 in /etc/fstab (e.g. @[vfat umask=0077 0 2]).
 
 In @[enchantment chroot]:
  @[bootctl install]            # copies systemd-boot, adds a firmware entry
  @[blkid -s PARTUUID -o value /dev/sda2]   # your root partition's PARTUUID
-Write /boot/loader/entries/smgl.conf (your kernel version and PARTUUID):
+Copy the kernel onto the ESP if it isn't there (ESP at /boot/efi:
+@[cp /boot/vmlinuz-6.18.59 /boot/efi/]), then write ESP/loader/entries/
+smgl.conf (your kernel version and PARTUUID):
   title   Source Mage
   linux   /vmlinuz-6.18.59
   options root=PARTUUID=PUT-IT-HERE rw
-and /boot/loader/loader.conf:
+and ESP/loader/loader.conf:
   default smgl.conf
   timeout 3
  @[bootctl list]               # checks the entry

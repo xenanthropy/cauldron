@@ -15,5 +15,7 @@ casts anything there:
             services, which adds pam_systemd), copied to /etc/pam.d/
             (sorcery installs a spell's own pam.d files only when missing,
             so these stay)
+  sysctl.d/ copied to /etc/sysctl.d/: kernel.printk 4 4 1 7, so the kernel's
+            audit notices for systemd's BPF programs stay off the console
   recast    spells recompiled (cast -c) if installed, so they pick up
             systemd (units, libsystemd) and PAM
