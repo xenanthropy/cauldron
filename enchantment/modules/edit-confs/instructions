@@ -51,6 +51,9 @@ turn them off by uncommenting @[user.max_user_namespaces = 0] in
 Compiling: sorcery runs one compile job at a time unless told otherwise. To
 use all of this machine's CPU threads (@[nproc] counts them):
   @[echo "MAKE_NJOBS=$(nproc)" >> $ENCHANT_TARGET/etc/sorcery/local/compile_config]
-(later: @[sorcery] -> Options -> Parallel/Cached/Distributed Compiling).
+All threads make big casts fastest, but the machine gets sluggish meanwhile
+(browsing, video); if you'll use it while it compiles, leave 2 or 3 free,
+e.g. @[$(($(nproc) - 2))] instead of @[$(nproc)]. Later: @[sorcery] -> Option
+Menu -> Parallel/Cached/Distributed Compiling -> EXTRA_JOBS.
 
 Type @[next] to go to the next step.

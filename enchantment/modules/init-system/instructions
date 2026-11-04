@@ -16,8 +16,11 @@ a PAM setup (/etc/pam.d/system-auth and system-login).
 systemd isn't on the ISO (to keep it small), hence the compiling. sorcery
 normally uses one CPU core (its MAKE_NJOBS setting); unless you set it, this
 command uses all cores while it runs and then puts the setting back. To set
-it for good: @[enchantment chroot], @[sorcery], Option Menu, Parallel/Cached/
-Distributed Compiling, EXTRA_JOBS (Adjust, then OK).
+it for good (the edit-confs step comes back to it; leaving 2 or 3 threads
+free keeps a machine usable while it compiles): @[enchantment chroot],
+@[sorcery], Option Menu, Parallel/Cached/Distributed Compiling, EXTRA_JOBS
+(Adjust, then OK). If the network fails before systemd is installed, the
+command puts simpleinit-msb back, so the system still boots.
 
 Afterwards, @[todo systemd] explains networking, services and logs under
 systemd, and @[todo systemd-boot] its boot loader (you can still use GRUB).

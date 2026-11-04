@@ -279,7 +279,27 @@ in the target's /etc/sorcery/local/compile_config for its casts when the
 user hasn't set one, and removes it again afterwards (also on failure); the
 step text says so and where to set it for good (sorcery -> Option Menu ->
 Parallel/Cached/Distributed Compiling -> EXTRA_JOBS). Maintainer: fine to
-change it temporarily; tested with a stubbed chroot. Still to do: a QEMU install + boot with it
+change it temporarily; tested with a stubbed chroot. The maintainer's own
+habit (worth saying in smgl-setup's rework too): all threads minus 2 or 3,
+so the machine stays usable while it compiles (13-14 of 16); edit-confs and
+init-system say so.
+Review pass before the next ISO (Nov 2026) added: a network check before
+anything is changed (`ENCHANT_NET_TEST_URL`, kernel.org; error
+`ERR_INSTALL_INIT_NET`); a backup of simpleinit-msb's and eudev's files and
+sorcery records (`enchant_install_init_backup`/`_restore`), put back when
+systemd doesn't end up installed, since the target otherwise has no
+/sbin/init; and `enchant_install_init_settings`: SMGL keeps the keymap,
+locale and hardware clock in /etc/sysconfig, which systemd doesn't read,
+so KEYMAP goes to vconsole.conf, LANG/LC_* to locale.conf, `UTC=no` to an
+adjtime with LOCAL, and the unit systemd's SysV generator makes of
+/etc/init.d/rc (simpleinit's runlevel script) is masked (the generator also
+makes fuse.service from fuse's init script; harmless, not enabled). Tested
+on a fresh 20261102 tarball: a bogus test URL stops it with nothing changed;
+backup, real dispel, restore gives back /sbin/init, udevd and sorcery's
+records (`gaze installed`); the settings land as described. Seen in the
+systemd target: presets enable getty@tty1, networkd (+ wait-online),
+resolved, timesyncd, oomd, dbus, man-db.timer, and the sysupdate timers
+(harmless without sysupdate config). Still to do: a QEMU install + boot with it
 (logind sessions, `systemctl --user`, networkd, `bootctl install`).
 
 Loops, and sorcery's tool for them: `runtime_depends` (libdepends) puts the
