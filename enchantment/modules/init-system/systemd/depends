@@ -25,6 +25,11 @@ linux-pam:audit:off
 linux-pam:db:off
 linux-pam:libselinux:off
 linux-pam:libtirpc:off
+# policykit needs duktape, which builds with cmake (curl, nghttp2): nghttp2's
+# python bindings default to on when python3 is installed, and pull in boost
+# and openmpi (hours of compiling)
+nghttp2:python3:off
+nghttp2:boost:off
 policykit:gobject-introspection:off
 policykit:gtk-doc:off
 policykit:docbook-xsl:off

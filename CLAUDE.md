@@ -242,6 +242,36 @@ systemd came back as `dbus:systemd:off`. So the installer should cast with
 part of the queue). shadow keeps its recorded `linux-pam:off`: the
 installer has to preset `shadow:linux-pam:on` (likewise openssh, sudo).
 
+**Installer command (Nov 2026): `enchantment install init systemd`** (step
+`init-system`, after basesystem; `enchant_install_init` in lib.install, data
+in `enchantment/modules/init-system/systemd/`). It changes recorded answers
+in place (else adds them to default_depends), rewrites recorded
+`eudev(DEVICE-MANAGER)` to systemd, appends option presets, copies a PAM
+stack (system-auth; system-login with pam_loginuid + pam_systemd for
+login/sshd; su, su-l, sudo, passwd, chpasswd, newusers), copies the live
+resolv.conf, dispels simpleinit-msb and eudev, casts systemd, recompiles
+the installed spells of `recast` with `cast -c`, sets `UsePAM yes` and
+checks sorcery's records. Tested on an unpacked smgl-test-0.63-20261102
+tarball (hacks applied to its grimoire, sources shared from the build
+chroot's spool; GitHub archives polkit/lz4/libuv/python-packaging uploaded
+by the maintainer, as the agent sandbox can't fetch them): /sbin/init ->
+systemd, simpleinit-msb/eudev gone, login/passwd/su link libpam +
+libsystemd, dbus and ps link libsystemd, pam_systemd.so, bootctl, a
+machine-id made in the target. PAM checked with libpam itself (python
+ctypes, pam_authenticate + pam_acct_mgmt): login, sshd, sudo accept the
+right password and refuse a wrong one; polkit's own file (includes
+system-auth) too, and without system-auth it refuses everything, which is
+the maintainer's old "prompt closes at once" bug; chpasswd stores `$6$`.
+Found on the way: sorcery's `.p` format (no comments; see team report);
+linux-pam's docs (hack); and casting policykit on an installed system
+pulled boost + openmpi through cmake -> curl -> nghttp2 (python bindings
+default on with python3 present; cauldron's build presets avoid it, an
+installed system doesn't have them), so the data answers
+`nghttp2:python3:off`, `nghttp2:boost:off`. Worth considering: shipping
+cauldron's `default_depends` in system.tar.xz, so users casting cmake etc.
+later don't hit this either. Still to do: a QEMU install + boot with it
+(logind sessions, `systemctl --user`, networkd, `bootctl install`).
+
 Loops, and sorcery's tool for them: `runtime_depends` (libdepends) puts the
 dependency in the same cast queue without making the spell wait for it
 (no build-order edge; `suggest_depends` are handled the same way). systemd
