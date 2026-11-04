@@ -269,7 +269,13 @@ default on with python3 present; cauldron's build presets avoid it, an
 installed system doesn't have them), so the data answers
 `nghttp2:python3:off`, `nghttp2:boost:off`. Worth considering: shipping
 cauldron's `default_depends` in system.tar.xz, so users casting cmake etc.
-later don't hit this either. Still to do: a QEMU install + boot with it
+later don't hit this either. policykit then built in the same target
+(cmake, duktape, glib2, policykit; with polkit and lz4 on): polkitd links
+libsystemd, polkit-agent-helper-1 is setuid root, no polkituser, and
+/usr/lib/pam.d/polkit-1 authenticates through system-auth. Note: on one
+core (sorcery's MAKE_NJOBS=1 default) cmake alone took over an hour in the
+sandbox; the init-system step's time estimate assumes MAKE_NJOBS is set
+(edit-confs mentions it, but that step comes later). Still to do: a QEMU install + boot with it
 (logind sessions, `systemctl --user`, networkd, `bootctl install`).
 
 Loops, and sorcery's tool for them: `runtime_depends` (libdepends) puts the
