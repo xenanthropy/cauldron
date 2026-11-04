@@ -39,3 +39,24 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
                   host keys on first start (like the systemd unit does)
                   Also: run "systemctl daemon-reload" only when systemd is
                   running (it fails in a chroot after systemd is cast)
+
+The next three are for the systemd install (installer, network variant).
+cauldron's simpleinit build never casts them, but the build chroot's
+grimoire, hacks included, is what system.tar.xz carries:
+  systemd         254.27: "depends dbus" -> "runtime_depends -sub SYSTEMD
+                  dbus" (systemd has its own sd-bus; libdbus is only for its
+                  tests), so dbus is cast after systemd and with systemd
+                  support; policykit becomes a suggest_depends (polkit is
+                  only used at run time and itself needs libsystemd);
+                  cryptsetup -> cryptsetup-luks (the 2004 spell); gnu-efi
+                  (unused since v253) -> pyelftools for bootloader=true
+                  (systemd-boot, systemd-stub, bootctl), which BUILD pairs
+                  with efi=true; man pages via optional docbook-xsl instead
+                  of man=auto (which failed without the stylesheets); ACL
+                  only from the acl dependency (CONFIGURE set it a second
+                  time)
+  dbus            SUB_DEPENDS/PRE_SUB_DEPENDS for SYSTEMD (forces its
+                  optional systemd dependency on; used by systemd above)
+  policykit       128 doesn't use dbus-glib or python3 (dropped); dbus is a
+                  run-time dependency; perl and gettext are used but weren't
+                  declared; no 0.9x "polkituser" account

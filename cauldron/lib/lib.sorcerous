@@ -844,7 +844,8 @@ function cauldron_sorcerous_cauldron_defaults() {
     do
       case "${file##*/}" in
         PREPARE|CONFIGURE|DEPENDS|PRE_BUILD|BUILD|PRE_INSTALL|INSTALL|\
-        POST_INSTALL|FINAL|TRIGGERS|PRE_REMOVE|POST_REMOVE)
+        POST_INSTALL|FINAL|TRIGGERS|PRE_REMOVE|POST_REMOVE|SUB_DEPENDS|\
+        PRE_SUB_DEPENDS|UP_TRIGGERS|CONFLICTS)
           [[ -f "$target/$file" ]] && chmod +x "$target/$file"
           ;;
       esac

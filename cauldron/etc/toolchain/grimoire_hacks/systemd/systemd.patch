@@ -1,0 +1,85 @@
+--- var/lib/sorcery/codex/test/smgl/systemd/BUILD
++++ var/lib/sorcery/codex/test/smgl/systemd/BUILD
+@@ -5,7 +5,6 @@
+ OPTS+=" firstboot=false"                                  &&
+ OPTS+=" install-tests=false"                              &&
+ OPTS+=" ldconfig=false"                                   &&
+-OPTS+=" man=auto"                                         &&
+ OPTS+=" sysusers=false"                                   &&
+ OPTS+=" rpmmacrosdir=no"                                  &&
+ OPTS+=" b_lto=false"                                      &&
+@@ -14,11 +13,14 @@
+ OPTS+=" mode=release"                                     &&
+ OPTS+=" bpf-framework=false"                              &&
+ OPTS+=" pamconfdir=${INSTALL_ROOT}/etc/pam.d"             &&
+-OPTS+=" docdir=${INSTALL_ROOT}/usr/share/doc/systemd-${VERSION}"
++OPTS+=" docdir=${INSTALL_ROOT}/usr/share/doc/systemd-${VERSION}" &&
+ 
+ OPTS+=" $SYSTEMD_BINFMT"    &&
+-OPTS+=" $SYSTEMD_ACL"       &&
+ OPTS+=" $SYSTEMD_EFI"       &&
++# systemd-boot is only built with EFI support
++if is_depends_enabled $SPELL pyelftools; then
++  OPTS+=" efi=true"
++fi &&
+ OPTS+=" $SYSTEMD_HOSTNAMED" &&
+ OPTS+=" $SYSTEMD_TIMEDATED" &&
+ OPTS+=" $SYSTEMD_LOCALED"   &&
+--- var/lib/sorcery/codex/test/smgl/systemd/CONFIGURE
++++ var/lib/sorcery/codex/test/smgl/systemd/CONFIGURE
+@@ -1,8 +1,7 @@
+ . "${GRIMOIRE}"/MESON_CONFIGURE &&
+ 
+ config_query_option SYSTEMD_BINFMT    "Enable the binfmt tool?" y "binfmt=true"        "binfmt=false"        &&
+-config_query_option SYSTEMD_ACL       "Enable ACL support?"     y "acl=true"           "acl=false"           &&
+-config_query_option SYSTEMD_EFI       "EFI support"             y "efi=true"           "efi=false"        &&
++config_query_option SYSTEMD_EFI       "EFI support (also needed by systemd-boot)?" y "efi=true"           "efi=false"        &&
+ config_query_option SYSTEMD_HOSTNAMED "Enable hostname daemon?" y "hostnamed=true"     "hostnamed=false"     &&
+ config_query_option SYSTEMD_TIMEDATED "Enable timedate daemon?" y "timedated=true"     "timedated=false"     &&
+ config_query_option SYSTEMD_LOCALED   "Enable locale daemon?"   y "localed=true"       "localed=false"
+--- var/lib/sorcery/codex/test/smgl/systemd/DEPENDS
++++ var/lib/sorcery/codex/test/smgl/systemd/DEPENDS
+@@ -2,7 +2,10 @@
+ 
+ depends -sub SULOGIN util-linux &&
+ 
+-depends dbus           &&
++# systemd has its own D-Bus code; it needs the dbus daemon only at run
++# time, and dbus should be built with systemd support (SUB_DEPENDS), so
++# dbus is cast after systemd
++runtime_depends -sub SYSTEMD dbus &&
+ depends intltool       &&
+ depends libcap         &&
+ depends python3        &&
+@@ -19,7 +22,7 @@
+ optional_depends libseccomp "seccomp=true" "seccomp=false" "for seccomp support"          &&
+ optional_depends kmod       "kmod=true"    "kmod=false"    "support for loadable modules" &&
+ optional_depends linux-pam  "pam=true"     "pam=false"     "for PAM support"              &&
+-optional_depends cryptsetup "libcryptsetup=true" "libcryptsetup=false" "for signed Verity images support" &&
++optional_depends cryptsetup-luks "libcryptsetup=true" "libcryptsetup=false" "for crypttab, cryptenroll and signed Verity images" &&
+ optional_depends audit      "audit=true"   "audit=false"   "for libaudit support"         &&
+ optional_depends acl        "acl=true"     "acl=false"     "for libacl support"           &&
+ optional_depends libselinux "selinux=true" "selinux=false" "for selinux support"          &&
+@@ -32,12 +35,18 @@
+ optional_depends libidn     "libidn=true"  "libidn=false"  "for libidn support"           &&
+ optional_depends libidn2    "libidn2=true" "libidn2=false" "for libidn2 support"          &&
+ optional_depends elfutils   "elfutils=true" "elfutils=false" "for elfutils support"       &&
+-optional_depends policykit  "polkit=true"  "polkit=false"  "for polkit support"           &&
++# polkit is only used at run time (systemd installs its polkit rules);
++# policykit itself needs libsystemd, so it is cast after systemd
++suggest_depends  policykit  "polkit=true"  "polkit=false"  "for polkit support"           &&
+ suggest_depends  dracut     ""             ""              "for dracut support"           &&
+ suggest_depends  lxml       ""             ""              "for building indices"         &&
+-optional_depends gnu-efi    "efi=true"     "efi=false"     "support for sd-boot"          &&
+-suggest_depends  libxslt    ""             ""              "to build documentation"       &&
+-suggest_depends  docbook-xsl ""             ""              "to build documentation"       &&
++# since v253 systemd-boot needs pyelftools, not gnu-efi (and EFI support,
++# which BUILD then turns on)
++optional_depends pyelftools "bootloader=true" "bootloader=false" "for systemd-boot, systemd-stub and bootctl" &&
++optional_depends docbook-xsl "man=true"    "man=false"     "to build the manual pages"    &&
++if is_depends_enabled $SPELL docbook-xsl; then
++  depends libxslt
++fi &&
+ optional_depends p11-kit    "p11kit=true"  "p11kit=false"  "support for p11-kit"          &&
+ optional_depends gnutls     "gnutls=true"  "gnutls=false"  "support for dns-over-tls"     &&
+ optional_depends openssl    "openssl=true" "openssl=false" "support for openssl"          &&

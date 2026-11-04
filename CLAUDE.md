@@ -236,7 +236,11 @@ check), while policykit needs libsystemd: building systemd with
 <-> systemd is a real build-time loop in both directions (pam_systemd links
 libpam; linux-pam's logind option links libsystemd); linux-pam's logind
 support is minor, so leave `linux-pam:systemd:off` (or recast it once
-afterwards). SUB_DEPENDS can't help: it asks for a dependency built with
+afterwards). What it does (linux-pam 1.7.3 source, `USE_LOGIND`): three
+modules ask logind instead of utmp: pam_issue's `\U` (number of logged-in
+users in /etc/issue), pam_limits' `maxlogins`/`maxsyslogins` counting, and
+pam_timestamp's login-time check. Nothing else; worth it only for someone
+using those. SUB_DEPENDS can't help: it asks for a dependency built with
 given options, which still has to exist before the spell. Also wanted
 with PAM: `PAM_CHKPWD_SUID=y` (linux-pam's question), so screen lockers
 running as the user can check passwords via unix_chkpwd. To verify
@@ -696,14 +700,17 @@ sections below.
     2012); dbus is only a run-time need (runtime_depends); perl is used
     (src/polkitbackend/toarray.pl) but not declared; BUILD still creates the
     0.9x `polkituser` account; PRE_BUILD applies a `patches` directory the
-    spell doesn't have. More important: polkit installs its PAM file to
-    `/usr/lib/pam.d/polkit-1` (meson's default `pam_prefix`), but the
-    linux-pam spell is built without a vendor directory and reads only
-    /etc/pam.d, so polkit's password prompts fall back to `/etc/pam.d/other`
-    (deny everything) and always fail. Pass `pam_prefix=/etc/pam.d` (or
-    build linux-pam with `vendordir=/usr/lib`). That file includes
-    `system-auth`, which SMGL doesn't ship (the PAM set planned above
-    provides it).
+    spell doesn't have. More important: polkit's PAM file
+    (`/usr/lib/pam.d/polkit-1`; linux-pam reads /usr/lib/pam.d after
+    /etc/pam.d) is four `include system-auth` lines, and SMGL has no
+    `system-auth`. linux-pam turns a failed include into a must-fail entry
+    (`PAM_HT_MUST_FAIL` in libpam/pam_handlers.c), so every polkit password
+    prompt fails at once, as if the password were wrong (seen by the
+    maintainer on their own systemd install). Fix: ship a `system-auth`
+    (linux-pam, or the PAM set planned in section 1). Also, CONFIGURE's
+    session tracker list starts with elogind, so an unattended cast picks
+    elogind, which conflicts with systemd: put systemd first when systemd
+    is installed (cauldron presets `POLKIT_SES=systemd`).
   - systemd's `depends dbus` is only a run-time need (see the loops note
     in section 1): `runtime_depends dbus` would end the dbus <-> systemd
     loop. Its `optional_depends policykit` doesn't need polkit at build
@@ -1147,8 +1154,11 @@ sections below.
     kernel.org, and unpacks them with the ISO kernel's config as `.config`.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
-    wireless-regdb,wpa_supplicant,openssh,sudo,dosfstools}` (see the
-    README there and the team report above)
+    wireless-regdb,wpa_supplicant,openssh,sudo,dosfstools,systemd,dbus,
+    policykit}` (see the README there and the team report above). New
+    hack files that are spell scripts get their x bit set
+    (`cauldron_sorcerous_cauldron_defaults`): sorcery only runs a
+    SUB_DEPENDS etc. that is executable ("missing SUB_DEPENDS!" otherwise).
   - `etc/toolchain/sorcery/default_depends`: nghttp2 without python/boost
   - `iso.runtime` lists `fuse` (undeclared e2fsprogs dependency); `iso.install`
     leaves out git (rust)

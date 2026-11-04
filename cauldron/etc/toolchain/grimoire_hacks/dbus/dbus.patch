@@ -1,0 +1,18 @@
+--- var/lib/sorcery/codex/test/utils/dbus/PRE_SUB_DEPENDS
++++ var/lib/sorcery/codex/test/utils/dbus/PRE_SUB_DEPENDS
+@@ -0,0 +1,5 @@
++case $THIS_SUB_DEPENDS in
++  SYSTEMD) is_depends_enabled $SPELL systemd ;;
++        *) message "${PROBLEM_COLOR}bogus sub_depends: $SPELL $THIS_SUB_DEPENDS${DEFAULT_COLOR}"
++           return 1 ;;
++esac
+--- var/lib/sorcery/codex/test/utils/dbus/SUB_DEPENDS
++++ var/lib/sorcery/codex/test/utils/dbus/SUB_DEPENDS
+@@ -0,0 +1,7 @@
++case $THIS_SUB_DEPENDS in
++  SYSTEMD) message "systemd support requested, forcing systemd dependency" &&
++           depends systemd \
++                   "systemd=enabled systemd_system_unitdir=${INSTALL_ROOT}/etc/systemd/system systemd_user_unitdir=${INSTALL_ROOT}/etc/systemd/user" ;;
++        *) message "${PROBLEM_COLOR}bogus sub_depends: $SPELL $THIS_SUB_DEPENDS${DEFAULT_COLOR}"
++           return 1 ;;
++esac

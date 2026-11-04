@@ -1,0 +1,22 @@
+--- var/lib/sorcery/codex/test/gnome2-libs/policykit/BUILD
++++ var/lib/sorcery/codex/test/gnome2-libs/policykit/BUILD
+@@ -1,3 +1,2 @@
+-create_account polkituser  &&
+ create_account polkitd     &&
+ default_build
+--- var/lib/sorcery/codex/test/gnome2-libs/policykit/DEPENDS
++++ var/lib/sorcery/codex/test/gnome2-libs/policykit/DEPENDS
+@@ -1,9 +1,10 @@
+ . "${GRIMOIRE}/MESON_DEPENDS" &&
+ 
+-depends python3    &&
+ depends PKG-CONFIG  &&
+-depends dbus       &&
+-depends dbus-glib  &&
++# polkitd talks on the system bus; libdbus isn't needed to build it
++runtime_depends dbus &&
++depends perl       &&
++depends GETTEXT    &&
+ depends expat      &&
+ depends duktape    &&
+ optional_depends gobject-introspection introspection={true,false} 'Enable GObject introspection?' &&
