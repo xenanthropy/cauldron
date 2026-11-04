@@ -1308,8 +1308,12 @@ sections below.
   --fresh`. Other FINALs of base spells checked: groups/shells/shadow are in
   cauldron's base_etc; texinfo's /usr/share/info/dir is missing too (minor:
   `info` lists nothing until install-info runs). Worth knowing for the
-  team: a cache doesn't reproduce a cast where FINAL does real work
-  (resurrecting does run FINAL, a plain unpack doesn't).
+  team: a cache doesn't reproduce a cast where FINAL does real work. FINAL
+  runs only after a real build, once installwatch has stopped tracking
+  (build_api/api2: "extra files that need to be installed, but not
+  tracked"); resurrecting a cache doesn't run it either (libresurrect has
+  no run_final), so a machine installing caches from someone else (or the
+  installer's `install caches`) gets no FINAL work at all.
 - `iso package` failed with "grub-mkimage: cannot open
   /usr/lib/grub/i386-pc/moddep.lst" (Nov 2026): after grub2 was recast for
   x86_64-efi, the build chroot's i386-pc directory survived with two files
