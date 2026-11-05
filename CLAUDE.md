@@ -716,8 +716,17 @@ sections below.
     (Nov 2026): "With unifont from .../unifont.otf", the grub2 cache has
     usr/share/grub/unicode.pf2 (2.4 MB) and grub-mkfont. Cost on the ISO:
     ~10 MB of caches (grub2 +1.1, freetype2 3.1, brotli 2.2, unifont 2.4,
-    smgl-foma 1.3). The splash itself is still to be seen at the next ISO
-    test (QEMU screenshot of the installed system's GRUB menu).
+    smgl-foma 1.3). Seen on the maintainer's hardware (Nov 2026): the
+    graphical menu appears, still no splash, although grub-mkconfig says
+    "Found background" and grub.cfg has `insmod png` + `background_image`.
+    Third reason: smgl-splash.png is a 4-bit palette PNG, which GRUB 2.12
+    loads without an error but doesn't draw; the same image as 8-bit RGB
+    shows (both checked in QEMU/OVMF, GRUB 2.12 with gfxterm). Fix for the
+    spell: ship the RGB image (10 KB). Cauldron replaces it
+    (`grimoire_hacks/grub2/files/`; hacks can now carry whole files);
+    the grub2 caches must be rebuilt to pick it up. On an installed
+    system: replace /boot/grub/smgl-splash.png with an 8-bit RGB version
+    and rerun grub-mkconfig.
   - wpa_supplicant 2.11 doesn't build against OpenSSL 4 (`ASN1_STRING` is
     opaque now; `tls_openssl.c` uses `->data`/`->length`). Cauldron patches
     it (`grimoire_hacks/wpa_supplicant`); other distributions carry the same

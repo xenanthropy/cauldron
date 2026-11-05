@@ -822,6 +822,19 @@ function cauldron_sorcerous_cauldron_defaults() {
       return $ERR_SORCEROUS_DEFAULT_SETTINGS
   fi
 
+  # whole files for spells (e.g. images, which patch can't change): a hack's
+  # files/ directory mirrors the build chroot's root and is copied over it
+  local files=
+  for files in "$CAULDRON_CONFIG"/toolchain/grimoire_hacks/*/files
+  do
+    [[ -d "$files" ]] || continue
+
+    cauldron_verbose "Copying grimoire files from ${files%/files} ..."
+
+    "${CAULDRON_CMD_CP_FORCE[@]}" -R "$files"/. "$target"/ ||
+      return $ERR_TOOLCHAIN_PATCH
+  done
+
   # fixes for base spells until the patches hit stable
   for patch in "$CAULDRON_CONFIG"/toolchain/grimoire_hacks/*/*.patch
   do
