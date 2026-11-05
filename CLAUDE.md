@@ -865,6 +865,12 @@ sections below.
     rewritten by sorcery word by word: a comment line becomes a row of
     bogus variables (and a syntax error at the next cast); the last line
     may lack a newline. Presets have to be plain `VAR="value"` lines.
+  - wpa_supplicant (in system.tar.xz) installs only an init.d script and
+    its D-Bus service file, not upstream's systemd units
+    (wpa_supplicant/systemd/*.service.in), so a systemd system has no way
+    to start it; a Wi-Fi-only machine comes up offline. The `todo
+    systemd` page gives a small wpa_supplicant@.service to write; the
+    spell should install upstream's units when systemd is installed.
   - sorcery's default sustained list has acl and attr, so `dispel acl`
     does nothing without `--nosustain` (noticed undoing the systemd
     experiment, which had cast them).

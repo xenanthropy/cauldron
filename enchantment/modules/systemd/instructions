@@ -18,7 +18,18 @@ Network: systemd-networkd and systemd-resolved are enabled. For a wired
     DHCP=yes
   and let resolved handle DNS:
   @[ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf]
-  (wifi: e.g. cast iwd, or wpa_supplicant, plus a .network file for wl*)
+  Wifi: wpa_supplicant (in the base system) has no unit; write
+  /etc/systemd/system/wpa_supplicant@.service with
+    [Unit]
+    BindsTo=sys-subsystem-net-devices-%i.device
+    After=sys-subsystem-net-devices-%i.device
+    [Service]
+    ExecStart=/sbin/wpa_supplicant -c /etc/wpa_supplicant.conf -i %i
+    [Install]
+    WantedBy=multi-user.target
+  then @[systemctl enable wpa_supplicant@wlan0] (your interface name, see
+  @[ip link]) and a .network like the one above with Name=wl*. Do this
+  before rebooting (in @[enchantment chroot]) on a machine without a cable.
 Time: systemd-timesyncd keeps the clock in sync (@[timedatectl]).
 Hostname, locale, keymap: @[hostnamectl], @[localectl] (after first boot).
 
