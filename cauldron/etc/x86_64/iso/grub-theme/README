@@ -1,0 +1,16 @@
+GRUB theme of the install ISO's boot menu ("quoth"), installed by
+cauldron_iso_bootloader to boot/grub/themes/smgl with the unicode.pf2 font
+from the build chroot's grub2. Without the font GRUB keeps its text menu.
+
+bg.png      1440x1440, black, with SMGL's Quoth crow (Quoth.svg, the team's
+            artwork) inverted to a grey-to-white gradient, 28% of the image
+            height, centred at 22%. The theme scales it to the screen height
+            ("fitheight"), so the crow grows with the screen and keeps its
+            shape; the menu is placed in percentages of the height below it.
+            (An image component would be stretched: GRUB scales its width
+            and height separately, and never below the file's own size.)
+menu_*.png  the menu box: #161616 with a dark-red (#781414) border
+select_*.png the selected entry: #5f1010
+
+Checked in QEMU (OVMF, GRUB 2.12) at 1024x768, 1920x1080 and 1200x1920.
+GRUB 2.12 doesn't draw 4-bit palette PNGs: keep the images 8-bit RGB(A).

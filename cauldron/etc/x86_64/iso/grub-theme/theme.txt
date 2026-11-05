@@ -1,0 +1,25 @@
+# GRUB theme of the Source Mage install ISO (see README)
+title-text: ""
+desktop-color: "#000000"
+terminal-font: "Unifont Regular 16"
+desktop-image: "bg.png"
+desktop-image-scale-method: "fitheight"
+desktop-image-h-align: "center"
+desktop-image-v-align: "center"
++ boot_menu {
+  left = 15% width = 70% top = 39% height = 36%
+  item_font = "Unifont Regular 16" item_color = "#c8c8c8" selected_item_color = "#ffffff"
+  item_height = 24 item_padding = 6 item_spacing = 2 icon_width = 0
+  menu_pixmap_style = "menu_*.png" selected_item_pixmap_style = "select_*.png"
+  scrollbar = false
+}
++ progress_bar {
+  id = "__timeout__" left = 15% width = 70% top = 82% height = 20
+  font = "Unifont Regular 16" text_color = "#c8c8c8" fg_color = "#5f1010"
+  bg_color = "#000000" border_color = "#5f1010"
+  text = "@TIMEOUT_NOTIFICATION_LONG@"
+}
++ label {
+  left = 0 width = 100% top = 100%-48 align = "center"
+  font = "Unifont Regular 16" color = "#909090" text = "@KEYMAP_SHORT@"
+}

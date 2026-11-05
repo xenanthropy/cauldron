@@ -1532,6 +1532,27 @@ function cauldron_iso_bootloader() {
         "$conf/grub.cfg" > "$target/boot/grub/grub.cfg" ||
           return $ERR_WRITE_FILE
 
+      # the graphical menu: theme + font (grub.cfg keeps the text menu when
+      # the font is missing, e.g. a grub2 cache built without unifont)
+      if [[ -d "$conf/grub-theme" ]]
+      then
+        "${CAULDRON_CMD_MKDIR[@]}" "$target/boot/grub/themes/smgl" ||
+          return $ERR_MK_DIR
+        "${CAULDRON_CMD_CP_FORCE[@]}" "$conf/grub-theme"/*.txt \
+          "$conf/grub-theme"/*.png "$target/boot/grub/themes/smgl/" ||
+            return $ERR_CP_FILE
+      fi
+      if [[ -f "$build/usr/share/grub/unicode.pf2" ]]
+      then
+        "${CAULDRON_CMD_MKDIR[@]}" "$target/boot/grub/fonts" ||
+          return $ERR_MK_DIR
+        "${CAULDRON_CMD_CP_FORCE[@]}" "$build/usr/share/grub/unicode.pf2" \
+          "$target/boot/grub/fonts/" ||
+            return $ERR_CP_FILE
+      else
+        cauldron_verbose "No GRUB font (unicode.pf2): text menu only"
+      fi
+
       # the file the boot images look for to find the iso
       echo "$CAULDRON_ISO_VERSION" > "$target/$marker" ||
         return $ERR_WRITE_FILE

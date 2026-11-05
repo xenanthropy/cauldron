@@ -726,7 +726,14 @@ sections below.
     (`grimoire_hacks/grub2/files/`; hacks can now carry whole files);
     the grub2 caches must be rebuilt to pick it up. On an installed
     system: replace /boot/grub/smgl-splash.png with an 8-bit RGB version
-    and rerun grub-mkconfig.
+    and rerun grub-mkconfig. A splash behind GRUB 2's default menu can't work well
+    anyway (the menu box covers it, and where depends on the resolution):
+    a theme places everything in percentages. The ISO's boot menu now has
+    one (`etc/x86_64/iso/grub-theme`, "quoth": the team's Quoth crow on
+    black, menu in a dark box with a red border; picked by the maintainer
+    from drafts checked in QEMU at 1024x768, 1920x1080 and 1200x1920;
+    BIOS + UEFI, the serial port keeps the text menu). For the team: the
+    grub2 spell could ship it for installed systems (GRUB_THEME=).
   - wpa_supplicant 2.11 doesn't build against OpenSSL 4 (`ASN1_STRING` is
     opaque now; `tls_openssl.c` uses `->data`/`->length`). Cauldron patches
     it (`grimoire_hacks/wpa_supplicant`); other distributions carry the same
