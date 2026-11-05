@@ -289,7 +289,16 @@ created by `enchant_install_init_settings`); kernel audit notices for
 systemd's BPF programs ("audit: type=1334 ... op=UNLOAD") all over the
 console, since nothing listens to audit: the installer now writes
 /etc/sysctl.d/10-console-messages.conf with kernel.printk = 4 4 1 7 (as
-Debian does; the journal still has them). bootctl install puts its entry
+Debian does; the journal still has them). Also (found Nov 2026, reviewing
+edit-confs): systemd-sysctl 254 reads only sysctl.d directories, not
+/etc/sysctl.conf, and the systemd cache has no `99-sysctl.conf` link, so
+the shipped sysctl.conf (ping_group_range, the user-namespace switch) was
+ignored under systemd; the installer now adds
+/etc/sysctl.d/99-sysctl.conf -> ../sysctl.conf. (Not yet tested in a
+target; ping still worked because systemd's 50-default.conf sets the same
+ping_group_range.) edit-confs marks its simpleinit-only parts
+(sysconfig, network/interfaces, init.d runlevels) and gives the systemd
+equivalents. bootctl install puts its entry
 first in the firmware boot order, replaces EFI/BOOT/BOOTX64.EFI (GRUB's
 --removable copy) and warns about a world-readable ESP: the systemd-boot
 page says so (umask=0077). policykit then built in the same target

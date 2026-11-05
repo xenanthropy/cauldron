@@ -478,6 +478,15 @@ function enchant_install_init() {
       "${ENCHANT_CMD_CP[@]}" "$data/sysctl.d"/* "$target/etc/sysctl.d/" ||
       return $ERR_INSTALL_INIT
   fi
+  # systemd-sysctl only reads sysctl.d directories, not /etc/sysctl.conf;
+  # the usual link keeps the shipped settings (and the user's edits) working
+  if [[ -f "$target/etc/sysctl.conf" &&
+        ! -e "$target/etc/sysctl.d/99-sysctl.conf" ]]
+  then
+    "${ENCHANT_CMD_MKDIR[@]}" "$target/etc/sysctl.d" &&
+      ln -sfn ../sysctl.conf "$target/etc/sysctl.d/99-sysctl.conf" ||
+      return $ERR_INSTALL_INIT
+  fi
 
   # the PAM stack (sorcery doesn't replace existing pam.d files)
   if [[ -d "$data/pam.d" ]]

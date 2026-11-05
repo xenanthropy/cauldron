@@ -1,5 +1,9 @@
 @[edit-confs step]
 (Edit with @[$EDITOR FILE] (nano); other editors: @[help editors])
+Parts marked [simpleinit] are read only by simpleinit-msb and its init.d
+scripts (the default); if you switched to systemd in the init-system step,
+follow the [systemd] lines instead (editing the others does no harm, but
+systemd ignores them).
 
 Partitions and mounts: @[$ENCHANT_TARGET/etc/fstab]
 Add a line per filesystem below "Add your file systems here" (@[lsblk -f]
@@ -11,18 +15,21 @@ the root filesystem, 2 for others, 0 for btrfs and swap). The file itself has
 commented examples for ext4, XFS, btrfs subvolumes, the EFI partition, swap
 and /tmp in RAM; more in @[guide disks] (also zram).
 
-Also, take a look at the files in @[$ENCHANT_TARGET/etc/sysconfig/] and edit
-any you feel should be different. Especially, you should make sure the
+[simpleinit] Take a look at the files in @[$ENCHANT_TARGET/etc/sysconfig/]
+and edit any you feel should be different. Especially, make sure the
 @[facilities] file looks correct, and if you selected a custom keymap at the
-start of this install, you'll need to edit the file called @[keymap] in that
-directory (type @[cat $ENCHANT_TMP/keymap] to see which you chose).
+start of this install, edit the file called @[keymap] in that directory (type
+@[cat $ENCHANT_TMP/keymap] to see which you chose).
+[systemd] The init-system step copied the keymap and locale from sysconfig to
+@[/etc/vconsole.conf] (KEYMAP=) and @[/etc/locale.conf] (LANG=), under
+$ENCHANT_TARGET; edit those, or use @[localectl] after first boot.
 
 Hostname: (default: sourcemage) set it with
   @[enchantment hostname NAME]
 which writes /etc/hostname and the matching line in /etc/hosts, so the name
 resolves without a network (sudo complains when it doesn't).
 
-Networking: @[$ENCHANT_TARGET/etc/network/interfaces]
+Networking: [simpleinit] @[$ENCHANT_TARGET/etc/network/interfaces]
 Read at boot by ifup (@[man interfaces]); the file has commented examples for
 wired DHCP, Wi-Fi and a fixed address. Interface names: @[ip link] (they are
 the same on the installed system). E.g. Wi-Fi, after copying the WPA config:
@@ -30,17 +37,23 @@ the same on the installed system). E.g. Wi-Fi, after copying the WPA config:
   auto wlan0
   iface wlan0 inet dhcp
           pre-up wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf
+[systemd] systemd-networkd instead (.network files; wpa_supplicant needs a
+unit you write for Wi-Fi): see @[todo systemd].
 
 Timezone: (replace "SOME/TIMEZONE" with yours, e.g. America/New_York;
 @[ls /usr/share/zoneinfo] lists them)
   @[enchantment chroot ln -sf /usr/share/zoneinfo/SOME/TIMEZONE /etc/localtime]
-The hardware clock is assumed to be UTC (@[UTC=yes] in sysconfig/hwclock);
-set UTC=no if the machine also runs Windows.
+The hardware clock is assumed to be UTC; if the machine also runs Windows:
+[simpleinit] set @[UTC=no] in sysconfig/hwclock; [systemd] run
+@[timedatectl set-local-rtc 1] after first boot (it writes /etc/adjtime).
 
-Services: SMGL starts the executable scripts in $ENCHANT_TARGET/etc/init.d/
-runlevels/ at boot. The system logger (metalog) is on; the SSH server, if you
-installed openssh, is installed but off. To start it at every boot:
+Services: [simpleinit] SMGL starts the executable scripts in
+$ENCHANT_TARGET/etc/init.d/runlevels/ at boot. The system logger (metalog) is
+on; the SSH server, if you installed openssh, is installed but off. To start
+it at every boot:
   @[chmod +x $ENCHANT_TARGET/etc/init.d/runlevels/%3/sshd]
+[systemd] @[enchantment chroot systemctl enable sshd] (enabling works in the
+chroot; logs go to the journal).
 
 User namespaces (sandboxes for programs, needed by web browsers, Flatpak,
 rootless containers and systemd) are on, as in most distributions. They have
