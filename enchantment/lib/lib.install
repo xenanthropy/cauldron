@@ -603,7 +603,12 @@ function enchant_install_system() {
   # ensure that the sys image is a file
   [[ -f "$sys" ]] || return $ERR_INSTALL_SYSTEM
 
-  "${ENCHANT_CMD_TAR[@]}" -C "$dst" -xf "$sys" ||
+  # as distributions unpack their base tarballs (Gentoo's handbook: xpf with
+  # --xattrs-include='*.*' --numeric-owner): permissions, extended
+  # attributes (file capabilities), and owners by number, not by name (names
+  # would go through the live system's /etc/passwd, not the target's)
+  "${ENCHANT_CMD_TAR[@]}" -C "$dst" -xpf "$sys" --xattrs \
+    --xattrs-include='*' --numeric-owner ||
     return $ERR_INSTALL_SYSTEM
 
   return $ERR_OK

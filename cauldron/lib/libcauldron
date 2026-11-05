@@ -797,6 +797,16 @@ function cauldron_sys_check() {
     fi
   done
 
+  # what other users can't reach (a 0700 /usr/lib logs every user out)
+  cauldron_verbose "Checking $target for files closed to other users..."
+  out=$(cauldron_check_access "$target")
+  if [[ -n "$out" ]]
+  then
+    echo "not accessible to other users:"
+    echo "$out" | head -n 20
+    ((problems++))
+  fi
+
   cauldron_verbose "Checking $target for missing shared libraries..."
   out=$(cauldron_check_libs)
   if [[ -n "$out" ]]
@@ -844,6 +854,47 @@ function cauldron_sys_check() {
   [[ "$problems" -eq 0 ]] || return $ERR_SYS_CHECK
 
   return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+## @param target directory
+##
+## Prints what in the target other users can't reach although they must:
+## directories that aren't readable and searchable by all (except those in
+## CAULDRON_PRIVATE_DIRS and below them), programs in the bin directories
+## that aren't executable by all, and shared libraries that aren't readable
+## by all. Such a tree logs a normal user out at once, or breaks every
+## program it runs. Prints nothing if all is well.
+##
+#-------------------------------------------------------------------------------
+function cauldron_check_access() {
+  local target="$1"
+  local dir=
+  local skip=()
+
+  [[ -d "$target" ]] || return $ERR_TARGET
+
+  # find -prune expressions for the allowed private directories
+  for dir in "${CAULDRON_PRIVATE_DIRS[@]}" proc sys dev run tmp var/tmp
+  do
+    skip+=( -path "$target/$dir" -prune -o )
+  done
+
+  find "$target" -xdev "${skip[@]}" -type d ! -perm -o=rx -printf '/%P (%m)\n'
+  for dir in bin sbin usr/bin usr/sbin
+  do
+    [[ -d "$target/$dir" ]] || continue
+    find "$target/$dir" -maxdepth 1 -type f ! -perm -o=x \
+      -printf "/$dir/%P (%m)\n"
+  done
+  for dir in lib lib64 usr/lib usr/lib64
+  do
+    [[ -d "$target/$dir" ]] || continue
+    find "$target/$dir" -maxdepth 1 -type f -name '*.so*' ! -perm -o=r \
+      -printf "/$dir/%P (%m)\n"
+  done
+
+  return 0
 }
 
 #-------------------------------------------------------------------------------
@@ -917,6 +968,15 @@ function cauldron_iso_check() {
   # machine, never shipped, neither in the live system nor in the caches it
   # installs (a spell that runs ssh-keygen at install time puts the build
   # machine's keys into its cache)
+  # what other users can't reach in the live system
+  out=$(cauldron_check_access "$target")
+  if [[ -n "$out" ]]
+  then
+    echo "not accessible to other users in the live system:"
+    echo "$out" | head -n 20
+    ((problems++))
+  fi
+
   # https downloads in the live system (wget, the installer's network check)
   if [[ ! -s "$target/etc/ssl/certs/ca-certificates.crt" ]]
   then

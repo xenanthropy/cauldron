@@ -8,7 +8,8 @@ enchantment:
   @[enchantment install caches]
 
 manually:
-  @[tar -xpf /system.tar.xz -C "$ENCHANT_TARGET"]
+  @[tar -xpf /system.tar.xz --xattrs --xattrs-include='*' --numeric-owner \]
+  @[    -C "$ENCHANT_TARGET"]
   copy the caches you want to $ENCHANT_TARGET/var/cache/sorcery/, then
   @[enchantment chroot] and @[cast] the spells, and @[exit]
 

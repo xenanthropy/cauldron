@@ -1343,6 +1343,26 @@ sections below.
   tracked"); resurrecting a cache doesn't run it either (libresurrect has
   no run_final), so a machine installing caches from someone else (or the
   installer's `install caches`) gets no FINAL work at all.
+- Access check (maintainer's request, Nov 2026; an earlier official
+  tarball had system directories closed to other users, so a normal user
+  was logged out at once, and it was only tested in a chroot as root):
+  `cauldron_check_access`, run by the sys and iso checks, lists
+  directories not readable+searchable by all (except
+  `CAULDRON_PRIVATE_DIRS` in config/build.conf: /root, /usr/games,
+  ldconfig's cache, sudo/cron/polkit/dhcpcd state, lost+found, systemd's
+  private dirs, ...), programs in the bin dirs not executable by all, and
+  shared libraries not readable by all. Tested: the live system and the
+  installed systemd QEMU disk pass; a tree with a 0700 /usr/lib and a 0700
+  program is caught. Also: system.tar.xz is now packed with `--xattrs
+  --xattrs-include='*' --numeric-owner` and unpacked by `install
+  basesystem` with `-xpf ... --xattrs --xattrs-include='*'
+  --numeric-owner`, as Gentoo's handbook does for stage tarballs: owners by
+  number rather than through the live system's /etc/passwd (the same ids
+  today, but nothing guaranteed it), and file capabilities kept (none in
+  today's tarball: checked every file in the build chroot's bin and lib
+  directories). Round trip tested (setuid mode, numeric group, an xattr).
+  Note: sorcery's caches don't store xattrs either, so a spell that sets
+  a capability at install time (setcap) loses it in its cache.
 - `iso package` failed with "grub-mkimage: cannot open
   /usr/lib/grub/i386-pc/moddep.lst" (Nov 2026): after grub2 was recast for
   x86_64-efi, the build chroot's i386-pc directory survived with two files
