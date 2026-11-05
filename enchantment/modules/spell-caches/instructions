@@ -1,10 +1,17 @@
 @[spell-caches step]
 Select the spell caches (built packages) on the ISO that you want installed on
-top of the basesystem; they are in /var/cache/sorcery/. You need at least
-@[grub2] (boot loader, BIOS and UEFI); on UEFI machines also @[efibootmgr] and
-@[dosfstools]; plus the tools for your filesystems (@[xfsprogs],
-@[btrfs-progs]) and anything else you like (e.g. @[openssh], or @[vim] and
-@[jed] next to the base system's nano). The menu lists these main caches;
+top of the basesystem; they are in /var/cache/sorcery/.
+
+Boot loader: @[grub2] (BIOS and UEFI) is the only one on the ISO. Select it if
+you want GRUB; otherwise leave it out and set up another one in the boot-loader
+step (systemd-boot comes with @[enchantment install init systemd]; Limine,
+rEFInd, SYSLINUX and LILO are cast there with network; see @[todo boot-loader]).
+On UEFI machines also select @[efibootmgr] and @[dosfstools] (fsck.vfat for the
+EFI system partition), whichever boot loader you choose.
+
+Then add the tools for your filesystems (@[xfsprogs], @[btrfs-progs]) and
+anything else you like (e.g. @[openssh], or @[vim] and @[jed] next to the base
+system's nano). The menu lists these main caches;
 the others in /var/cache/sorcery are only their dependencies, which are added
 automatically when they are installed (@[add] still takes any of them by name).
 
