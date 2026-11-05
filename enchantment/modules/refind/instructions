@@ -3,8 +3,8 @@ rEFInd is a boot menu for UEFI machines (not BIOS). It finds the kernels in
 /boot by itself and starts them directly (the kernel has EFI boot support). It
 isn't on this ISO: cast it with network (see @[todo boot-loader]).
 
-The EFI system partition must be mounted at /boot/efi in the target. Then in
-@[enchantment chroot]:
+The EFI system partition must be mounted in the target (at /boot/efi or /boot;
+refind-install finds it either way). Then in @[enchantment chroot]:
  @[refind-install]
 That copies rEFInd to the EFI partition, adds a driver for /boot's
 filesystem, and creates a firmware boot entry. rEFInd needs the kernel

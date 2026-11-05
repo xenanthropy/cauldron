@@ -13,9 +13,10 @@ First enter the new system: @[enchantment chroot]
  BIOS: to the disk's boot sector (the whole disk, not a partition):
   @[grub-install --target=i386-pc /dev/sda]
   (a GPT disk needs a small "BIOS boot" partition without a filesystem)
- UEFI: the EFI system partition must be mounted at /boot/efi (do that before
- the chroot: @[mount /dev/sda1 $ENCHANT_TARGET/boot/efi]; @[efibootmgr] lists
- the firmware's boot entries):
+ UEFI: the EFI system partition must be mounted (disk-mount step); GRUB works
+ with it at /boot/efi or at /boot, so give --efi-directory= wherever yours is
+ (@[findmnt /boot/efi] or @[findmnt /boot] shows it; @[efibootmgr] lists the
+ firmware's boot entries). With it at /boot/efi:
  @[grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=smgl]
  If the firmware doesn't offer it at boot, add the fallback loader too:
   @[grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable]
