@@ -314,7 +314,15 @@ Parallel/Cached/Distributed Compiling -> EXTRA_JOBS). Maintainer: fine to
 change it temporarily; tested with a stubbed chroot. The maintainer's own
 habit (worth saying in smgl-setup's rework too): all threads minus 2 or 3,
 so the machine stays usable while it compiles (13-14 of 16); edit-confs and
-init-system say so.
+init-system say so. Also for that rework: ccache and distcc (sorcery's
+"Parallel/Cached/Distributed Compiling" menu; `CCACHE=on`, cache in
+/var/cache/compiler, ccache's default limit 5 GB; distcc via
+`DISTCC_HOSTS`, `JOBS_PER_HOST`). distcc helpers need the same gcc
+version (an SMGL chroot from the same tarball is the easy way) but not the
+same libraries, since preprocessing and linking stay on the client; and
+`-march=native` must not be used with distcc (the helper expands it for its
+own CPU). edit-confs has a short ccache paragraph (ccache isn't in the base
+system: it depends on cmake, so it's a network cast after first boot).
 Review pass before the next ISO (Nov 2026) added: a network check before
 anything is changed (`ENCHANT_NET_TEST_URL`, kernel.org; error
 `ERR_INSTALL_INIT_NET`); a backup of simpleinit-msb's and eudev's files and

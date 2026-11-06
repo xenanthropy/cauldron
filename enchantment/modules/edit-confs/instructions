@@ -68,5 +68,11 @@ All threads make big casts fastest, but the machine gets sluggish meanwhile
 (browsing, video); if you'll use it while it compiles, leave 2 or 3 free,
 e.g. @[$(($(nproc) - 2))] instead of @[$(nproc)]. Later: @[sorcery] -> Option
 Menu -> Parallel/Cached/Distributed Compiling -> EXTRA_JOBS.
+Compiling again: ccache keeps each compiled file and hands it back when the
+same file is compiled again, so a stopped or failed cast, or a recast, skips
+the work already done. It helps from the second build on and costs disk
+space (up to 5 GB, in /var/cache/compiler). Not in the base system: after
+first boot, @[cast ccache], then set @[CCACHE=on] in
+/etc/sorcery/local/compile_config (or "Cached" in the menu above).
 
 Type @[next] to go to the next step.
