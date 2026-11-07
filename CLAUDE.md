@@ -1276,6 +1276,11 @@ sections below.
     `mkrlconf` would copy the ISO's cmdline); syslinux 6.03's extlinux
     can't use ext4 with the 64bit feature (mkfs.ext4's default); lilo
     24.2 is BIOS/MBR only. To test them in QEMU at a later ISO round.
+    Tested on the maintainer's laptop (Nov 2026, simpleinit system, EFI
+    partition moved to /boot): Limine (after llvm with lld, see the team
+    report; first boot panicked on a `root=` without `PARTUUID=`, the
+    maintainer's typo) and rEFInd (refind-install from the booted system,
+    where mkrlconf copies the right options) both boot the system.
     The grub page (46 lines) had grub-mkconfig at line 39: on the
     maintainer's rotated console `less` showed the first screen only, so
     the menu step went unseen. It now starts with the three steps

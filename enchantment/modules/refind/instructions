@@ -12,9 +12,14 @@ options in /boot/refind_linux.conf (one line per menu entry: a title, then
 the options):
  @[blkid -s PARTUUID -o value /dev/sda2]   # your root partition's PARTUUID
  @[echo '"Source Mage" "root=PARTUUID=PUT-IT-HERE rw"' > /boot/refind_linux.conf]
-(@[mkrlconf] would copy the options this ISO booted with: wrong here.)
+(@[mkrlconf] would copy the options this ISO booted with: wrong here. On
+the installed system, booted by another loader, it copies the right ones.)
+Add any other kernel options you need (e.g. for a sideways screen) to the
+same line.
  @[exit]
 
-Not yet tested on this ISO: please report what works and what doesn't.
+rEFInd puts its firmware entry first in the boot order; the others stay
+(@[efibootmgr] lists them, @[efibootmgr -o] reorders). Tested on hardware
+(UEFI laptop, EFI partition at /boot).
 
 Type @[next] to go on to the user setup (or @[todo] for the boot-loader step).

@@ -38,6 +38,8 @@ The limine spell also installs /boot/limine/mk-limine-cfg.sh, which writes a
 limine.conf from the kernels in /boot; check its root= before using it.
 After each new kernel, add it to limine.conf.
 
-Not yet tested on this ISO: please report what works and what doesn't.
+Tested on hardware (UEFI laptop, EFI partition at /boot). The kernel only
+panics with "VFS: Unable to mount root fs" if the cmdline lacks the
+"root=PARTUUID=" part: check that line first.
 
 Type @[next] to go on to the user setup (or @[todo] for the boot-loader step).
