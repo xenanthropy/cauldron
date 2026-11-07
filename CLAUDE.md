@@ -680,7 +680,11 @@ sections below.
     dynamically). Fix: static libtirpc again, or busybox dynamic / without
     forced tirpc.
   - `smgl-base` + `smgl-system` don't pull in `shadow` (no login/passwd) or
-    `lzip` (and the old tarballs also had `kbd`, `man-pages`).
+    `lzip` (and the old tarballs also had `kbd`, `man-pages`, `which`).
+    `which` was missing from cauldron's system.tar.xz until Nov 2026: a
+    program the maintainer built on the laptop called it at build time
+    (12 spells declare it, many more upstream scripts use it); it is in
+    `sys.runtime` now.
   - `optional_depends gdbm '' '' ...` pattern (python3, perl, ...): a
     disabled dependency passes no `--without`, so the library is linked
     anyway and sorcery's records are wrong.

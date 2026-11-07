@@ -13,6 +13,10 @@ shadow
 kbd
 lzip
 man-pages
+# which: in the old tarballs too; many upstream build scripts and programs
+# call it without any spell declaring it (12 spells do, e.g. pciutils,
+# qtbase); 35 KB, no dependencies
+which
 
 # needed to build a kernel on the installed system (bc for the build scripts,
 # elfutils/libelf for objtool and the ORC unwinder)
