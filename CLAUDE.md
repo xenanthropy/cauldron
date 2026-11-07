@@ -913,6 +913,17 @@ sections below.
     those tools. Worth adding: `-DLLVM_PARALLEL_LINK_JOBS=1` (or 2), and
     an option to leave out clang-tools-extra. The limine page now says to
     add swap before casting llvm on a small machine.
+  - Found by the maintainer setting up distcc + ccache on the laptop (Nov
+    2026): the grimoire's distcc was 3.1 (2008; they updated it to 3.4);
+    ccache's BUILD hard-codes a test setting (`ENABLE_TESTS=0`) that
+    overrides the CMAKE_CONFIGURE test answer, so with ccache's
+    `DEPS=AUTO` its build tried to download doctest and failed with an
+    unsupported-protocol error (likely cmake/curl without https support;
+    to check: which TLS the cmake and curl caches are built with); removing
+    the line fixed it. git was cast without rust using a team member's
+    not-yet-published spell change. With distcc to the maintainer's desktop
+    and `LLVM_PARALLEL_LINK_JOBS=1` (edited into llvm's BUILD), llvm got
+    to ~20% in about 2 minutes.
   - sorcery's default sustained list has acl and attr, so `dispel acl`
     does nothing without `--nosustain` (noticed undoing the systemd
     experiment, which had cast them).
