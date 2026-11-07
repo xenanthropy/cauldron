@@ -6,8 +6,9 @@ linker lld, which its spell doesn't ask for, so cast llvm with lld first
 (@[cast -r llvm], answer yes to "Build the LLVM linker (lld)?"). When casting
 limine, choose the ports you need: uefi-x86-64 (UEFI) and/or bios. llvm's
 last steps link clang's tools with several GB of RAM each, one per compile
-job: with less than 16 GB of RAM, add swap first (a swap file is enough, see @[guide disks])
-or the linker is killed hours into the build ("ld terminated with signal 9").
+job: with less than 16 GB of RAM, add swap first (a swap file is enough,
+see @[guide disks]) or the linker is killed hours into the build ("ld
+terminated with signal 9").
 
 Limine only reads FAT: the kernel must be on the EFI system partition. The
 simplest layout is the EFI partition mounted at /boot instead of /boot/efi
