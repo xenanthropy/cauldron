@@ -13,6 +13,12 @@ shadow, openssh, ...). Expect anywhere from 20 minutes to a few hours,
 depending on the machine. It also replaces simpleinit-msb and eudev, and writes
 a PAM setup (/etc/pam.d/system-auth and system-login).
 
+It runs two casts: systemd and what it needs (util-linux is rebuilt there with
+sulogin), then the recompiles (util-linux again, now that systemd exists).
+Each ends with the spells' notices; they are also kept in
+$ENCHANT_TARGET/tmp/cast/backup/*/notice_log (in /tmp: read them before
+rebooting).
+
 systemd isn't on the ISO (to keep it small), hence the compiling. sorcery
 normally uses one CPU core (its MAKE_NJOBS setting); unless you set it, this
 command uses all cores while it runs and then puts the setting back. To set

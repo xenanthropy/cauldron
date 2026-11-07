@@ -251,7 +251,17 @@ stack (system-auth; system-login with pam_loginuid + pam_systemd for
 login/sshd; su, su-l, sudo, passwd, chpasswd, newusers), copies the live
 resolv.conf, dispels simpleinit-msb and eudev, casts systemd, recompiles
 the installed spells of `recast` with `cast -c`, sets `UsePAM yes` and
-checks sorcery's records. Tested on an unpacked smgl-test-0.63-20261102
+checks sorcery's records. Its casts (and `install caches`) run with
+`PAGER=cat`: at the end of a cast sorcery repeats the spells' notices
+(FINAL output; `pass_five` in cast) through `timeout_pager` when they
+exceed 40 lines, which held the maintainer's hardware run at `less` until
+`q` (or PAGER_TIMEOUT, 150 s); a copy stays in the target's
+/tmp/cast/backup/<pid>/notice_log. util-linux is built twice by design:
+systemd `depends -sub SULOGIN util-linux` and util-linux's sulogin
+question defaults to no, so the first cast rebuilds it with sulogin
+(before systemd exists), and the recast list rebuilds it with libsystemd
+and units. Presetting `UL_SULOGIN=--enable-sulogin` would save the first
+build but leave no sulogin if the recasts then fail. Tested on an unpacked smgl-test-0.63-20261102
 tarball (hacks applied to its grimoire, sources shared from the build
 chroot's spool; GitHub archives polkit/lz4/libuv/python-packaging uploaded
 by the maintainer, as the agent sandbox can't fetch them): /sbin/init ->

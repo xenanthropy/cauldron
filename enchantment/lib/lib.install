@@ -200,10 +200,15 @@ function enchant_install_caches() {
   # let sorcery in the target install them, so that it knows about them (it
   # resurrects the caches rather than compiling, since the target's grimoire
   # has the same spell versions); the answers are already there, so don't wait
-  # PROMPT_DELAY at every question
+  # PROMPT_DELAY at every question. PAGER=cat: at the end of a cast, sorcery
+  # repeats the spells' notices, in a pager when they are longer than 40
+  # lines, which would stop the install until someone quits it (or for
+  # sorcery's PAGER_TIMEOUT, 150 s); they stay in the scrollback and in
+  # /tmp/cast/backup/<pid>/notice_log in the target
   enchant_chroot_init "$target"
   liberror_check || return $?
-  enchant_chroot env PROMPT_DELAY="${PROMPT_DELAY:-0}" cast "${spells[@]}"
+  enchant_chroot env PROMPT_DELAY="${PROMPT_DELAY:-0}" PAGER=cat \
+    cast "${spells[@]}"
   liberror_check || return $ERR_INSTALL_CACHES
   enchant_chroot_done "$target"
   liberror_check || return $?
@@ -535,8 +540,10 @@ function enchant_install_init() {
     return $ERR_INSTALL_INIT
 
   rc=$ERR_OK
+  # (PAGER=cat: no pager for sorcery's notices, see enchant_install_caches)
   enchant_chroot env PROMPT_DELAY=0 dispel --nosustain simpleinit-msb eudev &&
-    enchant_chroot env PROMPT_DELAY=0 cast "$init" || rc=$ERR_INSTALL_INIT
+    enchant_chroot env PROMPT_DELAY=0 PAGER=cat cast "$init" ||
+    rc=$ERR_INSTALL_INIT
 
   if ! grep -q "^$init:" "$state/packages"
   then
@@ -552,7 +559,7 @@ function enchant_install_init() {
 
   if [[ "$rc" -eq "$ERR_OK" && "${#recast[@]}" -gt 0 ]]
   then
-    enchant_chroot env PROMPT_DELAY=0 cast -c "${recast[@]}" ||
+    enchant_chroot env PROMPT_DELAY=0 PAGER=cat cast -c "${recast[@]}" ||
       rc=$ERR_INSTALL_INIT
   fi
 
