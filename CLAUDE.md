@@ -913,6 +913,13 @@ sections below.
     those tools. Worth adding: `-DLLVM_PARALLEL_LINK_JOBS=1` (or 2), and
     an option to leave out clang-tools-extra. The limine page now says to
     add swap before casting llvm on a small machine.
+  - limine 12.9.4's DEPENDS asks for `depends -sub CLANG llvm`, but its
+    configure also needs llvm's linker: "checking for ld.lld ... no;
+    configure: error: ld.lld invalid, set LD_FOR_TARGET to a valid program"
+    (maintainer's laptop, Nov 2026, after a full llvm cast without lld,
+    which defaults to off). Fix: `depends -sub "CLANG LLD" llvm` (the llvm
+    spell has an LLD sub-depends). The limine page says to cast llvm with
+    lld first.
   - Found by the maintainer setting up distcc + ccache on the laptop (Nov
     2026): the grimoire's distcc was 3.1 (2008; they updated it to 3.4);
     ccache's BUILD hard-codes a test setting (`ENABLE_TESTS=0`) that
