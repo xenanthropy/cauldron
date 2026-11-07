@@ -2,7 +2,10 @@
 Limine is a small, modern boot loader for BIOS and UEFI. It isn't on this ISO:
 cast it with network (see @[todo boot-loader]). Its spell depends on llvm
 (clang), which is a long compile on a fresh system. When casting, choose the
-ports you need: uefi-x86-64 (UEFI) and/or bios.
+ports you need: uefi-x86-64 (UEFI) and/or bios. llvm's last steps link
+clang's tools with several GB of RAM each, one per compile job: with less
+than 16 GB of RAM, add swap first (a swap file is enough, see @[guide disks])
+or the linker is killed hours into the build ("ld terminated with signal 9").
 
 Limine only reads FAT: the kernel must be on the EFI system partition. The
 simplest layout is the EFI partition mounted at /boot instead of /boot/efi

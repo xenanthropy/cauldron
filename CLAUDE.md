@@ -904,6 +904,15 @@ sections below.
     to start it; a Wi-Fi-only machine comes up offline. The `todo
     systemd` page gives a small wpa_supplicant@.service to write; the
     spell should install upstream's units when systemd is installed.
+  - llvm (23.1.3) with clang on always builds clang-tools-extra too
+    (clangd, clang-tidy, ...), and never sets `LLVM_PARALLEL_LINK_JOBS`,
+    so with MAKE_NJOBS=4 four multi-GB links run at once. On the
+    maintainer's laptop (Alder Lake-N, 4 cores) the cast failed after ~5
+    hours at step 5042/5130: "ld terminated with signal 9" linking
+    clang-tidy and clangd (OOM killer). Limine needs clang but none of
+    those tools. Worth adding: `-DLLVM_PARALLEL_LINK_JOBS=1` (or 2), and
+    an option to leave out clang-tools-extra. The limine page now says to
+    add swap before casting llvm on a small machine.
   - sorcery's default sustained list has acl and attr, so `dispel acl`
     does nothing without `--nosustain` (noticed undoing the systemd
     experiment, which had cast them).
