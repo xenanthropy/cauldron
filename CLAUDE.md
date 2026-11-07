@@ -919,7 +919,12 @@ sections below.
     (maintainer's laptop, Nov 2026, after a full llvm cast without lld,
     which defaults to off). Fix: `depends -sub "CLANG LLD" llvm` (the llvm
     spell has an LLD sub-depends). The limine page says to cast llvm with
-    lld first.
+    lld first. Also: llvm's PREPARE offers clang as `LLVM_TOOLCHAIN_COMPILER` once
+    clang is installed, and the maintainer's recast (`cast -r llvm`, to add
+    lld) switched from gcc to clang: ccache's gcc objects no longer matched,
+    clang's precompiled headers kept most jobs local, and the distcc helper
+    (gcc only) rejected the rest (COMPILE_ERROR, compiled again locally).
+    Answering gcc again avoids all three.
   - Found by the maintainer setting up distcc + ccache on the laptop (Nov
     2026): the grimoire's distcc was 3.1 (2008; they updated it to 3.4);
     ccache's BUILD hard-codes a test setting (`ENABLE_TESTS=0`) that
