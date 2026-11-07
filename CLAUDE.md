@@ -940,6 +940,12 @@ sections below.
     not-yet-published spell change. With distcc to the maintainer's desktop
     and `LLVM_PARALLEL_LINK_JOBS=1` (edited into llvm's BUILD), llvm got
     to ~20% in about 2 minutes.
+  - linux-pam's FINAL runs `grep -q vc /etc/securetty` (a devfs-era check)
+    without testing whether the file exists, but /etc/securetty is only
+    installed when `PAM_SECTTY` is answered yes (default no), so every
+    unattended cast prints "grep: /etc/securetty: No such file or
+    directory" (seen on the maintainer's laptop). Harmless; `[ -f ... ] &&`
+    or dropping the devfs check would silence it.
   - sorcery's default sustained list has acl and attr, so `dispel acl`
     does nothing without `--nosustain` (noticed undoing the systemd
     experiment, which had cast them).
