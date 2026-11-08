@@ -335,6 +335,29 @@ function enchant_install_init_settings() {
     echo "KEYMAP=$keymap" >> "$vconsole" || return $ERR_INSTALL_INIT
   fi
 
+  # the systemd spell writes FONT=default8x16 into a new vconsole.conf, so
+  # systemd-vconsole-setup replaces the kernel's console font (fbcon=font:,
+  # or the 16x32 font the kernel picks for large screens) at every boot.
+  # SMGL's equivalent is SETFONT_ARGS (empty: keep the kernel's font)
+  "${ENCHANT_CMD_SEDFILE[@]}" '/^FONT=default8x16$/d' "$vconsole" \
+    2> "$ENCHANT_NULL"
+  set -- $(sed -n 's/^SETFONT_ARGS=["'\'']*\([^"'\'']*\).*/\1/p' \
+    "$sysconfig/keymap" 2> "$ENCHANT_NULL")
+  if [[ -n "$1" && "$1" != -* ]] &&
+    ! grep -q '^FONT=' "$vconsole" 2> "$ENCHANT_NULL"
+  then
+    echo "FONT=$1" >> "$vconsole" || return $ERR_INSTALL_INIT
+    shift
+    while [[ $# -gt 1 ]]
+    do
+      case "$1" in
+        -m) echo "FONT_MAP=$2" >> "$vconsole" ;;
+        -u) echo "FONT_UNIMAP=$2" >> "$vconsole" ;;
+      esac || return $ERR_INSTALL_INIT
+      shift
+    done
+  fi
+
   if [[ -f "$sysconfig/locale" && ! -f "$target/etc/locale.conf" ]]
   then
     grep -E '^(LANG|LC_[A-Z]+)=[^[:space:]]+' "$sysconfig/locale" \

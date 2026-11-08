@@ -956,6 +956,14 @@ sections below.
     unattended cast prints "grep: /etc/securetty: No such file or
     directory" (seen on the maintainer's laptop). Harmless; `[ -f ... ] &&`
     or dropping the devfs check would silence it.
+  - systemd 254.27's INSTALL writes `FONT=default8x16` into a new
+    /etc/vconsole.conf, so systemd-vconsole-setup loads the small 8x16
+    font at every boot over the kernel's choice (`fbcon=font:TER16x32`, or
+    the 16x32 font the kernel picks itself on large screens); seen on the
+    maintainer's 1920x1200 laptop after `install init systemd`. Without a
+    FONT= line systemd keeps the kernel's font: the spell shouldn't write
+    one. `enchant_install_init_settings` drops that line and carries SMGL's
+    SETFONT_ARGS over (FONT/FONT_MAP/FONT_UNIMAP).
   - sorcery's default sustained list has acl and attr, so `dispel acl`
     does nothing without `--nosustain` (noticed undoing the systemd
     experiment, which had cast them).

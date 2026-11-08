@@ -32,5 +32,8 @@ Network: systemd-networkd and systemd-resolved are enabled. For a wired
   before rebooting (in @[enchantment chroot]) on a machine without a cable.
 Time: systemd-timesyncd keeps the clock in sync (@[timedatectl]).
 Hostname, locale, keymap: @[hostnamectl], @[localectl] (after first boot).
+Console font: FONT= in /etc/vconsole.conf (none: the kernel's font, which
+is 16x32 on large screens or with fbcon=font:TER16x32); e.g.
+FONT=latarcyrheb-sun32 (fonts in /usr/share/consolefonts).
 
 To see this again, type @[todo systemd].
