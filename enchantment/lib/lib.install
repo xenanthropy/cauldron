@@ -371,6 +371,18 @@ function enchant_install_init_settings() {
       return $ERR_INSTALL_INIT
   fi
 
+  # systemd-gpt-auto-generator mounts the ESP the machine booted from on /efi
+  # (making that directory) when /boot is already in use; SMGL systems mount
+  # their partitions through fstab, so it only adds a second mount point.
+  # Removing the link turns it back on
+  line="$target/etc/systemd/system-generators"
+  if [[ ! -e "$line/systemd-gpt-auto-generator" ]]
+  then
+    "${ENCHANT_CMD_MKDIR[@]}" "$line" &&
+      ln -s /dev/null "$line/systemd-gpt-auto-generator" ||
+      return $ERR_INSTALL_INIT
+  fi
+
   if [[ -f "$target/etc/init.d/rc" ]]
   then
     "${ENCHANT_CMD_MKDIR[@]}" "$target/etc/systemd/system" &&

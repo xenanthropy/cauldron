@@ -295,7 +295,11 @@ XDG_RUNTIME_DIR=/run/user/1000, `systemctl --user` running with its own
 D-Bus, and pkcheck for login1.reboot answers auth_admin_keep. Found and
 fixed by it: the uuidd user (util-linux's systemd tmpfiles need it; the
 systemd spell is built with sysusers=false, so no sysusers.d processing;
-created by `enchant_install_init_settings`); kernel audit notices for
+created by `enchant_install_init_settings`; it also masks
+systemd-gpt-auto-generator, which on the maintainer's laptop mounted the
+booted ESP a second time on a new /efi automount because /boot was taken,
+and bootctl then wrote through /efi; SMGL mounts everything via fstab);
+kernel audit notices for
 systemd's BPF programs ("audit: type=1334 ... op=UNLOAD") all over the
 console, since nothing listens to audit: the installer now writes
 /etc/sysctl.d/10-console-messages.conf with kernel.printk = 4 4 1 7 (as
