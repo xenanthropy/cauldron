@@ -11,21 +11,8 @@ To set a different keymap: @[keymap]
 
 On a laptop? @[acpi -b] shows the battery charge; keep an eye on it.
 
-No network is needed to install. To get online anyway (@[ip link] lists the
-network interfaces; replace wlan0 below with yours):
-  wired:  @[dhcpcd]
-  Wi-Fi:  @[wpa_passphrase 'NETWORK' 'PASSWORD' > /etc/wpa_supplicant.conf]
-          @[wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf]
-          @[dhcpcd wlan0]
-The installed system has the same tools (copy /etc/wpa_supplicant.conf over).
-To install from another computer over SSH instead, run these three commands:
-  @[passwd]                                  (set a root password)
-  @[ssh-keygen -A]                           (create the host keys)
-  @[/usr/sbin/sshd -o PermitRootLogin=yes]   (start the SSH server)
-then on the other computer: @[ssh root@ADDRESS] (@[ip addr] shows this
-machine's address). The host keys are new at every boot, so after a reboot
-ssh warns "REMOTE HOST IDENTIFICATION HAS CHANGED"; that is expected here:
-forget the old key there with @[ssh-keygen -R ADDRESS] and connect again.
+No network is needed to install. To get online, or to install over SSH from
+another computer: @[guide network]
 
 If you have any feedback for us, please drop by #sourcemage-cauldron
 on irc.libera.chat, file a bug on bugs.sourcemage.org,

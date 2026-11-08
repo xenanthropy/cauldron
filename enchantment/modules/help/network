@@ -1,0 +1,36 @@
+                         GUIDE: NETWORK AND SSH
+      (arrows/PgUp/PgDn to scroll, / to search, q to quit; "help" lists
+                             all commands)
+
+No network is needed to install: everything is on the ISO. It is only
+needed to cast spells that aren't on it (other boot loaders, systemd) or to
+install from another computer.
+
+1. GETTING ONLINE
+-----------------
+@[ip link] lists the network interfaces (e.g. enp1s0 wired, wlan0 or
+wlp0s20f3 Wi-Fi); replace wlan0 below with yours.
+
+  wired:  @[dhcpcd]
+  Wi-Fi:  @[wpa_passphrase 'NETWORK' 'PASSWORD' > /etc/wpa_supplicant.conf]
+          @[wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf]
+          @[dhcpcd wlan0]
+
+Check with @[ping -c 3 kernel.org]. The installed system has the same tools
+(copy /etc/wpa_supplicant.conf to $ENCHANT_TARGET/etc/ to keep the Wi-Fi
+setting).
+
+
+2. INSTALLING OVER SSH
+----------------------
+To install from another computer, run these three commands here:
+  @[passwd]                                  (set a root password)
+  @[ssh-keygen -A]                           (create the host keys)
+  @[/usr/sbin/sshd -o PermitRootLogin=yes]   (start the SSH server)
+then on the other computer: @[ssh root@ADDRESS] (@[ip addr] shows this
+machine's address).
+
+The host keys are new at every boot of the ISO, so after a reboot ssh warns
+"REMOTE HOST IDENTIFICATION HAS CHANGED". That is expected here: forget the
+old key on the other computer with @[ssh-keygen -R ADDRESS] and connect
+again.

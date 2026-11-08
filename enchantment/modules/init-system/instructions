@@ -6,7 +6,7 @@ classic setup. If that is what you want, there is nothing to do here: type
 
 To use @[systemd] instead (journald, logind, unit files, systemd-boot):
   @[enchantment install init systemd]
-This needs network in the live system (see @[todo welcome]): sorcery downloads
+This needs network in the live system (see @[guide network]): sorcery downloads
 and compiles systemd, linux-pam, polkit and a few libraries, and recompiles the
 installed spells that gain systemd or PAM support (util-linux, e2fsprogs,
 shadow, openssh, ...). Expect anywhere from 20 minutes to a few hours,
