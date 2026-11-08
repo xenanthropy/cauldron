@@ -1395,6 +1395,16 @@ sections below.
     /dev/rtc ... timed out" under TCG. Note: on terminals shorter than a
     step text (e.g. 80x25, serial), `todo`/`next` and the login welcome
     open in less (q quits); `select caches` opens the dialog menu.
+  - **smgl-devel-20261108** (687 MiB, sha512 b745a3743a1e...; the first
+    public test ISO): rebuilt sys + iso with everything since 20261104
+    (grub2 recast for both platforms with the RGB splash, GRUB theme + font
+    on the ISO, kernel with FB_DEVICE/THP, acpi, dialogrc, `guide
+    network`, the systemd installer fixes, access check). QEMU walkthroughs
+    UEFI and BIOS passed (install caches ~34 min under TCG); efivarfs
+    confirmed under OVMF (efibootmgr on the live system, grub-install's
+    "smgl" entry); installed systems boot with no console warnings; the
+    themed menu shows under OVMF. system.tar.xz: which, CA bundle, /tmp
+    1777, /root 0750, numeric owners.
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live
