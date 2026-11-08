@@ -1251,8 +1251,8 @@ sections below.
     2026, in progress): efibootmgr works on the live system with nothing
     mounted by hand (efivarfs fix confirmed). The welcome screen opens in
     less on the rotated 16x32 console (it is ~1 line too long for that
-    screen): to do, shorten it (e.g. move network/SSH into a `guide
-    network` page) so no one lands in a pager first thing. `select caches`
+    screen): done (Nov 2026): network/SSH moved to `guide network`
+    (help/network), the welcome screen is 22 lines and points to it. `select caches`
     menus now use sorcery's dialog colours (cauldron copies the build's
     `/etc/sorcery/dialogrc` to `/etc/enchantment/dialogrc`,
     `ENCHANT_DIALOGRC`); not yet in a built ISO.
@@ -1340,7 +1340,7 @@ sections below.
     linux-firmware. Fits with the generic-kernel project.
   - To do before a public test ISO (maintainer, Nov 2026): decide how much
     the installer configures before first boot; refresh smgl-setup's man
-    page (2008: calls Debian's `interfaces` a recent switch, assumes the
+    page (maintainer: after openrc, not for the first public test ISO) (2008: calls Debian's `interfaces` a recent switch, assumes the
     stable grimoire; the networking part ties in with the init-system
     project).
   - Directory modes (found on the hardware, Nov 2026: `gaze` as a user:
