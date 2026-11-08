@@ -26,5 +26,12 @@ and ESP/loader/loader.conf:
  @[bootctl list]               # checks the entry
  @[exit]
 
+bootctl may name /efi instead of your mount point: systemd's gpt-auto
+generator mounts the ESP the machine booted from on /efi when /boot is taken
+(an automount; the same partition, so nothing is lost). With the ESP in
+fstab it isn't needed; to switch it off:
+ @[ln -s /dev/null /etc/systemd/system-generators/systemd-gpt-auto-generator]
+(create the directory first), then after a reboot @[rmdir /efi].
+
 New kernels need their own entry (or edit this one). @[bootctl update]
 updates systemd-boot itself after systemd is recast.
