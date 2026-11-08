@@ -964,10 +964,6 @@ function cauldron_iso_check() {
     fi
   done
 
-  # SSH host keys are a machine's secret identity: they must be made on each
-  # machine, never shipped, neither in the live system nor in the caches it
-  # installs (a spell that runs ssh-keygen at install time puts the build
-  # machine's keys into its cache)
   # what other users can't reach in the live system
   out=$(cauldron_check_access "$target")
   if [[ -n "$out" ]]
@@ -984,6 +980,10 @@ function cauldron_iso_check() {
     ((problems++))
   fi
 
+  # SSH host keys are a machine's secret identity: they must be made on each
+  # machine, never shipped, neither in the live system nor in the caches it
+  # installs (a spell that runs ssh-keygen at install time puts the build
+  # machine's keys into its cache)
   cauldron_verbose "Checking for SSH host keys in $target..."
   for out in "$target"/etc/ssh/ssh_host_*key
   do
