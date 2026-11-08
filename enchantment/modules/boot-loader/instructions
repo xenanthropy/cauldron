@@ -11,9 +11,9 @@ choice has its own instructions:
 
 Only GRUB is on this ISO; the others need network (@[guide network]) to cast
 them into the new system now, from @[enchantment chroot] (copy the live
-system's DNS settings first: @[cp /etc/resolv.conf $ENCHANT_TARGET/etc/]). The new system needs a
-working boot loader to start the first time, so GRUB is the simple choice;
-you can switch later.
+system's DNS settings first: @[cp /etc/resolv.conf $ENCHANT_TARGET/etc/]). The
+new system needs a working boot loader to start the first time, so GRUB is the
+simple choice; you can switch later.
 
 To see these instructions again, type @[todo]. When the boot loader is set
 up, type @[next] to go on to the user setup.
