@@ -20,7 +20,9 @@ smgl.conf (your kernel version and PARTUUID):
   title   Source Mage
   linux   /vmlinuz-6.18.59
   options root=PARTUUID=PUT-IT-HERE rw
-and ESP/loader/loader.conf:
+and ESP/loader/loader.conf (bootctl writes one with these lines commented
+out: without a timeout there is no menu, the default entry boots at once;
+holding space at start shows it anyway):
   default smgl.conf
   timeout 3
  @[bootctl list]               # checks the entry
