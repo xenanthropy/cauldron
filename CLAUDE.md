@@ -1309,6 +1309,12 @@ sections below.
     report; first boot panicked on a `root=` without `PARTUUID=`, the
     maintainer's typo) and rEFInd (refind-install from the booted system,
     where mkrlconf copies the right options) both boot the system.
+    After `install init systemd` on the same laptop (Nov 2026): GRUB,
+    Limine, rEFInd and systemd-boot all boot the systemd system. Found on
+    the way: the console font (systemd spell's FONT=default8x16, fixed in
+    the installer), systemd's gpt-auto /efi automount (now masked), and
+    bootctl's loader.conf with `timeout` commented out, so systemd-boot
+    showed no menu (the page says so).
     The grub page (46 lines) had grub-mkconfig at line 39: on the
     maintainer's rotated console `less` showed the first screen only, so
     the menu step went unseen. It now starts with the three steps
