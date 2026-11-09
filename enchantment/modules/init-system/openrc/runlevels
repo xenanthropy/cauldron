@@ -1,0 +1,6 @@
+# service runlevel [program that must exist for it to be enabled]
+udev sysinit /sbin/udevd
+udev-trigger sysinit /sbin/udevd
+metalog boot /sbin/metalog
+networking default /sbin/ifup
+nscd default /usr/sbin/nscd

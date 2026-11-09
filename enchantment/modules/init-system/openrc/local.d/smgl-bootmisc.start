@@ -1,0 +1,5 @@
+#!/bin/sh
+# Source Mage: runs /etc/sysconfig/bootmisc at boot if it is executable, as
+# simpleinit's smgl-misc did (SMGL's rc.local; e.g. zram, see "guide disks")
+[ -x /etc/sysconfig/bootmisc ] && /bin/bash -c '. /etc/sysconfig/bootmisc'
+exit 0

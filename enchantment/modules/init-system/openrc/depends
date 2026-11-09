@@ -1,0 +1,6 @@
+# openrc's optional dependencies: none needed for the base system
+openrc:audit:off
+openrc:bash-completion:off
+openrc:libselinux:off
+openrc:linux-pam:off
+openrc:zsh:off

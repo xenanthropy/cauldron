@@ -320,7 +320,7 @@ function enchant_install_init_restore() {
 ## runlevel script), so it can't be started by mistake.
 ##
 #-------------------------------------------------------------------------------
-function enchant_install_init_settings() {
+function enchant_install_init_settings_systemd() {
   local target="$1"
   local sysconfig="$target/etc/sysconfig"
   local vconsole="$target/etc/vconsole.conf"
@@ -404,20 +404,149 @@ function enchant_install_init_settings() {
 
 #-------------------------------------------------------------------------------
 ##
-## @param init system: systemd (simpleinit, the base system's own, is a no-op)
+## @param target root
+## @param data directory (init-system/openrc)
+##
+## After openrc is cast: keeps simpleinit's scripts aside (everything in
+## /etc/init.d that isn't an openrc script goes to /etc/init.d.simpleinit;
+## openrc would list the runlevels directory and fuse's script as services),
+## installs the service scripts SMGL's spells don't ship (udev, metalog,
+## nscd, sshd, networking, dhcpcd) with their conf.d files and the local.d
+## hooks for /etc/sysconfig/bootmisc and haltmisc, enables the services of
+## the data's runlevels file (and sshd if it was enabled), and writes SMGL's
+## settings from /etc/sysconfig into openrc's conf.d: the hardware clock,
+## the keymap, the console font, and the modules of /etc/modules.
+##
+#-------------------------------------------------------------------------------
+function enchant_install_init_settings_openrc() {
+  local target="$1"
+  local data="$2"
+  local sysconfig="$target/etc/sysconfig"
+  local initd="$target/etc/init.d"
+  local confd="$target/etc/conf.d"
+  local old="$target/etc/init.d.simpleinit"
+  local file=
+  local svc=
+  local level=
+  local need=
+  local value=
+  local sshd_on=
+
+  # was sshd enabled under simpleinit?
+  [[ -x "$initd/runlevels/%3/sshd" ]] && sshd_on=yes
+
+  for file in "$initd"/*
+  do
+    [[ -e "$file" || -L "$file" ]] || continue
+    [[ "${file##*/}" == "functions.sh" ]] && continue
+    if [[ -d "$file" ]] || ! head -n 1 "$file" | grep -q 'openrc-run'
+    then
+      "${ENCHANT_CMD_MKDIR[@]}" "$old" &&
+        mv "$file" "$old/" || return $ERR_INSTALL_INIT
+    fi
+  done
+
+  "${ENCHANT_CMD_MKDIR[@]}" "$confd" "$target/etc/local.d" ||
+    return $ERR_INSTALL_INIT
+  for file in "$data/init.d"/*
+  do
+    "${ENCHANT_CMD_CP[@]}" "$file" "$initd/" &&
+      chmod 0755 "$initd/${file##*/}" || return $ERR_INSTALL_INIT
+  done
+  for file in "$data/conf.d"/*
+  do
+    [[ -e "$confd/${file##*/}" ]] && continue
+    "${ENCHANT_CMD_CP[@]}" "$file" "$confd/" || return $ERR_INSTALL_INIT
+  done
+  for file in "$data/local.d"/*
+  do
+    "${ENCHANT_CMD_CP[@]}" "$file" "$target/etc/local.d/" &&
+      chmod 0755 "$target/etc/local.d/${file##*/}" || return $ERR_INSTALL_INIT
+  done
+
+  # enable services (as rc-update add does: a link in the runlevel)
+  while read -r svc level need
+  do
+    [[ -z "$svc" || "$svc" == \#* ]] && continue
+    [[ -z "$need" || -e "$target$need" ]] || continue
+    "${ENCHANT_CMD_MKDIR[@]}" "$target/etc/runlevels/$level" &&
+      ln -sfn "/etc/init.d/$svc" "$target/etc/runlevels/$level/$svc" ||
+      return $ERR_INSTALL_INIT
+  done < "$data/runlevels"
+  if [[ "$sshd_on" == "yes" && -e "$target/usr/sbin/sshd" ]]
+  then
+    ln -sfn /etc/init.d/sshd "$target/etc/runlevels/default/sshd" ||
+      return $ERR_INSTALL_INIT
+  fi
+
+  # the hardware clock in local time (UTC is openrc's default too)
+  if grep -qi '^UTC=no' "$sysconfig/hwclock" 2> "$ENCHANT_NULL" &&
+    [[ -f "$confd/hwclock" ]]
+  then
+    "${ENCHANT_CMD_SEDFILE[@]}" 's/^clock=.*/clock="local"/' "$confd/hwclock" ||
+      return $ERR_INSTALL_INIT
+  fi
+
+  # the console keymap (SMGL's "defkeymap" is the kernel's own: keep "us")
+  value=$(sed -n 's/^KEYMAP=["'\'']*\([^"'\'']*\).*/\1/p' \
+    "$sysconfig/keymap" 2> "$ENCHANT_NULL")
+  if [[ -n "$value" && "$value" != "defkeymap" && -f "$confd/keymaps" ]]
+  then
+    "${ENCHANT_CMD_SEDFILE[@]}" "s|^keymap=.*|keymap=\"$value\"|" \
+      "$confd/keymaps" || return $ERR_INSTALL_INIT
+  fi
+
+  # the console font: SETFONT_ARGS' font (empty: keep the kernel's)
+  value=$(sed -n 's/^SETFONT_ARGS=["'\'']*\([^"'\'' ]*\).*/\1/p' \
+    "$sysconfig/keymap" 2> "$ENCHANT_NULL")
+  if [[ -n "$value" && "$value" != -* && -f "$confd/consolefont" ]]
+  then
+    "${ENCHANT_CMD_SEDFILE[@]}" "s|^consolefont=.*|consolefont=\"$value\"|" \
+      "$confd/consolefont" &&
+      ln -sfn /etc/init.d/consolefont \
+        "$target/etc/runlevels/boot/consolefont" ||
+      return $ERR_INSTALL_INIT
+  fi
+
+  # /etc/modules (modprobe at boot by simpleinit's modutils): the names go to
+  # modules-load.d, which openrc's modules service reads; options to
+  # modprobe.d
+  if grep -qv '^[[:space:]]*\(#\|$\)' "$target/etc/modules" 2> "$ENCHANT_NULL"
+  then
+    "${ENCHANT_CMD_MKDIR[@]}" "$target/etc/modules-load.d" \
+      "$target/etc/modprobe.d" || return $ERR_INSTALL_INIT
+    while read -r svc value
+    do
+      [[ -z "$svc" || "$svc" == \#* ]] && continue
+      echo "$svc" >> "$target/etc/modules-load.d/smgl-modules.conf"
+      [[ -n "$value" ]] &&
+        echo "options $svc $value" >> "$target/etc/modprobe.d/smgl-modules.conf"
+    done < "$target/etc/modules" || return $ERR_INSTALL_INIT
+  fi
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+##
+## @param init system: systemd or openrc (simpleinit, the base system's own,
+##        is a no-op)
 ##
 ## Switches the installed system (ENCHANT_TARGET) to another init system. The
 ## base system comes with simpleinit-msb; for systemd, sorcery in the target
 ## casts systemd (with linux-pam, libseccomp, systemd-boot, polkit, dbus with
 ## systemd support) and recompiles the installed spells that build systemd
-## units/libsystemd or PAM support. That downloads and compiles, so it needs
-## network access in the live system.
+## units/libsystemd or PAM support; for openrc, it casts openrc, recompiles
+## procps-ng (pidof) and installs the service scripts SMGL's spells don't
+## ship. That downloads and compiles, so it needs network access in the live
+## system.
 ##
 ## The data comes from $ENCHANT_MODULES/init-system/<init>/ (see the README
-## there): sorcery answers, spell option presets, a PAM stack and the list of
-## spells to recompile. simpleinit-msb is dispelled first: it owns /sbin/init,
-## halt, reboot, ... too, and dispelling it after systemd would delete
-## systemd's.
+## there): sorcery answers, spell option presets, the spells the init
+## replaces (dispelled first: simpleinit-msb owns /sbin/init, halt, reboot,
+## ... too, and dispelling it afterwards would delete the new init's), the
+## providers to rewrite in sorcery's records, the spells to recompile, and
+## init-specific files.
 ##
 #-------------------------------------------------------------------------------
 function enchant_install_init() {
@@ -437,6 +566,7 @@ function enchant_install_init() {
   local njobs_temp=
   local rc=
   local backup="$ENCHANT_TMP/init-backup"
+  local replaces=()
 
   case "$init" in
     simpleinit|simpleinit-msb )
@@ -444,7 +574,7 @@ function enchant_install_init() {
         "simpleinit-msb is the base system's init: nothing to install"
       return $ERR_OK
       ;;
-    systemd )
+    systemd|openrc )
       ;;
     * )
       return $ERR_INSTALLER_CMD
@@ -464,7 +594,7 @@ function enchant_install_init() {
     "$ENCHANT_NET_TEST_URL" > "$ENCHANT_NULL" 2>&1
   then
     libcolor_msg error "no network: can't reach $ENCHANT_NET_TEST_URL" \
-      "(see todo welcome for connecting; nothing was changed)"
+      "(see guide network for connecting; nothing was changed)"
     return $ERR_INSTALL_INIT_NET
   fi
 
@@ -492,11 +622,16 @@ function enchant_install_init() {
     fi
   done < "$data/depends"
 
-  # systemd replaces eudev as the DEVICE-MANAGER (lvm, cryptsetup-luks,
-  # init.d, ... recorded eudev, which conflicts with systemd)
-  "${ENCHANT_CMD_SEDFILE[@]}" \
-    "s/:eudev(DEVICE-MANAGER):/:$init(DEVICE-MANAGER):/" "$state/depends" ||
-    return $ERR_INSTALL_INIT
+  # providers the new init takes over (systemd replaces eudev as the
+  # DEVICE-MANAGER that lvm, cryptsetup-luks, init.d, ... recorded; openrc
+  # replaces init.d as smgl-system's INITSCRIPTS)
+  while read -r spell dep
+  do
+    [[ -z "$spell" || "$spell" == \#* ]] && continue
+    "${ENCHANT_CMD_SEDFILE[@]}" \
+      "s/:$spell($dep):/:$init($dep):/" "$state/depends" ||
+      return $ERR_INSTALL_INIT
+  done < "$data/providers"
 
   # spell option presets
   "${ENCHANT_CMD_MKDIR[@]}" "$config" || return $ERR_INSTALL_INIT
@@ -520,7 +655,7 @@ function enchant_install_init() {
   fi
   # systemd-sysctl only reads sysctl.d directories, not /etc/sysctl.conf;
   # the usual link keeps the shipped settings (and the user's edits) working
-  if [[ -f "$target/etc/sysctl.conf" &&
+  if [[ "$init" == "systemd" && -f "$target/etc/sysctl.conf" &&
         ! -e "$target/etc/sysctl.d/99-sysctl.conf" ]]
   then
     "${ENCHANT_CMD_MKDIR[@]}" "$target/etc/sysctl.d" &&
@@ -567,16 +702,18 @@ function enchant_install_init() {
   enchant_chroot_init "$target"
   liberror_check || return $?
 
-  # simpleinit-msb and eudev own files systemd installs (/sbin/init, ...) or
-  # conflict with it; nothing else depends on them. Keep a copy of their
-  # files and sorcery records: if systemd doesn't get installed (a download
-  # or build fails), they go back, so the system still boots as before
-  enchant_install_init_backup "$target" "$backup" simpleinit-msb eudev ||
+  # the spells the new init replaces own files it installs (/sbin/init, ...)
+  # or conflict with it (simpleinit-msb and eudev for systemd, simpleinit-msb
+  # and init.d for openrc). Keep a copy of their files and sorcery records:
+  # if the new init doesn't get installed (a download or build fails), they
+  # go back, so the system still boots as before
+  replaces=( $(grep -v '^#' "$data/replaces") )
+  enchant_install_init_backup "$target" "$backup" "${replaces[@]}" ||
     return $ERR_INSTALL_INIT
 
   rc=$ERR_OK
   # (PAGER=cat: no pager for sorcery's notices, see enchant_install_caches)
-  enchant_chroot env PROMPT_DELAY=0 dispel --nosustain simpleinit-msb eudev &&
+  enchant_chroot env PROMPT_DELAY=0 dispel --nosustain "${replaces[@]}" &&
     enchant_chroot env PROMPT_DELAY=0 PAGER=cat cast "$init" ||
     rc=$ERR_INSTALL_INIT
 
@@ -587,8 +724,8 @@ function enchant_install_init() {
     [[ "$njobs_temp" == "yes" ]] &&
       "${ENCHANT_CMD_SEDFILE[@]}" '/^MAKE_NJOBS=/d' "$njobs_file"
     libcolor_msg error "$init could not be installed (see sorcery's output" \
-      "above); simpleinit-msb and eudev were put back, so the system boots" \
-      "as before. You can try again once the problem is fixed."
+      "above); ${replaces[*]} were put back, so the system boots as before." \
+      "You can try again once the problem is fixed."
     return $ERR_INSTALL_INIT
   fi
 
@@ -607,11 +744,14 @@ function enchant_install_init() {
 
   [[ "$rc" -eq "$ERR_OK" ]] || return $rc
 
-  # SMGL's own settings (/etc/sysconfig) in the files systemd reads
-  enchant_install_init_settings "$target" || return $ERR_INSTALL_INIT
+  # SMGL's own settings (/etc/sysconfig) in the files the new init reads, and
+  # its services
+  "enchant_install_init_settings_$init" "$target" "$data" ||
+    return $ERR_INSTALL_INIT
 
   # sshd only goes through PAM (and so pam_systemd) with UsePAM
   file="$target/etc/ssh/sshd_config"
+  [[ "$init" == "systemd" ]] || file=/nonexistent
   # (the first setting wins, and a line appended at the end could land in a
   # Match block, so replace the commented default or put it first)
   if [[ -f "$file" ]] && ! grep -q '^UsePAM' "$file"
@@ -625,7 +765,7 @@ function enchant_install_init() {
   fi
 
   # cast's exit status doesn't tell whether everything was installed
-  for spell in "$init" dbus linux-pam policykit "${recast[@]}"
+  for spell in $(grep -v '^#' "$data/check") "${recast[@]}"
   do
     grep -q "^$spell:" "$state/packages" 2> "$ENCHANT_NULL" ||
       missing+=( "$spell" )

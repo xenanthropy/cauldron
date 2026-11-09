@@ -1,0 +1,2 @@
+# procps-ng builds pidof only without simpleinit-msb, which shipped it
+procps-ng

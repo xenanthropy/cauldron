@@ -1,0 +1,23 @@
+Data for "enchantment install init openrc" (enchant_install_init and
+enchant_install_init_settings_openrc in lib/lib.install):
+
+  depends    answers for sorcery, "spell:dependency:on|off" (see systemd/)
+  presets/   openrc.p answers "SysVinit compatibility" with yes: without it
+             OpenRC installs no /sbin/init (openrc-init), halt, reboot, ...
+             and no getties
+  replaces   spells dispelled before openrc is cast (and restored if it
+             fails): simpleinit-msb (owns /sbin/init, ...) and init.d
+             (conflicts with openrc, which provides INITSCRIPTS)
+  providers  "spell PROVIDER" rewritten to openrc in sorcery's records
+  recast     installed spells to recompile: procps-ng builds pidof only
+             without simpleinit-msb, which shipped it
+  check      spells that must be installed afterwards
+  init.d/    service scripts SMGL's spells don't ship: udev, udev-trigger,
+             udev-settle (eudev), metalog, nscd, sshd, dhcpcd,
+             wpa_supplicant (Gentoo's, adapted; see the headers), and
+             networking (ifup -a for /etc/network/interfaces, our own)
+  conf.d/    their settings (copied only where none exist)
+  local.d/   runs /etc/sysconfig/bootmisc and haltmisc, like simpleinit's
+             smgl-misc
+  runlevels  "service runlevel [file]": enabled when the file exists in the
+             target (sshd too if it was enabled under simpleinit)

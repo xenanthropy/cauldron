@@ -1,0 +1,5 @@
+#!/bin/sh
+# Source Mage: runs /etc/sysconfig/haltmisc at shutdown if it is executable,
+# as simpleinit's smgl-misc did
+[ -x /etc/sysconfig/haltmisc ] && /bin/bash -c '. /etc/sysconfig/haltmisc'
+exit 0

@@ -1,0 +1,9 @@
+# /etc/conf.d/metalog
+
+# Some useful options:
+#  -a   Log with buffering
+#  -s   Log without buffering
+# See `metalog --help` for more
+
+METALOG_OPTS=""
+

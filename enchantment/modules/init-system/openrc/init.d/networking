@@ -1,0 +1,39 @@
+#!/sbin/openrc-run
+# Source Mage (cauldron): brings up the interfaces of /etc/network/interfaces
+# with ifupdown, as SMGL's simpleinit "network" script does (ifup -a); the
+# same arrangement as Alpine's "networking" service. For DHCP on every
+# interface without a config file, use the dhcpcd service instead:
+#   rc-update del networking default; rc-update add dhcpcd default
+# Distributed under the terms of the GNU General Public License v2
+
+description="Configures the interfaces in /etc/network/interfaces"
+cfgfile=/etc/network/interfaces
+
+depend() {
+	need localmount
+	after bootmisc hwclock modules
+	use logger
+	provide net
+	keyword -jail -prefix -vserver -docker -podman -lxc
+}
+
+start_pre() {
+	if [ ! -f "$cfgfile" ]; then
+		eerror "$cfgfile is missing (see interfaces(5))"
+		return 1
+	fi
+	# ifupdown keeps its state in /run/network
+	checkpath -d /run/network
+}
+
+start() {
+	ebegin "Starting networking"
+	ifup --force -a
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping networking"
+	ifdown -a
+	eend $?
+}

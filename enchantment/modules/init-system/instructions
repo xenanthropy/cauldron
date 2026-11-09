@@ -2,36 +2,34 @@
 The init system starts and stops everything else. The base system you just
 installed uses @[simpleinit-msb] with SMGL's init.d scripts, Source Mage's
 classic setup. If that is what you want, there is nothing to do here: type
-@[next].
+@[next]. Otherwise (both need network, see @[guide network]):
 
-To use @[systemd] instead (journald, logind, unit files, systemd-boot):
+@[systemd] (journald, logind, unit files, systemd-boot):
   @[enchantment install init systemd]
-This needs network in the live system (see @[guide network]): sorcery downloads
-and compiles systemd, linux-pam, polkit and a few libraries, and recompiles the
-installed spells that gain systemd or PAM support (util-linux, e2fsprogs,
-shadow, openssh, ...). Expect anywhere from 20 minutes to a few hours,
-depending on the machine. It also replaces simpleinit-msb and eudev, and writes
-a PAM setup (/etc/pam.d/system-auth and system-login).
+  sorcery compiles systemd, linux-pam, polkit and a few libraries, and
+  recompiles the spells that gain systemd or PAM support (util-linux,
+  e2fsprogs, shadow, openssh, ...): 20 minutes to a few hours. It replaces
+  simpleinit-msb and eudev and writes a PAM setup (/etc/pam.d/system-auth).
+  Afterwards: @[todo systemd], and @[todo systemd-boot] for its boot loader.
 
-It runs two casts: systemd and what it needs (util-linux is rebuilt there with
-sulogin), then the recompiles (util-linux again, now that systemd exists).
-Each ends with the spells' notices; they are also kept in
-$ENCHANT_TARGET/tmp/cast/backup/*/notice_log (in /tmp: read them before
-rebooting).
+@[OpenRC] (Gentoo's and Alpine's init: shell scripts with dependencies):
+  @[enchantment install init openrc]
+  sorcery compiles openrc and libcap and recompiles procps-ng: a few
+  minutes. It replaces simpleinit-msb and init.d, installs service scripts
+  (udev, metalog, nscd, sshd, networking for /etc/network/interfaces,
+  dhcpcd, wpa_supplicant) and carries the clock, keymap and font settings
+  over. Afterwards: @[todo openrc].
 
-systemd isn't on the ISO (to keep it small), hence the compiling. sorcery
-normally uses one CPU core (its MAKE_NJOBS setting); unless you set it, this
-command uses all cores while it runs and then puts the setting back. To set
-it for good (the edit-confs step comes back to it; leaving 2 or 3 threads
-free keeps a machine usable while it compiles): @[enchantment chroot],
-@[sorcery], Option Menu, Parallel/Cached/Distributed Compiling, EXTRA_JOBS
-(Adjust, then OK). If the network fails before systemd is installed, the
-command puts simpleinit-msb back, so the system still boots.
+Each cast ends with the spells' notices, also kept in
+$ENCHANT_TARGET/tmp/cast/backup/*/notice_log (read them before rebooting).
+sorcery normally compiles on one CPU core (MAKE_NJOBS); unless you set it,
+the command uses all cores while it runs and then puts the setting back. To
+set it for good (leaving 2 or 3 threads free keeps a machine usable):
+@[enchantment chroot], @[sorcery], Option Menu, Parallel/Cached/Distributed
+Compiling, EXTRA_JOBS. If the new init can't be installed (network, a failed
+build), the command puts simpleinit-msb back, so the system still boots.
 
-Afterwards, @[todo systemd] explains networking, services and logs under
-systemd, and @[todo systemd-boot] its boot loader (you can still use GRUB).
-
-You can also switch later, from the installed system, by casting systemd; the
-installer's command does the extra work (answers, PAM, recompiles) for you.
+You can also switch later, from the installed system, by casting the init
+yourself; the installer's command does the extra work for you.
 
 When you are ready, type @[next].

@@ -1,0 +1,25 @@
+@[openrc page]
+After @[enchantment install init openrc], the new system boots with OpenRC
+(/sbin/init is openrc-init). Some things work differently from simpleinit:
+
+Services: @[rc-update add sshd default] enables one, @[rc-service sshd start]
+  starts it now, @[rc-status] shows them all (@[rc-update show] the runlevels).
+  Scripts are in /etc/init.d, their settings in /etc/conf.d. simpleinit's
+  scripts were moved to /etc/init.d.simpleinit (unused).
+Logins: getties on tty1..6 (the agetty.ttyN services).
+Logs: metalog, as before (/var/log/everything/current); @[dmesg] for the
+  kernel.
+Network: the networking service runs @[ifup -a] for /etc/network/interfaces,
+  as before. For DHCP on every interface without that file, use dhcpcd:
+  @[rc-update del networking default] and @[rc-update add dhcpcd default]
+  Wifi: put your network in /etc/wpa_supplicant.conf (see @[guide network]),
+  then @[rc-update add wpa_supplicant default] (it finds the wifi interface
+  itself) together with dhcpcd as above. Do this before rebooting (in
+  @[enchantment chroot]) on a machine without a cable.
+Settings: hardware clock in /etc/conf.d/hwclock, keymap in
+  /etc/conf.d/keymaps, console font in /etc/conf.d/consolefont (then
+  @[rc-update add consolefont boot]), modules to load in
+  /etc/modules-load.d/*.conf, commands to run at boot in
+  /etc/local.d/*.start (/etc/sysconfig/bootmisc still runs from there).
+
+To see this again, type @[todo openrc].
