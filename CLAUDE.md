@@ -468,6 +468,25 @@ system.tar.xz; nothing built yet).**
   and /var/lock to links into /run at first boot, so Gentoo's
   /run/nscd/nscd.pid matches.
 
+**Installer command (Nov 2026, written, not yet tested): `enchantment
+install init openrc`** (data in `enchantment/modules/init-system/openrc/`,
+see its README; `enchant_install_init` now reads `replaces`, `providers`
+and `check` from each init's data, and calls
+`enchant_install_init_settings_<init>`). Networking (maintainer's choice):
+a `networking` service running `ifup -a` for /etc/network/interfaces (as
+simpleinit's network script and Alpine do) enabled; `dhcpcd` and
+`wpa_supplicant` (Gentoo's) installed for DHCP/Wi-Fi without that file.
+netifrc stays a plain cast. Found writing it: simpleinit-msb also ships
+pidof, mountpoint, sulogin, killall5, wall, last, lastb, mesg, utmpdump;
+procps-ng builds pidof only when simpleinit-msb isn't installed, so both
+init switches recast it; util-linux hard-disables last, mesg, utmpdump
+(and builds sulogin only with UL_SULOGIN), so those are gone after a
+switch (OpenRC has its own kill_all and uses /bin/sh as emergency shell;
+for the team: util-linux could enable them when simpleinit-msb isn't
+installed, as procps-ng does). eudev's udevd creates /dev/fd, stdin,
+stdout, stderr itself (a tester's chroot without udevd lacked them; not a
+bug). To test: needs openrc-0.64.1.tar.gz uploaded (GitHub archive).
+
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**
 - A detailed how-to for *running* cauldron, for the maintainer and the
