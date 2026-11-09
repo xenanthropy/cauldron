@@ -305,6 +305,19 @@ function build_spells() {
       transient+=( "$spell" )
   done
 
+  # config files left by an earlier cast would be missing from the new
+  # caches (CAULDRON_CACHE_CONFIGS)
+  local entry=
+  for spell in "${spells[@]}"
+  do
+    for entry in "${CAULDRON_CACHE_CONFIGS[@]}"
+    do
+      [[ "${entry%%:*}" == "$spell" ]] || continue
+      "${CAULDRON_CMD_RM[@]}" -f "$CAULDRON_BUILD/${entry#*:}" ||
+        return $ERR_RM_FILE
+    done
+  done
+
   cauldron_chroot_init "$CAULDRON_BUILD"
   liberror_check || return $?
 

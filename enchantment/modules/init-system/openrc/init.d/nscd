@@ -35,6 +35,8 @@ checkconfig() {
 	fi
 
 	if grep -qs '^[[:space:]]*persistent\>' /etc/nscd.conf ; then
+		# SMGL has no /var/db (checkpath makes only the last component)
+		checkpath -d -m 755 /var/db
 		checkpath -d -m 700 /var/db/nscd
 	fi
 }

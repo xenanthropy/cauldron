@@ -468,7 +468,7 @@ system.tar.xz; nothing built yet).**
   and /var/lock to links into /run at first boot, so Gentoo's
   /run/nscd/nscd.pid matches.
 
-**Installer command (Nov 2026, written, not yet tested): `enchantment
+**Installer command (Nov 2026): `enchantment
 install init openrc`** (data in `enchantment/modules/init-system/openrc/`,
 see its README; `enchant_install_init` now reads `replaces`, `providers`
 and `check` from each init's data, and calls
@@ -485,7 +485,20 @@ switch (OpenRC has its own kill_all and uses /bin/sh as emergency shell;
 for the team: util-linux could enable them when simpleinit-msb isn't
 installed, as procps-ng does). eudev's udevd creates /dev/fd, stdin,
 stdout, stderr itself (a tester's chroot without udevd lacked them; not a
-bug). To test: needs openrc-0.64.1.tar.gz uploaded (GitHub archive).
+bug). **Tested (Nov 2026):** in a chroot (an unpacked system.tar.xz) and
+then for real in QEMU (BIOS): the simpleinit system installed from the
+20261108 ISO, `install init openrc` run against its disk from the
+sandbox's host chroot (openrc-0.64.1.tar.gz uploaded by the maintainer),
+then booted: PID 1 is openrc-init; sysinit/boot/default all started
+(udev, udev-trigger, metalog, networking, nscd, sshd, netmount, local,
+agetty.tty1-6), `rc-status --crashed` empty; /dev/fd and /dev/std*
+there; /var/run and /var/lock moved into /run by bootmisc; pidof back
+(procps-ng); clock and keymap settings carried over; a user logs in and
+pings; poweroff is clean. The first boot found two faults: nscd's
+`checkpath /var/db/nscd` failed because SMGL has no /var/db (our nscd
+script makes it now), and sshd had no sshd_config, which turned out to be
+the openssh cache itself (see the install_config_file entry in the team
+report; fixed with `CAULDRON_CACHE_CONFIGS`, cache rebuilt).
 
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**
@@ -1073,6 +1086,22 @@ sections below.
   - sorcery's default sustained list has acl and attr, so `dispel acl`
     does nothing without `--nosustain` (noticed undoing the systemd
     experiment, which had cast them).
+  - sorcery's `install_config_file` (libresurrect
+    `internal_install_config_file`) doesn't copy a config file that
+    already exists and is identical (a differing one goes through
+    `real_handle_changed_config`, which asks what to do); an identical
+    file isn't written, so it isn't in the install log or the spell's
+    cache. A cache made on a machine that
+    already had the files (any recast, a cast after a dispel that left
+    them) therefore lacks them, and a system installed from that cache has
+    none: the openssh caches on the ISOs up to smgl-devel-20261108 have no
+    /etc/ssh at all (sshd refuses to start without sshd_config; found
+    booting the OpenRC test, Nov 2026). Matters to anyone sharing caches;
+    sorcery could copy an identical file anyway (it's harmless) so that
+    it's recorded. Cauldron removes the listed files before casting
+    (`CAULDRON_CACHE_CONFIGS`) and its checks fail on a cache without them.
+    Fix on a system installed with that cache, with network: `cast -c
+    openssh` (no /etc/ssh files exist, so they get installed).
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).

@@ -786,6 +786,14 @@ function cauldron_sys_check() {
   cauldron_chroot_init "$target"
   liberror_check || return $?
 
+  # configuration files that the spells' caches must carry
+  out=$(cauldron_check_cache_configs "$target")
+  if [[ -n "$out" ]]
+  then
+    echo "$out"
+    ((problems++))
+  fi
+
   # directory modes (users can't write to a 0755 /tmp)
   for out in "${CAULDRON_FHS_MODES[@]}"
   do
@@ -854,6 +862,42 @@ function cauldron_sys_check() {
   [[ "$problems" -eq 0 ]] || return $ERR_SYS_CHECK
 
   return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+## @param target directory
+##
+## Prints the configuration files of CAULDRON_CACHE_CONFIGS that are missing:
+## from the target's tree when it has the spell installed, and from the
+## spell's caches in the target's /var/cache/sorcery (a file left in the build
+## chroot keeps sorcery's install_config_file from copying it, so the cache
+## lacks it). Prints nothing if all is well.
+##
+#-------------------------------------------------------------------------------
+function cauldron_check_cache_configs() {
+  local target="$1"
+  local packages="$target/var/state/sorcery/packages"
+  local entry=
+  local spell=
+  local file=
+  local cache=
+
+  for entry in "${CAULDRON_CACHE_CONFIGS[@]}"
+  do
+    spell="${entry%%:*}"
+    file="${entry#*:}"
+    if grep -q "^$spell:[^:]*:\(installed\|held\):" "$packages" \
+      2> "$CAULDRON_NULL" && [[ ! -e "$target/$file" ]]
+    then
+      echo "/$file missing (spell $spell)"
+    fi
+    for cache in "$target/var/cache/sorcery/$spell"-[0-9]*.tar*
+    do
+      [[ -f "$cache" ]] || continue
+      "${CAULDRON_CMD_TAR[@]}" -tf "$cache" | grep -qx "$file" ||
+        echo "$file missing from the spell cache ${cache##*/}"
+    done
+  done
 }
 
 #-------------------------------------------------------------------------------
@@ -1001,6 +1045,14 @@ function cauldron_iso_check() {
       ((problems++))
     fi
   done
+
+  # configuration files that the spells' caches must carry
+  out=$(cauldron_check_cache_configs "$target")
+  if [[ -n "$out" ]]
+  then
+    echo "$out"
+    ((problems++))
+  fi
 
   # the installer resurrects the caches with the system tarball's sorcery,
   # which only takes a cache whose version matches its grimoire (otherwise it
