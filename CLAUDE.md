@@ -435,6 +435,18 @@ system.tar.xz; nothing built yet).**
   for caches/spells users add: dhcpcd, wpa_supplicant, lvm, mdadm (mdraid),
   dmcrypt (cryptsetup), dbus, cronie. crypt_fs/remote_fs placeholders:
   netmount/dmcrypt cover them.
+- Built and staged (Nov 2026, in the build chroot under /tmp/orc, with the
+  spell's options and libcap 2.76 built privately; nothing installed into
+  the chroot): the install fills its own runlevels. sysinit: cgroups,
+  devfs, dmesg, sysfs; boot: procfs, root, fsck, localmount, swap,
+  hostname, hwclock, keymaps, modules, sysctl, binfmt, bootmisc, loopback,
+  mtab, seedrng, save-keymaps, save-termencoding, termencoding; default:
+  local, netmount (+ agetty.tty1-6 with sysvinit=true); shutdown:
+  killprocs, mount-ro, savecache. Installed, not enabled: backlight,
+  consolefont, net-online, numlock, osclock, swclock, user, runsvdir,
+  s6-svscan, sysv-initctl. conf.d for most, /etc/rc.conf. The only
+  difference sysvinit=true makes: /sbin/init -> openrc-init, halt,
+  poweroff, reboot, shutdown, and the agetty.tty1-6 services + links.
 
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**
