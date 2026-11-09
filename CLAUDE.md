@@ -1044,6 +1044,13 @@ sections below.
     FONT= line systemd keeps the kernel's font: the spell shouldn't write
     one. `enchant_install_init_settings` drops that line and carries SMGL's
     SETFONT_ARGS over (FONT/FONT_MAP/FONT_UNIMAP).
+  - openrc 0.64.1's CONFIGURE asks "Enable SysVinit compatibility?" with
+    default n. With n, OpenRC installs no /sbin/init, halt, poweroff,
+    reboot, shutdown or agetty.ttyN services: that suits a system where
+    another init is PID 1 (sysvinit on Gentoo, runit, s6), but the test
+    grimoire has no sysvinit spell, and simpleinit-msb can't run OpenRC, so
+    an SMGL system switched with the default doesn't boot. Default y, or
+    say in the question that n is only for runit/s6 as PID 1.
   - sorcery's default sustained list has acl and attr, so `dispel acl`
     does nothing without `--nosustain` (noticed undoing the systemd
     experiment, which had cast them).
