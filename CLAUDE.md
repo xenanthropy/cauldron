@@ -392,6 +392,50 @@ init-specific installer texts; (e) QEMU install + boot test, as for the
 simpleinit ISO. Open: name scheme of the two ISOs; whether the team wants
 to publish the systemd one at all at first.
 
+**openrc: gap analysis of the system scripts (Nov 2026, from the test
+grimoire's openrc 0.64.1 spell, OpenRC's 0.64.1 source and the 20261108
+system.tar.xz; nothing built yet).**
+- The spell is a plain meson build of upstream; no spell in the grimoire
+  ships openrc-run scripts (only `ly` installs its own with `installopenrc`;
+  `netifrc` 0.7.14, Gentoo's network scripts, exists and depends on openrc).
+- With the spell's default "SysVinit compatibility? n" OpenRC installs no
+  /sbin/init, halt, poweroff, reboot or shutdown, and no agetty.ttyN links
+  (both only with `sysvinit=true`; then /sbin/init -> openrc-init). So the
+  installer must answer y (or the kernel needs init=/sbin/openrc-init) and
+  enable agetty.tty1..N in the default runlevel; dispel simpleinit-msb
+  first, as for systemd. openrc CONFLICTS init.d (smgl-system depends on
+  INITSCRIPTS, which openrc provides). Its PROVIDES also lists
+  LOGIN-DAEMON, which looks wrong (that is elogind/systemd).
+- What upstream ships for Linux: sysinit/boot/shutdown scripts (procfs,
+  sysfs, devfs, cgroups, dmesg, root, fsck, localmount, swap, hostname,
+  hwclock/swclock, keymaps, consolefont, termencoding, modules, sysctl,
+  binfmt, bootmisc, loopback, netmount, seedrng, mtab, savecache,
+  killprocs, mount-ro, local, agetty, net-online, numlock, backlight,
+  sysv-initctl, user, runsvdir, s6-svscan); `network`/`staticroute` only
+  with newnet=true.
+- SMGL's boot today (system.tar.xz): %DEV devices, udevd, coldplug; %S
+  mountroot.sh, mountall.sh, hostname.sh, hwclock.sh, keymap.sh, modutils,
+  smgl-sysctl, smgl-metalog, smgl-default-crypt-fs, single; %3 network
+  (ifupdown `ifup -a`), nscd, smgl-misc (/etc/sysconfig/bootmisc),
+  smgl-default-remote-fs; %2 smgl-suspend-single. ISO caches: only
+  openssh's sshd.
+- Covered by upstream: devices (procfs/sysfs/devfs), mountroot/mountall
+  (root, fsck, localmount, swap), hostname (reads /etc/hostname),
+  smgl-sysctl (sysctl), single (openrc's own single runlevel).
+  Covered once settings move from /etc/sysconfig: hwclock (`clock=` in
+  conf.d/hwclock from UTC=), keymap (`keymap=` in conf.d/keymaps; font via
+  consolefont), modutils (/etc/modules -> /etc/modules-load.d/*.conf,
+  which `modules` reads), smgl-misc (bootmisc -> /etc/local.d/*.start via
+  `local`).
+- Missing, need scripts (Gentoo has all of them): udev + udev-trigger +
+  udev-settle for eudev (essential), metalog (system logger), nscd (glibc;
+  upstream's nscd.in is FreeBSD only), network (netifrc's net.lo/net.IF
+  reading conf.d/net, or a small ifupdown `ifup -a` script to keep
+  /etc/network/interfaces, or dhcpcd's own service), sshd. Optional,
+  for caches/spells users add: dhcpcd, wpa_supplicant, lvm, mdadm (mdraid),
+  dmcrypt (cryptsetup), dbus, cronie. crypt_fs/remote_fs placeholders:
+  netmount/dmcrypt cover them.
+
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**
 - A detailed how-to for *running* cauldron, for the maintainer and the
