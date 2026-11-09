@@ -447,6 +447,26 @@ system.tar.xz; nothing built yet).**
   s6-svscan, sysv-initctl. conf.d for most, /etc/rc.conf. The only
   difference sysvinit=true makes: /sbin/init -> openrc-init, halt,
   poweroff, reboot, shutdown, and the agetty.tty1-6 services + links.
+- Gentoo's scripts as the base (maintainer, Nov 2026: fine to use them;
+  a couple of team members dislike importing other distributions'
+  choices, but usability wins, and Gentoo, where OpenRC comes from, is
+  close to SMGL in spirit). Reviewed: udev, udev-trigger, udev-settle
+  (udev-gentoo-scripts v35, anongit.gentoo.org proj/udev-gentoo-scripts;
+  89/91/17 lines), metalog.initd-r1 (28), sshd-r2.initd (68), nscd-1 (85;
+  gentoo.git app-admin/metalog, net-misc/openssh, sys-libs/glibc files).
+  All GPL-2; keep their copyright lines. Fit with SMGL: eudev's
+  /sbin/udevd and /bin/udevadm are the paths the udev scripts use;
+  `dev-mount`, which udev needs, is OpenRC's devfs; Gentoo puts udev and
+  udev-trigger in sysinit. To adapt: metalog is /sbin/metalog here (not
+  /usr/sbin); udev's start_pre falls back to `busybox mdev -s` without
+  devtmpfs (SMGL has no busybox; our kernels have devtmpfs, drop it);
+  udev-trigger writes a /dev/root rule by default (a Gentoo bug
+  workaround, rc_dev_root_symlink). sshd's checkconfig runs `ssh-keygen
+  -A` at every start, which gives SMGL the per-machine host keys its
+  init.d script never made. SMGL's /var/run is a real directory (nscd
+  writes /var/run/nscd/nscd.pid); OpenRC's bootmisc migrates /var/run
+  and /var/lock to links into /run at first boot, so Gentoo's
+  /run/nscd/nscd.pid matches.
 
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**
