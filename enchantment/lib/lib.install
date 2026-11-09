@@ -678,7 +678,8 @@ function enchant_install_system() {
 ## are taken from modules_path/kernel_version, and the ISO's firmware
 ## (ENCHANT_ISO_FIRMWARE) is copied along. A linux kernel is installed as
 ## ENCHANT_TARGET_KERNEL-kernel_version (the name grub-mkconfig looks for),
-## together with its config-kernel_version if there is one next to the image.
+## together with its config-kernel_version and System.map-kernel_version if
+## they are next to the image.
 ##
 #-------------------------------------------------------------------------------
 function enchant_install_kernel() {
@@ -699,12 +700,13 @@ function enchant_install_kernel() {
       enchant_install_file "$kernel" "$target_kernel-$kvers" ||
         return $ERR_INSTALL_KERNEL
 
-      kconfig="${kernel%/*}/config-$kvers"
-      if [[ -f "$kconfig" ]]
-      then
+      for kconfig in "${kernel%/*}/config-$kvers" \
+        "${kernel%/*}/System.map-$kvers"
+      do
+        [[ -f "$kconfig" ]] || continue
         enchant_install_file "$kconfig" "${target_kernel%/*}/" ||
           return $ERR_INSTALL_KERNEL
-      fi
+      done
 
       # copy the modules over
       "${ENCHANT_CMD_MKDIR[@]}" "$target_kmods" || return $ERR_INSTALL_KMODS

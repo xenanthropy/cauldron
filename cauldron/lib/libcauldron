@@ -1930,8 +1930,8 @@ KBuild
       return $ERR_LINK_FILE
 
   # if using a compressed iso runtime, the kernel should also be copied to the
-  # runtime for install purposes (enchantment installs /boot/kernel and
-  # /boot/config-<version> to the target)
+  # runtime for install purposes (enchantment installs /boot/kernel,
+  # /boot/config-<version> and /boot/System.map-<version> to the target)
   if [[ "$CAULDRON_ISO_SQUASH" == "yes" ]]
   then
     "${CAULDRON_CMD_MKDIR[@]}" "$target/boot" || return $ERR_MK_DIR
@@ -1943,6 +1943,11 @@ KBuild
   fi
   "${CAULDRON_CMD_CP[@]}" "$build/usr/src/$kernel-$kvers/.config" \
     "$target/boot/config-$kvers" ||
+      return $ERR_CP_FILE
+  # the kernel's symbol table, as distributions and the linux spell install
+  # it (read by tools that resolve kernel addresses)
+  "${CAULDRON_CMD_CP[@]}" "$build/usr/src/$kernel-$kvers/System.map" \
+    "$target/boot/System.map-$kvers" ||
       return $ERR_CP_FILE
 
   # ensure that the lib/modules dir exists in the target

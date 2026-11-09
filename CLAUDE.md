@@ -1481,6 +1481,21 @@ sections below.
     "smgl" entry); installed systems boot with no console warnings; the
     themed menu shows under OVMF. system.tar.xz: which, CA bundle, /tmp
     1777, /root 0750, numeric owners.
+  - First outside report on smgl-devel-20261108 (a team member, Nov 2026,
+    using only `install iso-kernel` on an existing SMGL chroot, booted from
+    Arch's GRUB via os-prober): (1) Arch's os-prober didn't list the ISO
+    kernel. Not a cauldron bug: os-prober's linux-boot-prober stops at the
+    first probe that succeeds, and `40grub2` reads the partition's own
+    /boot/grub/grub.cfg when there is one, listing only its kernels; the
+    `/boot/vmlinuz*` scan (`90fallback`) runs only without one. Rerun
+    grub-mkconfig in SMGL after adding a kernel (the iso-kernel page says
+    so). (2) No System.map: true, cauldron never kept it; now
+    `cauldron_iso_kernel` copies it to the live system's
+    /boot/System.map-<version> and `install iso-kernel` installs it with the
+    config. (3) Kernel messages all over the console: the ISO kernel's
+    CONSOLE_LOGLEVEL_DEFAULT is 7, and only systemd installs got
+    `kernel.printk = 4 4 1 7`; the shipped sysctl.conf sets it now (both
+    inits; dmesg and the logs keep everything). Not yet in a built ISO.
   - `help disks` (alias `guide disks`, paged with `less -XFR`): layout,
     ext4/XFS/btrfs compared, btrfs with subvolumes (@, @home, @log,
     @snapshots, @swap; commands verified on a scratch image with the live

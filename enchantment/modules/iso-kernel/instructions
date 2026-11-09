@@ -8,11 +8,15 @@ using enchantment:
   @[enchantment install iso-kernel]
 
 manually (what that command does):
-  @[cp /boot/config-$(uname -r) $ENCHANT_TARGET/boot/]
+  @[cp /boot/config-$(uname -r) /boot/System.map-$(uname -r) $ENCHANT_TARGET/boot/]
   @[cp /boot/kernel $ENCHANT_TARGET/boot/vmlinuz-$(uname -r)]
   @[mkdir -p $ENCHANT_TARGET/lib/modules $ENCHANT_TARGET/lib/firmware]
   @[cp -a /lib/modules/$(uname -r) $ENCHANT_TARGET/lib/modules/]
   @[cp -a /lib/firmware/. $ENCHANT_TARGET/lib/firmware/]
   @[depmod -b $ENCHANT_TARGET $(uname -r)]
+
+If another system's GRUB starts this one through os-prober: os-prober takes
+the kernels from this system's /boot/grub/grub.cfg when there is one, so
+rerun grub-mkconfig here after adding a kernel (or it won't be offered).
 
 Type @[next] to go on to the boot loader (or @[todo] for the kernel step).
