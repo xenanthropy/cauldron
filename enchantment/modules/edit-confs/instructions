@@ -1,9 +1,9 @@
 @[edit-confs step]
 (Edit with @[$EDITOR FILE] (nano); other editors: @[help editors])
 Parts marked [simpleinit] are read only by simpleinit-msb and its init.d
-scripts (the default); if you switched to systemd in the init-system step,
-follow the [systemd] lines instead (editing the others does no harm, but
-systemd ignores them).
+scripts (the default); if you switched to systemd or OpenRC in the
+init-system step, follow the [systemd] or [openrc] lines instead (editing the
+others does no harm, but they are ignored).
 
 Partitions and mounts: @[$ENCHANT_TARGET/etc/fstab]
 Add a line per filesystem below "Add your file systems here" (@[lsblk -f]
@@ -23,13 +23,16 @@ start of this install, edit the file called @[keymap] in that directory (type
 [systemd] The init-system step copied the keymap and locale from sysconfig to
 @[/etc/vconsole.conf] (KEYMAP=) and @[/etc/locale.conf] (LANG=), under
 $ENCHANT_TARGET; edit those, or use @[localectl] after first boot.
+[openrc] The init-system step copied the keymap to @[/etc/conf.d/keymaps]
+(keymap=) and a console font to /etc/conf.d/consolefont, under
+$ENCHANT_TARGET.
 
 Hostname: (default: sourcemage) set it with
   @[enchantment hostname NAME]
 which writes /etc/hostname and the matching line in /etc/hosts, so the name
 resolves without a network (sudo complains when it doesn't).
 
-Networking: [simpleinit] @[$ENCHANT_TARGET/etc/network/interfaces]
+Networking: [simpleinit, openrc] @[$ENCHANT_TARGET/etc/network/interfaces]
 Read at boot by ifup (@[man interfaces]); the file has commented examples for
 wired DHCP, Wi-Fi and a fixed address. Interface names: @[ip link] (they are
 the same on the installed system). E.g. Wi-Fi, after copying the WPA config:
@@ -38,13 +41,15 @@ the same on the installed system). E.g. Wi-Fi, after copying the WPA config:
   iface wlan0 inet dhcp
           pre-up wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf
 [systemd] systemd-networkd instead (.network files; wpa_supplicant needs a
-unit you write for Wi-Fi): see @[todo systemd].
+unit you write for Wi-Fi): see @[todo systemd]. [openrc] Without that
+file, DHCP on every interface: see @[todo openrc].
 
 Timezone: (replace "SOME/TIMEZONE" with yours, e.g. America/New_York;
 @[ls /usr/share/zoneinfo] lists them)
   @[enchantment chroot ln -sf /usr/share/zoneinfo/SOME/TIMEZONE /etc/localtime]
 The hardware clock is assumed to be UTC; if the machine also runs Windows:
-[simpleinit] set @[UTC=no] in sysconfig/hwclock; [systemd] run
+[simpleinit] set @[UTC=no] in sysconfig/hwclock; [openrc] set
+@[clock="local"] in /etc/conf.d/hwclock; [systemd] run
 @[timedatectl set-local-rtc 1] after first boot (it writes /etc/adjtime).
 
 Services: [simpleinit] SMGL starts the executable scripts in
@@ -54,12 +59,15 @@ it at every boot:
   @[chmod +x $ENCHANT_TARGET/etc/init.d/runlevels/%3/sshd]
 [systemd] @[enchantment chroot systemctl enable sshd] (enabling works in the
 chroot; logs go to the journal).
+[openrc] @[enchantment chroot rc-update add sshd default] (it makes its host
+keys at first start; logs go to metalog, as with simpleinit).
 
 User namespaces (sandboxes for programs, needed by web browsers, Flatpak,
 rootless containers and systemd) are on, as in most distributions. They have
-also been a way into the kernel for local attackers; with simpleinit you can
-turn them off by uncommenting @[user.max_user_namespaces = 0] in
-@[$ENCHANT_TARGET/etc/sysctl.conf] (the file explains what that breaks).
+also been a way into the kernel for local attackers; with simpleinit or
+OpenRC you can turn them off by uncommenting
+@[user.max_user_namespaces = 0] in @[$ENCHANT_TARGET/etc/sysctl.conf] (the
+file explains what that breaks).
 
 Compiling: sorcery runs one compile job at a time unless told otherwise. To
 use all of this machine's CPU threads (@[nproc] counts them):
