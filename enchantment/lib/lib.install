@@ -371,6 +371,17 @@ function enchant_install_init_settings_systemd() {
       return $ERR_INSTALL_INIT
   fi
 
+  # the kernel mounts / read-only (grub-mkconfig's "ro"); simpleinit and
+  # OpenRC remount it read-write anyway, but systemd-remount-fs only applies
+  # an fstab entry for /, so without one the root filesystem stays read-only
+  if ! awk '$1 !~ /^#/ && $2 == "/" { found = 1 } END { exit !found }' \
+    "$target/etc/fstab" 2> "$ENCHANT_NULL"
+  then
+    libcolor_msg warn "$target/etc/fstab has no line for /: systemd" \
+      "would leave the root filesystem read-only. Add one (see" \
+      "'todo edit-confs')."
+  fi
+
   # systemd-gpt-auto-generator mounts the ESP the machine booted from on /efi
   # (making that directory) when /boot is already in use; SMGL systems mount
   # their partitions through fstab, so it only adds a second mount point.
@@ -391,14 +402,22 @@ function enchant_install_init_settings_systemd() {
   fi
 
   # util-linux built with systemd installs tmpfiles for uuidd, but nothing
-  # creates the user (the systemd spell is built without sysusers)
+  # creates the user (the systemd spell is built without sysusers). Its id,
+  # 241, is free in the grimoire's accounts and groups registries (proposed
+  # there for uuidd): -r alone picked 110/127, which the registries give to
+  # exim and haldaemon. -r only if 241 is already taken on this system
   if [[ -f "$target/usr/lib/tmpfiles.d/uuidd-tmpfiles.conf" ]] &&
     ! grep -q '^uuidd:' "$target/etc/passwd"
   then
-    "${ENCHANT_CMD_CHROOT[@]}" "$target" groupadd -r uuidd &&
-      "${ENCHANT_CMD_CHROOT[@]}" "$target" useradd -r -g uuidd \
-        -d /run/uuidd -s /sbin/nologin -c "UUID generator helper daemon" \
-        uuidd || return $ERR_INSTALL_INIT
+    line="-r"
+    grep -q '^[^:]*:[^:]*:241:' "$target/etc/group" || line="-g 241"
+    "${ENCHANT_CMD_CHROOT[@]}" "$target" groupadd $line uuidd ||
+      return $ERR_INSTALL_INIT
+    line="-r"
+    grep -q '^[^:]*:[^:]*:241:' "$target/etc/passwd" || line="-r -u 241"
+    "${ENCHANT_CMD_CHROOT[@]}" "$target" useradd $line -g uuidd \
+      -d /run/uuidd -s /sbin/nologin -c "UUID generator helper daemon" \
+      uuidd || return $ERR_INSTALL_INIT
   fi
 }
 

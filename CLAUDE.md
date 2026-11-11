@@ -994,6 +994,22 @@ sections below.
     `video` is 144 in the registry but 44 in the shipped /etc/group (the
     official tarball's too), so `create_group video` never applies; left
     as is. `wheel` (55) and `scsi` (23) aren't in the registry either.
+    base_etc/passwd matches the `accounts` registry (root, daemon, bin,
+    nobody, sshd). But `install init systemd` made its uuidd user with
+    `useradd -r`, which picked 110/127 in a fresh target: the registries'
+    exim (110) and haldaemon (127), so a later `cast exim` couldn't get its
+    ids. It now uses 241/241 (free in both registries; proposed for uuidd),
+    falling back to -r only if 241 is taken on that system (both tested in
+    an overlay of the sys tree).
+  - Root filesystem read-only after boot (tester's report, Nov 2026, "ro in
+    the grub.cfg entries"): GRUB's 10_linux writes `ro` on every entry, as
+    on every distribution: the kernel mounts / read-only for fsck and init
+    remounts it. simpleinit's mountroot.sh always remounts read-write;
+    OpenRC's `root` does unless fstab says ro for /; systemd-remount-fs
+    only applies an fstab entry for /, so on systemd a missing / line in
+    fstab leaves root read-only. `install init systemd` now warns when the
+    target's fstab has no / line, and the systemd page says so. (Editing
+    grub.cfg is undone by the next grub-mkconfig.)
   - grub2 builds one platform per cast (`i386-pc` *or* `x86_64-efi`); a
     cache for a hybrid ISO / installer has to be assembled from two casts
     (cauldron does this in `cauldron_iso_grub_cache`). A spell option to
