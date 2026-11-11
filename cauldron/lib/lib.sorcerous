@@ -974,6 +974,18 @@ function cauldron_sorcerous_cauldron_defaults() {
         return $ERR_SORCEROUS_DEFAULT_SETTINGS
   fi
 
+  # answers sorcery already recorded (the baseroot's, an earlier cast's) win
+  # over default_depends: change those in place (CAULDRON_SORCERY_ANSWERS)
+  local answer=
+  local db="$target/var/state/sorcery/depends"
+  for answer in "${CAULDRON_SORCERY_ANSWERS[@]}"
+  do
+    [[ -f "$db" ]] || break
+    "${CAULDRON_CMD_SEDFILE[@]}" \
+      "s/^${answer%:*}:\(on\|off\):/${answer}:/" "$db" ||
+      return $ERR_SORCEROUS_DEFAULT_SETTINGS
+  done
+
   return $ERR_OK
 }
 
