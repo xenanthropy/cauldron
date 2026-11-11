@@ -700,11 +700,41 @@ EOF
 ## for the sys filesystem.
 ##
 #-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+## @param directory
+##
+## Empties a tree that a populate step fills from caches (sys, isofs), so it
+## holds this build's files only: unpacking into the old tree kept the files
+## of earlier builds (old versions' data, eudev 3.2's /etc/udev/hwdb.d, which
+## overrides the current hwdb, rules a hack had dropped), and hid caches that
+## lack files a fresh build wouldn't have. Refuses while anything is mounted
+## below it (a bind-mounted /dev would be wiped on the host).
+##
+#-------------------------------------------------------------------------------
+function cauldron_empty_tree() {
+  local dir=$("${CAULDRON_CMD_READLINK[@]}" "$1")
+
+  [[ -n "$dir" ]] || return $ERR_OK
+  [[ "$dir" != "/" ]] || return $ERR_TARGET
+  if grep -q " ${dir%/}/" /proc/mounts
+  then
+    echo "still mounted below $dir (unmount these first, deepest first):"
+    grep -o " ${dir%/}/[^ ]*" /proc/mounts | sed "s/^ //"
+    return $ERR_TARGET
+  fi
+
+  "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$dir" &&
+    "${CAULDRON_CMD_MKDIR[@]}" "$dir" || return $ERR_CLEANUP_TMP
+}
+
 function cauldron_populate_sys() {
   local target="$CAULDRON_SYS"
   local spells="$CAULDRON_SYS_SPELLS"
   local spell=
   local cache=
+
+  # start from an empty tree (only this build's files)
+  cauldron_empty_tree "$target" || return $?
 
   # make the target dir if it doesn't exist
   "${CAULDRON_CMD_MKDIR[@]}" "$target" || return $ERR_MK_DIR
@@ -1331,6 +1361,9 @@ function cauldron_iso_install_runtime() {
 
   # the installable system is copied in at the end
   [[ -f "$src" ]] || return $ERR_FILE_ACCESS
+
+  # start from an empty tree (only this build's files)
+  cauldron_empty_tree "$target" || return $?
 
   # make the target dir if it doesn't exist
   "${CAULDRON_CMD_MKDIR[@]}" "$target" || return $ERR_MK_DIR
