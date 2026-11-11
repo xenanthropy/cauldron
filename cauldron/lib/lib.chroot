@@ -277,6 +277,7 @@ function cauldron_chroot_current() {
 #-------------------------------------------------------------------------------
 function cauldron_chroot() {
   local stdout="$CAULDRON_STDOUT"
+  local verbose="yes"
 
   case "$1" in
     -q )
@@ -292,7 +293,7 @@ function cauldron_chroot() {
 
   cauldron_chroot_current -q || return $ERR_CHROOT_CURRENT
 
-  cauldron_verbose "${CAULDRON_CHROOT[@]} $@"
+  [[ "$verbose" == "yes" ]] && cauldron_verbose "${CAULDRON_CHROOT[@]} $@"
 
   PATH="/sbin:/bin:/usr/sbin:/usr/bin"
   # reopening /dev/stdout truncates it when stdout is a regular file (e.g., a

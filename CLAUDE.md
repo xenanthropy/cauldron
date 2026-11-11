@@ -1760,8 +1760,18 @@ sections below.
   BIOS passed, both installed systems boot to a login with no console
   warnings; `install init openrc` on the BIOS disk + boot: openrc-init,
   37 services started, none crashed, user login + ping, clean poweroff.
-  Not done: the systemd re-test (pip 26.3 is a GitHub archive the
-  sandbox can't fetch; the rollback path was exercised instead).
+  systemd re-test (pip 26.3 uploaded by the maintainer; an overlay over
+  the 20261111 sys tree): `install init systemd` returned 0; /sbin/init
+  -> systemd, simpleinit-msb and eudev gone, DEVICE-MANAGER records
+  rewritten to systemd, login/passwd link libpam + libsystemd, ps and
+  dbus-daemon libsystemd, pam_systemd.so, bootctl and
+  systemd-bootx64.efi, the PAM set, uuidd user, gpt-auto masked, rc
+  unit masked, sysctl.d links, MAKE_NJOBS removed again afterwards.
+  The earlier failed attempt had exercised the rollback.
+  Found by the new boot-script check's first real run: `cauldron_chroot
+  -q` never was quiet (it set `verbose=no`, global, and never read it),
+  so its "chroot ..." line landed in the output the checks capture; their
+  `grep -v '^chroot '` only caught it without colors. Fixed in lib.chroot.
 - `sys populate` and `iso populate` unpacked caches into the existing
   sys/ and isofs/ trees, so every earlier build's files stayed (found Nov
   2026 when eudev's dropped 52-modules.rules was still there after the
