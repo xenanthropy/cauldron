@@ -5,6 +5,8 @@ projects:
 	enchantment (installer library and interfaces)
 	ward (test framework)
 
+To build an ISO yourself, follow BUILDING.md.
+
 If you would like to contribute to Cauldron development, please read HACKING
 and API first. DESIGN will explain the general principles motivating how
 Cauldron is set up and the general processes involved in building an ISO and

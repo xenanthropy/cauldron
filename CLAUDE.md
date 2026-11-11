@@ -503,7 +503,10 @@ report; fixed with `CAULDRON_CACHE_CONFIGS`, cache rebuilt).
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**
 - A detailed how-to for *running* cauldron, for the maintainer and the
-  team, so nobody depends on an agent session to build ISOs: requirements
+  team, so nobody depends on an agent session to build ISOs. First part
+  done (Nov 2026): `BUILDING.md`, the command-by-command recipe (host
+  chroot, toolchain/sys/iso, results, QEMU, USB, rebuilding, mounts after a
+  failure). Still to add: requirements
   (host, disk space, root, network, an SMGL tarball), the full sequence
   (toolchain, sys, iso and their sub-steps), what each step produces and how
   long it takes, configuration overrides, resuming and cleaning up after a
@@ -655,7 +658,9 @@ Commands map to `process_<name>` in `cauldron/bin/cauldron`. Each step can be
 run on its own — that's how to debug.
 
 ### `brew` — everything
-`process_toolchain` → `process_sys` → `process_iso` → `cleanse`.
+`process_toolchain` → `process_sys` → `process_iso`. (It used to end with
+`cleanse`, which deleted the ISO it had just built; removed Nov 2026.
+`cleanse` now refuses while anything below `CAULDRON_TMP` is mounted.)
 
 ### `toolchain [chroot|build|cross|prepare]` — make `build/`
 - Tries each method in `CAULDRON_TOOLCHAIN_METHODS` (default only `chroot`).
@@ -723,6 +728,8 @@ Return codes: `0` = `$ERR_OK`; everything else is an `ERR_*` registered in
 ---
 
 ## 7. Running it (tarball-chroot workflow)
+
+For the plain recipe, see `BUILDING.md`; this section has the background.
 
 Cauldron needs **root** and an **SMGL environment** around it
 (`config/arch/host_arch.conf` reads the host's `/etc/sorcery/config`, and

@@ -2571,6 +2571,17 @@ function cauldron_prepare() {
 ##
 #-------------------------------------------------------------------------------
 function cauldron_cleanup() {
+  local tmp=$("${CAULDRON_CMD_READLINK[@]}" "$CAULDRON_TMP")
+
+  # never delete with something still mounted below it: a bind-mounted /dev
+  # (a chroot left over by a failed run) would be wiped on the host
+  if [[ -n "$tmp" ]] && grep -q " ${tmp%/}/" /proc/mounts
+  then
+    echo "still mounted below $tmp (unmount these first, deepest first):"
+    grep -o " ${tmp%/}/[^ ]*" /proc/mounts | sed "s/^ //"
+    return $ERR_CLEANUP_TMP
+  fi
+
   # if the user wants everything cleaned, kill the build directory
   if [[ "$CAULDRON_CLEAN" == "yes" ]]
   then
