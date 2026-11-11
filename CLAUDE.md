@@ -913,6 +913,18 @@ sections below.
     an empty `netgroup` and a files/dns `nsswitch.conf` (`base_etc`).
     Related: boot scripts still run while the gettys already show the
     login prompt, so any late boot message lands in it.
+  - **eudev 3.3.0 breaks booting on simpleinit systems** (found Nov 2026):
+    3.2.15 installed udevadm in /bin and /sbin, 3.3.0 only in /bin, and
+    sorcery's upgrade removes the old /sbin/udevadm; the spell's own
+    init.d `coldplug` (runlevel %DEV, ESSENTIAL) runs `/sbin/udevadm
+    trigger`/`settle`, so the next boot stops at "coldplug: Essential
+    script failed... [a]bort, [i]gnore". Any SMGL system that updates
+    eudev now hits this. Fix: the spell (or coldplug) should use
+    /bin/udevadm or create the /sbin link (cauldron's `grimoire_hacks/
+    eudev` adds the link); on an affected system: `ln -s ../bin/udevadm
+    /sbin/udevadm`. Cauldron's earlier QEMU runs missed it because the
+    sys/isofs trees still held 3.2.15's /sbin/udevadm (see the populate
+    entry below); sys and iso checks now require sbin/udevadm.
   - eudev 3.3.0's rules also use a group `clock` (Nov 2026: "Failed to
     resolve group 'clock'" at boot); cauldron's `group` adds it (16). And
     the official 20251212 tarball recorded `eudev:kmod:off` (no built-in

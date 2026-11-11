@@ -1,5 +1,5 @@
---- var/lib/sorcery/codex/test/disk/eudev/INSTALL	2026-11-11 17:46:37.384519610 +0000
-+++ var/lib/sorcery/codex/test/disk/eudev/INSTALL	2026-11-11 17:46:45.513587524 +0000
+--- var/lib/sorcery/codex/test/disk/eudev/INSTALL	2026-11-11 18:50:01.976423027 +0000
++++ var/lib/sorcery/codex/test/disk/eudev/INSTALL	2026-11-11 18:50:01.993537013 +0000
 @@ -7,6 +7,13 @@
                    "$UDEV_CFG/rules.d" &&
  
@@ -14,3 +14,16 @@
    install_config_file $file "$UDEV_CFG/rules.d/$(basename $file)"
  done &&
  
+@@ -16,4 +23,11 @@
+ install_config_file "$SPELL_DIRECTORY/modprobe.aliases" \
+                     "$INSTALL_ROOT/etc/modprobe.d/udev.conf" &&
+ 
+-default_install
++default_install &&
++
++# eudev 3.3 installs udevadm in /bin only (3.2 also put it in /sbin), but
++# the spell's coldplug boot script runs /sbin/udevadm: without this link a
++# system upgraded to 3.3 stops at "Essential script failed" at the next boot
++if [[ ! -e "$INSTALL_ROOT/sbin/udevadm" ]]; then
++  ln -s ../bin/udevadm "$INSTALL_ROOT/sbin/udevadm"
++fi

@@ -858,7 +858,10 @@ function cauldron_sys_check() {
   fi
 
   cauldron_verbose "Checking for essential programs in $target..."
-  for out in sbin/init bin/login usr/bin/passwd sbin/agetty bin/bash
+  # (sbin/udevadm: the init.d coldplug script runs it, eudev 3.3 only
+  # installs bin/udevadm; see grimoire_hacks/eudev)
+  for out in sbin/init bin/login usr/bin/passwd sbin/agetty bin/bash \
+    sbin/udevd sbin/udevadm
   do
     if [[ ! -e "$target/$out" && ! -e "$target/usr/$out" ]]
     then
@@ -1111,7 +1114,7 @@ function cauldron_iso_check() {
   cauldron_verbose "Checking for essential programs in $target..."
   for out in sbin/init bin/login sbin/agetty bin/bash bin/login.sh \
     usr/sbin/enchantment sbin/fdisk sbin/mkfs.ext4 bin/tar bin/xz \
-    sbin/modprobe "$CAULDRON_SYS_NAME_FULL"
+    sbin/modprobe sbin/udevd sbin/udevadm "$CAULDRON_SYS_NAME_FULL"
   do
     # (-L: links may point to absolute paths, which only exist in the chroot)
     if [[ ! -e "$target/$out" && ! -L "$target/$out" &&

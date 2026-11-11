@@ -32,7 +32,10 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
                   is built with kmod, whose 80-drivers.rules already loads
                   modules: the extra modprobe runs fail and eudev 3.3 logs
                   each on the console at boot; INSTALL skips the file when
-                  kmod is on
+                  kmod is on. eudev 3.3 installs udevadm only in /bin, but
+                  the spell's coldplug boot script runs /sbin/udevadm (the
+                  boot stops at "Essential script failed"): INSTALL adds
+                  the /sbin/udevadm link
   dosfstools      4.2 only installs mkfs.fat/fsck.fat; adds a BUILD with
                   --enable-compat-symlinks, so mkfs.vfat and fsck.vfat exist
                   (fsck at boot looks for fsck.vfat for a vfat fstab entry;
