@@ -294,9 +294,13 @@ function build_spells() {
     cache=$(cauldron_sorcerous_spell_cache "$spell" 2> "$CAULDRON_NULL") ||
       continue
     # a cache lacking its config files (made by a cast outside this function,
-    # e.g. sorcery recasting a dependent after a library upgrade) is rebuilt
-    [[ -n "$(cauldron_check_cache_configs_file "$spell" "$cache")" ]] &&
+    # e.g. sorcery recasting a dependent after a library upgrade) is rebuilt:
+    # removed, since sorcery would just resurrect it
+    if [[ -n "$(cauldron_check_cache_configs_file "$spell" "$cache")" ]]
+    then
+      "${CAULDRON_CMD_RM[@]}" -f "$cache" || return $ERR_RM_FILE
       continue
+    fi
     unset spells[i]
   done
 
