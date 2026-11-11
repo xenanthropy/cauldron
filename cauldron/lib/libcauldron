@@ -857,6 +857,15 @@ function cauldron_sys_check() {
     ((problems++))
   fi
 
+  cauldron_verbose "Checking $target's boot scripts for missing programs..."
+  out=$(cauldron_check_boot_scripts)
+  if [[ -n "$out" ]]
+  then
+    echo "boot scripts run programs that aren't there:"
+    echo "$out"
+    ((problems++))
+  fi
+
   cauldron_verbose "Checking for essential programs in $target..."
   # (sbin/udevadm: the init.d coldplug script runs it, eudev 3.3 only
   # installs bin/udevadm; see grimoire_hacks/eudev)
@@ -1060,6 +1069,37 @@ function cauldron_check_access() {
 
 #-------------------------------------------------------------------------------
 ##
+## Prints every program that a boot script in the current chroot (see
+## cauldron_chroot_init) runs by its absolute path but that isn't there, as
+## "script: path": the scripts in /etc/init.d and /etc/inittab. Paths in
+## comments, and paths the script tests first (optional_executable PATH,
+## [ -e PATH ], -x, -f, -L, command -v), are left out. Such a script fails at
+## boot; eudev 3.3.0 moving udevadm out of /sbin stopped every simpleinit
+## system at coldplug this way. Prints nothing if all is well.
+##
+#-------------------------------------------------------------------------------
+function cauldron_check_boot_scripts() {
+  cauldron_chroot -q bash -c '
+    files=$(find /etc/init.d -type f 2>/dev/null)
+    [ -f /etc/inittab ] && files="$files /etc/inittab"
+    re="/(usr/)?s?bin/[A-Za-z0-9_.+-]+"
+    for f in $files
+    do
+      guarded=$(grep -oE "(optional_executable|-[efxL]|command -v)[[:space:]]+$re" "$f" |
+        grep -oE "$re" | sort -u)
+      for p in $(sed "s/#.*//" "$f" | grep -oE "(^|[^A-Za-z0-9_./\$-])$re" |
+        grep -oE "$re" | sort -u)
+      do
+        [ -e "$p" ] && continue
+        echo "$guarded" | grep -qxF "$p" && continue
+        echo "$f: $p"
+      done
+    done' | grep -v '^chroot '
+  return 0
+}
+
+#-------------------------------------------------------------------------------
+##
 ## Prints every program and library in the current chroot (see
 ## cauldron_chroot_init) that can't find one of its shared libraries, with the
 ## missing libraries. Prints nothing if all is well.
@@ -1104,6 +1144,15 @@ function cauldron_iso_check() {
   out=$(cauldron_check_libs)
   if [[ -n "$out" ]]
   then
+    echo "$out"
+    ((problems++))
+  fi
+
+  cauldron_verbose "Checking the live system's boot scripts..."
+  out=$(cauldron_check_boot_scripts)
+  if [[ -n "$out" ]]
+  then
+    echo "live system boot scripts run programs that aren't there:"
     echo "$out"
     ((problems++))
   fi

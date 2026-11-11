@@ -924,7 +924,17 @@ sections below.
     eudev` adds the link); on an affected system: `ln -s ../bin/udevadm
     /sbin/udevadm`. Cauldron's earlier QEMU runs missed it because the
     sys/isofs trees still held 3.2.15's /sbin/udevadm (see the populate
-    entry below); sys and iso checks now require sbin/udevadm.
+    entry below); sys and iso checks now require sbin/udevadm. Simplest
+    fix for the spell: coldplug calls plain `udevadm` (smgl_init sets
+    `PATH=/bin:/sbin:/usr/bin:/usr/sbin` before any boot script runs, so it
+    is found wherever eudev puts it). And a general check:
+    `cauldron_check_boot_scripts` (sys and iso checks) lists every program
+    an /etc/init.d script or /etc/inittab runs by absolute path that isn't
+    in the tree, skipping comments and paths the script tests first
+    (`optional_executable`, `[ -e ... ]`); on today's trees it reports
+    nothing, on a tree without /sbin/udevadm it names coldplug. The same
+    one-liner would work for the team on any SMGL system (a pre-release
+    check after a spell update).
   - eudev 3.3.0's rules also use a group `clock` (Nov 2026: "Failed to
     resolve group 'clock'" at boot); cauldron's `group` adds it (16). And
     the official 20251212 tarball recorded `eudev:kmod:off` (no built-in
