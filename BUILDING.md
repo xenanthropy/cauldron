@@ -158,15 +158,33 @@ step 2, with `/srv/smgl-new` in place of `/srv/smgl`. First steps inside:
 
 ```sh
 echo "MAKE_NJOBS=$(nproc)" >> /etc/sorcery/local/compile_config
-sorcery update        # newest sorcery (signature checked)
 scribe update         # newest grimoire (signature checked)
 cast <spell>          # e.g. curl, openssh
 ```
 
-`sorcery update` prints "Cannot cast these spells: basesystem (exiled)" and
-asks "continue anyway? [y]": that's expected, answer y. (basesystem is the
-old base meta-spell, which conflicts with this tarball's smgl-base; it is
-exiled so sorcery doesn't try to put it back.)
+The tarball's sorcery is installed from sorcery's git (cauldron takes the
+newest commit when it builds), which is newer than the published sorcery
+tarballs, so there's no need for `sorcery update`. To update sorcery later,
+install it from git again: with git installed, `git clone` the sorcery
+repository and run `./install` in it; without git (the tarball has none,
+since git needs rust), use the snapshot GitHub makes of it:
+
+```sh
+cd /usr/src
+wget https://github.com/sourcemage/sorcery/archive/refs/heads/master.tar.gz \
+  -O sorcery-master.tar.gz
+tar -xzf sorcery-master.tar.gz && cd sorcery-master && ./install
+```
+
+Your sorcery settings stay. (`/etc/sorcery/version` then says 20240108: the
+file in sorcery's git hasn't been bumped since; cauldron's build writes the
+real commit into it.)
+
+If you do run `sorcery update` (it installs the published devel sorcery,
+from January 2024), it prints "Cannot cast these spells: basesystem
+(exiled)" and asks "continue anyway? [y]": expected, answer y. basesystem
+is the old base meta-spell, which conflicts with this tarball's smgl-base;
+it is exiled so sorcery doesn't try to put it back.
 
 The tarball also works as `CAULDRON_BASEROOT` for the next cauldron build
 (step 3), in place of the official one.
