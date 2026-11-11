@@ -95,6 +95,10 @@ an error. What they do:
 
 `./local-exec/cauldron.sh brew` runs all three in one go, if you prefer.
 
+**Only want a system tarball (a chroot / basesystem tarball, no ISO)?** Stop
+after `sys`: run `toolchain` and `sys` and skip `iso`. The tarball is ready
+when `sys` ends without an error; see "Using the system tarball" below.
+
 cauldron shouldn't ask anything. If a sorcery question does appear, it takes
 the default answer after a timeout.
 
@@ -104,7 +108,9 @@ Inside the chroot, in /tmp/cauldron (on the host: /srv/smgl/tmp/cauldron):
 
 - `smgl-devel-YYYYMMDD.x86_64.iso` + `.sha512`: the install ISO
 - `smgl-test-0.63-YYYYMMDD_HHMM-basesystem-x86_64.tar.xz` + `.sha512`: the
-  system tarball (it is also inside the ISO)
+  system tarball (it is also inside the ISO). `system.tar.xz` is the same
+  file under its working name, and `system.tar` an uncompressed copy kept
+  for debugging (2 GB; delete it if you don't need it).
 
 Copy them somewhere outside /tmp/cauldron. Check the ISO:
 
@@ -130,6 +136,40 @@ dd if=smgl-devel-YYYYMMDD.x86_64.iso of=/dev/sdX bs=4M oflag=sync status=progres
 
 To sign the release files: `gpg --detach-sign FILE` (cauldron can sign the
 system tarball itself: `export CAULDRON_SYS_SIGN_KEY=<key id>` before `sys`).
+
+## Using the system tarball
+
+The tarball made by `sys` is a complete SMGL system, like the official
+basesystem tarballs: unpack it, chroot in, and you can update sorcery and the
+grimoire and cast spells. Check it and unpack it on the host, as root:
+
+```sh
+cd /srv/smgl/tmp/cauldron
+sha512sum -c smgl-test-*-basesystem-x86_64.tar.xz.sha512
+
+mkdir -p /srv/smgl-new
+tar -xpf smgl-test-*-basesystem-x86_64.tar.xz -C /srv/smgl-new \
+  --xattrs --xattrs-include='*' --numeric-owner
+```
+
+(`--numeric-owner` keeps the file owners exactly as packed, whatever users
+the host has; the installer unpacks it the same way.) Then enter it as in
+step 2, with `/srv/smgl-new` in place of `/srv/smgl`. First steps inside:
+
+```sh
+echo "MAKE_NJOBS=$(nproc)" >> /etc/sorcery/local/compile_config
+sorcery update        # newest sorcery (signature checked)
+scribe update         # newest grimoire (signature checked)
+cast <spell>          # e.g. curl, openssh
+```
+
+`sorcery update` prints "Cannot cast these spells: basesystem (exiled)" and
+asks "continue anyway? [y]": that's expected, answer y. (basesystem is the
+old base meta-spell, which conflicts with this tarball's smgl-base; it is
+exiled so sorcery doesn't try to put it back.)
+
+The tarball also works as `CAULDRON_BASEROOT` for the next cauldron build
+(step 3), in place of the official one.
 
 ## Building again later
 
