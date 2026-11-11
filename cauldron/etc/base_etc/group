@@ -26,6 +26,6 @@ crontab:x:66:
 tape:x:26:
 input:x:203:
 kvm:x:36:
-sgx:x:27:
-render:x:28:
-clock:x:16:
+sgx:x:240:
+render:x:228:
+clock:x:239:

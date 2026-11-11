@@ -963,7 +963,7 @@ sections below.
     installed from those ISOs: `udevadm hwdb --update` once, as root
     (systemd installs have their own, made by systemd's FINAL).
   - eudev 3.3.0's rules also use a group `clock` (Nov 2026: "Failed to
-    resolve group 'clock'" at boot); cauldron's `group` adds it (16). And
+    resolve group 'clock'" at boot); cauldron's `group` adds it (239). And
     the official 20251212 tarball recorded `eudev:kmod:off` (no built-in
     module loading: udev runs modprobe for every device alias), which
     3.3.0 makes visible: 12-16 "Process '/sbin/modprobe ...' failed with
@@ -983,7 +983,17 @@ sections below.
     `/etc/group` (smgl-base / init.d) doesn't have ("specified group
     'render' unknown" at boot): the nodes get group root (render nodes are
     0666 anyway; /dev/sgx_* are 0660, so root-only). Cauldron's shipped
-    `group` adds sgx (27) and render (28).
+    `group` adds sgx (240) and render (228).
+    GIDs: the grimoire's `groups` registry (codex/test/groups; sorcery's
+    `create_group` only creates groups listed there, with that GID, and
+    silently skips others) has render 228 but neither clock nor sgx, so
+    eudev's FINAL can't create them even if asked. No cross-distribution
+    standard exists for either (systemd's sysusers.d/basic.conf makes both
+    dynamic). Proposed for the registry, and used by cauldron: clock 239,
+    sgx 240 (next free after dhcpcd 238). Pre-existing mismatch in SMGL:
+    `video` is 144 in the registry but 44 in the shipped /etc/group (the
+    official tarball's too), so `create_group video` never applies; left
+    as is. `wheel` (55) and `scsi` (23) aren't in the registry either.
   - grub2 builds one platform per cast (`i386-pc` *or* `x86_64-efi`); a
     cache for a hybrid ISO / installer has to be assembled from two casts
     (cauldron does this in `cauldron_iso_grub_cache`). A spell option to
