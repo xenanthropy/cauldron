@@ -913,6 +913,23 @@ sections below.
     an empty `netgroup` and a files/dns `nsswitch.conf` (`base_etc`).
     Related: boot scripts still run while the gettys already show the
     login prompt, so any late boot message lands in it.
+  - eudev 3.3.0's rules also use a group `clock` (Nov 2026: "Failed to
+    resolve group 'clock'" at boot); cauldron's `group` adds it (16). And
+    the official 20251212 tarball recorded `eudev:kmod:off` (no built-in
+    module loading: udev runs modprobe for every device alias), which
+    3.3.0 makes visible: 12-16 "Process '/sbin/modprobe ...' failed with
+    exit code 1" lines on the console at every boot. Cauldron answers
+    kmod on (`CAULDRON_SORCERY_ANSWERS`, which rewrites recorded answers
+    in the build chroot; they win over default_depends). Worth checking
+    on existing systems: `grep ^eudev:kmod /var/state/sorcery/depends`.
+    Even with kmod on, the eudev spell installs its own
+    /etc/udev/rules.d/52-modules.rules ("for systems without hotplug":
+    `RUN+="/sbin/modprobe $env{MODALIAS}"` for every device), which
+    duplicates 80-drivers.rules and produces the same failed-modprobe
+    messages (checked in the live system: libkmod linked, still 10 lines).
+    It should only be installed with kmod off (cauldron's
+    `grimoire_hacks/eudev`); on an existing system with kmod on, removing
+    that file is safe.
   - eudev's rules use the groups `render` and `sgx`, which SMGL's
     `/etc/group` (smgl-base / init.d) doesn't have ("specified group
     'render' unknown" at boot): the nodes get group root (render nodes are
@@ -1625,7 +1642,7 @@ sections below.
     kernel.org, and unpacks them with the ISO kernel's config as `.config`.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
-    wireless-regdb,wpa_supplicant,openssh,dosfstools,systemd,dbus,
+    wireless-regdb,wpa_supplicant,openssh,dosfstools,eudev,systemd,dbus,
     policykit,jinja2,linux-pam}` (see the README there and the team report above). New
     hack files that are spell scripts get their x bit set
     (`cauldron_sorcerous_cauldron_defaults`): sorcery only runs a
@@ -1701,6 +1718,20 @@ sections below.
   EOF" at the end), and the sandbox's host tar (the official tarball's)
   has no xattr support ("tar: XATTR support is not available"), so
   tarballs packed there carry no xattrs; nothing in them uses any yet.
+- Same grimoire update: openssh 10.6p2's cache again lacked /etc/ssh
+  (sorcery recast openssh as a dependent after the zlib upgrade, outside
+  `build_spells`, so the leftover files weren't removed first); the iso
+  check caught it. `build_spells` now deletes and rebuilds a cache lacking
+  its `CAULDRON_CACHE_CONFIGS` files (deletes: sorcery would just
+  resurrect it). And `iso populate` kept the previous run's caches in
+  isofs/var/cache/sorcery (old versions next to new ones); it empties the
+  directory first now. **smgl-devel-20261111** (720 MiB): QEMU install
+  walkthroughs UEFI and BIOS passed (install caches ~44 min under TCG);
+  both installed systems boot to a login; installed: System.map,
+  kernel.printk, openssh 10.6p2 with /etc/ssh, the sorcery settings and
+  the basesystem exile. The boot showed eudev 3.3.0's modprobe messages
+  and the clock group (see the team report), so eudev is rebuilt with
+  kmod and the ISO rebuilt.
 - `iso package` failed with "grub-mkimage: cannot open
   /usr/lib/grub/i386-pc/moddep.lst" (Nov 2026): after grub2 was recast for
   x86_64-efi, the build chroot's i386-pc directory survived with two files

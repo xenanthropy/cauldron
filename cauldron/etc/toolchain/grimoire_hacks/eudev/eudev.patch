@@ -1,0 +1,16 @@
+--- var/lib/sorcery/codex/test/disk/eudev/INSTALL	2026-11-11 17:46:37.384519610 +0000
++++ var/lib/sorcery/codex/test/disk/eudev/INSTALL	2026-11-11 17:46:45.513587524 +0000
+@@ -7,6 +7,13 @@
+                   "$UDEV_CFG/rules.d" &&
+ 
+ for file in $SPELL_DIRECTORY/rules/*; do
++  # 52-modules.rules runs modprobe for every device alias, for udev without
++  # kmod support; with it, 80-drivers.rules loads modules itself, and the
++  # extra modprobe runs only fail and log it (eudev 3.3: on the console)
++  if [[ ${file##*/} == 52-modules.rules ]] && is_depends_enabled $SPELL kmod
++  then
++    continue
++  fi
+   install_config_file $file "$UDEV_CFG/rules.d/$(basename $file)"
+ done &&
+ 
