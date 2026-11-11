@@ -1743,7 +1743,15 @@ sections below.
   kernel.printk, openssh 10.6p2 with /etc/ssh, the sorcery settings and
   the basesystem exile. The boot showed eudev 3.3.0's modprobe messages
   and the clock group (see the team report), so eudev is rebuilt with
-  kmod and the ISO rebuilt.
+  kmod and the ISO rebuilt. Final **smgl-devel-20261111** (752 MB, sha512
+  87a734893bb2...; built from emptied trees, after the eudev, udevadm and
+  populate fixes): live system boots (0 failed-modprobe lines, clock
+  group, udevd with libkmod, coldplug runs); QEMU walkthroughs UEFI and
+  BIOS passed, both installed systems boot to a login with no console
+  warnings; `install init openrc` on the BIOS disk + boot: openrc-init,
+  37 services started, none crashed, user login + ping, clean poweroff.
+  Not done: the systemd re-test (pip 26.3 is a GitHub archive the
+  sandbox can't fetch; the rollback path was exercised instead).
 - `sys populate` and `iso populate` unpacked caches into the existing
   sys/ and isofs/ trees, so every earlier build's files stayed (found Nov
   2026 when eudev's dropped 52-modules.rules was still there after the
