@@ -935,6 +935,33 @@ sections below.
     nothing, on a tree without /sbin/udevadm it names coldplug. The same
     one-liner would work for the team on any SMGL system (a pre-release
     check after a spell update).
+    The eudev 3.3.0 release notes (packagers' list, from the maintainer)
+    confirm it: the /sbin/udevadm link is gone on purpose ("packages and
+    scripts that call udevadm by that path must provide the link
+    themselves"), and the shipped rules need the groups audio, cdrom,
+    clock, dialout, disk, input, kmem, kvm, lp, render, sgx, tape, tty and
+    video (a missing group is now ignored with an error at every rules load
+    instead of falling back to root). The spell's FINAL creates only some
+    of them (not clock, render, sgx; cauldron's `group` has all 14); its
+    FINAL also still says "udevadm is now in /sbin" among a page of
+    2012-era upgrade notes it prints at every cast. Other notes there that
+    matter for SMGL: shipped hwdb files moved to /lib/udev/hwdb.d (stale
+    copies in /etc/udev/hwdb.d would override them; sorcery's upgrade
+    removed them in the build chroot, so unmodified systems are fine); the
+    package now installs `systemd-hwdb` too (in /bin here, while systemd's
+    is /usr/bin; the two conflict anyway); `$<NAME>_PATH` variables in
+    udevd's environment replace the programs rules run.
+  - **No udev hardware database in cauldron's tarballs and live systems**
+    (found Nov 2026, reading those release notes): /etc/udev/hwdb.bin is
+    made by eudev's FINAL (`udevadm hwdb --update`), which a cache doesn't
+    run (as with the CA certificates), so every hwdb lookup in udev's rules
+    found nothing: keyboard hotkey keymaps, touchpad/evdev fixes, sensor
+    orientation (60-sensor.hwdb), autosuspend, device names. The
+    20261111 tarball and ISO lack it, and very likely all earlier ones.
+    `CAULDRON_FINAL_CMDS` runs it now and the sys and iso checks require
+    the file (tested: both checks fail before, pass after). On a system
+    installed from those ISOs: `udevadm hwdb --update` once, as root
+    (systemd installs have their own, made by systemd's FINAL).
   - eudev 3.3.0's rules also use a group `clock` (Nov 2026: "Failed to
     resolve group 'clock'" at boot); cauldron's `group` adds it (16). And
     the official 20251212 tarball recorded `eudev:kmod:off` (no built-in

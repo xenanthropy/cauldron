@@ -901,6 +901,11 @@ function cauldron_sys_check() {
     echo "no CA certificates in /etc/ssl/certs (https can't be verified)"
     ((problems++))
   fi
+  if [[ -e "$target/bin/udevadm" && ! -s "$target/etc/udev/hwdb.bin" ]]
+  then
+    echo "no /etc/udev/hwdb.bin (udevadm hwdb --update, see CAULDRON_FINAL_CMDS)"
+    ((problems++))
+  fi
 
   cauldron_chroot_done "$target"
   liberror_check || return $?
@@ -1187,6 +1192,13 @@ function cauldron_iso_check() {
   if [[ ! -s "$target/etc/ssl/certs/ca-certificates.crt" ]]
   then
     echo "no CA certificates in the live system's /etc/ssl/certs"
+    ((problems++))
+  fi
+
+  # udev's hardware database (made by eudev's FINAL, which caches don't run)
+  if [[ -e "$target/bin/udevadm" && ! -s "$target/etc/udev/hwdb.bin" ]]
+  then
+    echo "no /etc/udev/hwdb.bin in the live system"
     ((problems++))
   fi
 
