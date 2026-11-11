@@ -1132,6 +1132,23 @@ sections below.
 - **sorcery**
   - `update_sorcery_scripts` casts `basesystem`, which conflicts with
     `smgl-base` (`sorcery update` tries to replace smgl-base/smgl-system).
+    Seen in cauldron's tarball (Nov 2026): "basesystem conflicts with
+    smgl-base. Dispel smgl-base? [n]" at every `sorcery update`; the
+    default n keeps the system, a y would dispel the base. It runs from the
+    *installed* sorcery before the new one is downloaded, and the published
+    sorcery tarballs (devel/test 2024-01-08) still have the block, so
+    patching our copy wouldn't last. Cauldron exiles basesystem in the
+    tarball (`CAULDRON_SYS_EXILE`): the question is gone, only a harmless
+    "Cannot cast basesystem (exiled) ... continue anyway? [y]" remains.
+  - The published sorcery tarballs are old: sorcery-devel and -test are
+    from 2024-01-08, sorcery-stable from 2016-01-09, and sorcery's default
+    `SORCERY_BRANCH` is "stable". The official 20251212 tarball sets
+    `devel`; cauldron's tarball set nothing (only ARCHITECTURE), so its
+    first `sorcery update` would have replaced the git master sorcery it
+    ships (20260928) with the 2016 one. It now sets `SORCERY_BRANCH=devel`
+    and the signature checks (`CAULDRON_SYS_SORCERY_CONFIG`). An update
+    still goes back from git master to devel 20240108, as for everyone:
+    for the team, a fresh sorcery-devel tarball from git would help.
   - The default sustained list still names `module-init-tools`.
   - `DEF_INSTALL_INIT`/`DEF_ENABLE_INIT` default to off, so an unattended
     cast (cauldron's builds, scripted installs) never installs a spell's init
@@ -1160,6 +1177,24 @@ sections below.
   (essential binaries, unresolved libraries, sorcery records, gpg, wget
   https). Smoke-tested in a fresh chroot: init, login/passwd/useradd/su,
   loadkeys, man, wget https, sorcery, trimmed locales, python ssl + dbm.
+- **Tarball as a working chroot (checked Nov 2026, an overlay over the
+  20261108 sys tree):** compared with the official 20251212 tarball (95
+  spells) ours has 113: the same set minus basesystem, inc-latest and
+  module-init-tools, plus smgl-base/smgl-system, kmod, metalog, dhcpcd,
+  wpa_supplicant, iw, wireless-regdb, iputils (ping), which, bc, elfutils,
+  smgl-setup, zstd, gnutls/nettle, pcre2 and meson/ninja/setuptools;
+  newer toolchain (gcc 16.2, glibc 2.44, binutils 2.47, openssl 4.1,
+  python 3.14). Neither has curl, git, an ssh client or sudo. The
+  official one ships SSH host keys without openssh (see the security
+  note); ours has none. Found and fixed: the sorcery branch, signature
+  checks off ("gpg verification is disabled"), the basesystem question
+  (see the sorcery entries in the team report). With those set, in the
+  chroot: `sorcery update` (signature verified, devel 20240108), `scribe
+  update test` (signature verified), `cast dialog` (source signature
+  verified, compiled, installed) all work. Still sorcery defaults rather
+  than the official tarball's choices: `DEF_INSTALL_INIT`/
+  `DEF_ENABLE_INIT` (official: on/on), `AUTOPRUNE` (official on),
+  `PROMPT_DELAY` (official 86400), MAKE_NJOBS 1 (both).
 - **Validated as a baseroot:** a fresh run with the new tarball as
   `CAULDRON_BASEROOT` (empty `CAULDRON_TMP`) passes `toolchain` (nothing
   obsolete to remove) and the whole `sys` stage, and re-produces a 104-spell

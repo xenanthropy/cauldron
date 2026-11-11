@@ -964,6 +964,24 @@ function cauldron_sorcerous_sys_defaults() {
   echo "ARCHITECTURE=\"$arch\"" >> "$sorcery_config" ||
     return $ERR_WRITE_FILE
 
+  # the rest of the settings for the installed system (CAULDRON_SYS_SORCERY_
+  # CONFIG: sorcery branch, signature checks)
+  if [[ "${#CAULDRON_SYS_SORCERY_CONFIG[@]}" -gt 0 ]]
+  then
+    printf '%s\n' "${CAULDRON_SYS_SORCERY_CONFIG[@]}" >> "$sorcery_config" ||
+      return $ERR_WRITE_FILE
+  fi
+
+  # spells sorcery must not cast there (as "sorcery exile" records them)
+  local packages="$target/var/state/sorcery/packages"
+  local spell=
+  for spell in "${CAULDRON_SYS_EXILE[@]}"
+  do
+    grep -q "^$spell:" "$packages" 2> "$CAULDRON_NULL" && continue
+    echo "$spell:$(date +%Y%m%d):exiled:0.0" >> "$packages" ||
+      return $ERR_WRITE_FILE
+  done
+
   return $ERR_OK
 }
 
