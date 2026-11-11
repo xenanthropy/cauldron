@@ -716,8 +716,12 @@ function cauldron_populate_sys() {
     liberror_check || return $?
   done
 
-  # find the cache file for each spell and unpack it to the target dir
-  for spell in $(cauldron_sorcerous_depends_closure $(cauldron_sys_spells))
+  # find the cache file for each spell (for the grimoire's version) and
+  # unpack it to the target dir
+  local spells=( $(cauldron_sorcerous_depends_closure $(cauldron_sys_spells)) )
+  cauldron_sorcerous_grimoire_versions "${spells[@]}"
+  liberror_check || return $?
+  for spell in "${spells[@]}"
   do
     # get the spell's installed version and/or cache file
     cache=$(cauldron_sorcerous_spell_cache "$spell")
@@ -955,6 +959,28 @@ function cauldron_check_cache_configs() {
       "${CAULDRON_CMD_TAR[@]}" -tf "$cache" | grep -qx "$file" ||
         echo "$file missing from the spell cache ${cache##*/}"
     done
+  done
+}
+
+#-------------------------------------------------------------------------------
+## @param spell
+## @param cache file
+##
+## Prints the CAULDRON_CACHE_CONFIGS files of the spell that the cache file
+## lacks (nothing if it has them all, or the spell has none listed).
+##
+#-------------------------------------------------------------------------------
+function cauldron_check_cache_configs_file() {
+  local spell="$1"
+  local cache="$2"
+  local entry=
+  local list=
+
+  for entry in "${CAULDRON_CACHE_CONFIGS[@]}"
+  do
+    [[ "${entry%%:*}" == "$spell" ]] || continue
+    [[ -n "$list" ]] || list=$("${CAULDRON_CMD_TAR[@]}" -tf "$cache")
+    grep -qx "${entry#*:}" <<< "$list" || echo "${entry#*:}"
   done
 }
 
@@ -1441,8 +1467,14 @@ function cauldron_iso_install_caches() {
   # make sure we have at least one valid cache to deal with
   [[ "${#caches[@]}" -gt 0 ]] || return $ERR_ISO_CREATE
 
-  # make the target cache dir if it doesn't exist
-  "${CAULDRON_CMD_MKDIR[@]}" "$target/$cachedir" || return $ERR_MK_DIR
+  # an empty target cache dir: caches of an earlier run (older versions,
+  # spells since dropped from the lists) would otherwise stay on the ISO
+  "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$target/$cachedir" &&
+    "${CAULDRON_CMD_MKDIR[@]}" "$target/$cachedir" || return $ERR_MK_DIR
+
+  # look the caches up by the grimoire's versions
+  cauldron_sorcerous_grimoire_versions "${caches[@]}"
+  liberror_check || return $?
 
   # copy all the installable caches over
   for spell in "${caches[@]}"

@@ -290,10 +290,14 @@ function build_spells() {
   for ((i=0; i < count ; i++))
   do
     local spell="${spells[i]}"
-    if cauldron_sorcerous_spell_cache "$spell" &> "$CAULDRON_NULL"
-    then
-      unset spells[i]
-    fi
+    local cache=
+    cache=$(cauldron_sorcerous_spell_cache "$spell" 2> "$CAULDRON_NULL") ||
+      continue
+    # a cache lacking its config files (made by a cast outside this function,
+    # e.g. sorcery recasting a dependent after a library upgrade) is rebuilt
+    [[ -n "$(cauldron_check_cache_configs_file "$spell" "$cache")" ]] &&
+      continue
+    unset spells[i]
   done
 
   # leave if nothing to process
