@@ -721,6 +721,14 @@ function enchant_install_init() {
   then
     enchant_chroot_done "$target"
     enchant_install_init_restore "$target" "$backup"
+    # and the providers other spells recorded (smgl-system's INITSCRIPTS,
+    # lvm's DEVICE-MANAGER, ...) point at the replaced spells again
+    while read -r spell dep
+    do
+      [[ -z "$spell" || "$spell" == \#* ]] && continue
+      "${ENCHANT_CMD_SEDFILE[@]}" \
+        "s/:$init($dep):/:$spell($dep):/" "$state/depends"
+    done < "$data/providers"
     [[ "$njobs_temp" == "yes" ]] &&
       "${ENCHANT_CMD_SEDFILE[@]}" '/^MAKE_NJOBS=/d' "$njobs_file"
     libcolor_msg error "$init could not be installed (see sorcery's output" \

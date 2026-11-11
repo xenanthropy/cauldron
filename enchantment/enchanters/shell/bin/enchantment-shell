@@ -615,9 +615,10 @@ MAIN COMMANDS
           system (or basesystem)
                   install a basesystem into the target (ENCHANT_TARGET)
           init INIT
-                  switch the target to another init system (systemd; the
-                  base system has simpleinit-msb): casts and recompiles in
-                  the target, needs network (see: todo init-system)
+                  switch the target to another init system (systemd or
+                  openrc; the base system has simpleinit-msb): casts and
+                  recompiles in the target, needs network (see: todo
+                  init-system)
           isokernel (or iso-kernel)
                   install the iso kernel and modules into the target
                   (ENCHANT_TARGET)
