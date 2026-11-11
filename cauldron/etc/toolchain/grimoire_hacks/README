@@ -31,9 +31,6 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
                   --enable-compat-symlinks, so mkfs.vfat and fsck.vfat exist
                   (fsck at boot looks for fsck.vfat for a vfat fstab entry;
                   documentation and the installer say mkfs.vfat)
-  sudo            1.9.17p2 doesn't build against OpenSSL 4 (ASN1_STRING is
-                  opaque; lib/iolog/hostcheck.c reads ->length); adds a
-                  PRE_BUILD applying a patch using ASN1_STRING_length()
   openssh         "make install" runs ssh-keygen -A on the build machine (the
                   keys end up in the spell's cache, shared by every system
                   installed from it) and only installs ssh_config/sshd_config

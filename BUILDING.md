@@ -166,8 +166,8 @@ The tarball's sorcery is installed from sorcery's git (cauldron takes the
 newest commit when it builds), which is newer than the published sorcery
 tarballs, so there's no need for `sorcery update`. To update sorcery later,
 install it from git again: with git installed, `git clone` the sorcery
-repository and run `./install` in it; without git (the tarball has none,
-since git needs rust), use the snapshot GitHub makes of it:
+repository and run `./install` in it (the tarball has no git; `cast git`
+adds it); without git, use the snapshot GitHub makes of it:
 
 ```sh
 cd /usr/src

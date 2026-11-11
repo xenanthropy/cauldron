@@ -19,3 +19,5 @@ iputils:libxslt:off
 # grub2: the font (unicode.pf2) for the graphical menu and the SMGL splash
 grub2:freetype2:on
 grub2:unifont:on
+# git: rust has been optional since 2.56.1; it would pull in rust and llvm
+git:rust:off

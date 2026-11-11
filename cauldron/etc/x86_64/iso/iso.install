@@ -28,5 +28,6 @@ acpi
 vim
 jed
 
-# development: git is left out for now; the grimoire's git (2.56.0) depends on
-# rust (and so llvm), which would have to be built and shipped too
+# development: git (rust is optional since 2.56.1, Nov 2026; off in
+# default_depends, since it would pull in rust and llvm)
+git

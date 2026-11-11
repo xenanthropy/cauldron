@@ -828,10 +828,14 @@ sections below.
     `etc/toolchain/grimoire_hacks/` (adds
     `-Wno-error=incompatible-pointer-types`); better fixes: squashfs-tools
     4.6+ (4.4 is from 2020), upstream patches for parted.
-  - git (2.56.0) now `depends rust`, so casting git means compiling rust and
-    llvm; git is therefore not offered on the ISO for now. Worth deciding
-    whether rust/llvm caches should be provided (also useful for other
-    spells moving to rust).
+  - git (2.56.0) `depends rust`, so casting git meant compiling rust and
+    llvm. **Fixed by the team (Nov 2026):** rust is an `optional_depends`
+    since 2.56.1 (with empty flags, so the gdbm pattern above applies: a
+    system with rust installed builds the rust code anyway). git is back in
+    `iso.install`, with `git:rust:off` in default_depends. The same grimoire
+    update also took in an OpenSSL 4 fix for sudo
+    (`sudo-1.9.17_p2-openssl-4.patch`), so cauldron's sudo hack is gone
+    (it no longer applied: both create the spell's PRE_BUILD).
   - rsync DETAILS: `UPSTRAM_HASH` typo.
   - grub2's `grub-default` sets `GRUB_DISABLE_UUID=true`, a variable GRUB
     doesn't know (it's `GRUB_DISABLE_LINUX_UUID`). `grub-mkconfig` then
@@ -883,6 +887,7 @@ sections below.
     (`lib/iolog/hostcheck.c` reads `iPAddress->length`; two lines). So a
     plain `cast sudo` fails on any up-to-date system. Cauldron patches it
     (`grimoire_hacks/sudo`); newer sudo releases may already have the fix.
+    Fixed in the grimoire by the team (Nov 2026); cauldron's hack removed.
   - dosfstools 4.2 is built without `--enable-compat-symlinks`, so there is
     no `mkfs.vfat` or `fsck.vfat`: the usual documentation fails, and the
     boot-time fsck of a vfat fstab entry (the EFI system partition) can't
@@ -1612,14 +1617,14 @@ sections below.
     kernel.org, and unpacks them with the ISO kernel's config as `.config`.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
-    wireless-regdb,wpa_supplicant,openssh,sudo,dosfstools,systemd,dbus,
+    wireless-regdb,wpa_supplicant,openssh,dosfstools,systemd,dbus,
     policykit,jinja2,linux-pam}` (see the README there and the team report above). New
     hack files that are spell scripts get their x bit set
     (`cauldron_sorcerous_cauldron_defaults`): sorcery only runs a
     SUB_DEPENDS etc. that is executable ("missing SUB_DEPENDS!" otherwise).
   - `etc/toolchain/sorcery/default_depends`: nghttp2 without python/boost
   - `iso.runtime` lists `fuse` (undeclared e2fsprogs dependency); `iso.install`
-    leaves out git (rust)
+    had left out git (rust; back since the team's fix, Nov 2026)
   - busybox is linked dynamically and its libraries copied into the
     initramfs (static libtirpc missing)
   - the installer's grub step tells the user to fix `/etc/default/grub` by
