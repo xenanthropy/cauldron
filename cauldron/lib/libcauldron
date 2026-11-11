@@ -865,6 +865,64 @@ function cauldron_sys_check() {
 }
 
 #-------------------------------------------------------------------------------
+## @param cache directory
+##
+## Prints the spell caches in the directory that aren't for the version the
+## build chroot's grimoire has. A cache's name is SPELL-VERSION-ARCH.tar.*,
+## and spell names contain dashes too, so every dash-separated prefix of a
+## name is asked about (gaze ignores unknown spells); a cache is fine when one
+## of them is a spell whose grimoire version follows it. Prints nothing if
+## all is well.
+##
+#-------------------------------------------------------------------------------
+function cauldron_check_cache_versions() {
+  local dir="$1"
+  local caches=()
+  local names=()
+  local cache=
+  local name=
+  local prefix=
+  local ok=
+
+  for cache in "$dir"/*.tar.*
+  do
+    [[ -f "$cache" ]] || continue
+    caches+=( "${cache##*/}" )
+    name="${cache##*/}"
+    prefix=
+    while [[ "$name" == *-* ]]
+    do
+      prefix="${prefix:+$prefix-}${name%%-*}"
+      name="${name#*-}"
+      names+=( "$prefix" )
+    done
+  done
+  [[ "${#caches[@]}" -gt 0 ]] || return $ERR_OK
+
+  cauldron_sorcerous_grimoire_versions $(printf '%s\n' "${names[@]}" |
+    sort -u) || return $?
+
+  for cache in "${caches[@]}"
+  do
+    ok=
+    name="$cache"
+    prefix=
+    while [[ "$name" == *-* ]]
+    do
+      prefix="${prefix:+$prefix-}${name%%-*}"
+      name="${name#*-}"
+      if [[ -n "${CAULDRON_GRIMOIRE_VERSIONS[$prefix]}" &&
+        "$cache" == "$prefix-${CAULDRON_GRIMOIRE_VERSIONS[$prefix]}-"* ]]
+      then
+        ok=yes
+        break
+      fi
+    done
+    [[ -n "$ok" ]] || echo "  $cache"
+  done
+}
+
+#-------------------------------------------------------------------------------
 ## @param target directory
 ##
 ## Prints the configuration files of CAULDRON_CACHE_CONFIGS that are missing:
@@ -1050,6 +1108,18 @@ function cauldron_iso_check() {
   out=$(cauldron_check_cache_configs "$target")
   if [[ -n "$out" ]]
   then
+    echo "$out"
+    ((problems++))
+  fi
+
+  # and sorcery only resurrects a cache made for its grimoire's version: one
+  # for another version is compiled instead (offline: fails, and drops
+  # everything depending on it)
+  cauldron_verbose "Checking the cache versions in $target..."
+  out=$(cauldron_check_cache_versions "$target/var/cache/sorcery")
+  if [[ -n "$out" ]]
+  then
+    echo "caches not for the grimoire's version (rebuild them, sys/iso build):"
     echo "$out"
     ((problems++))
   fi

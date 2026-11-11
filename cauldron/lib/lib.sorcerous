@@ -718,6 +718,42 @@ function cauldron_sorcerous_update_grimoires() {
 }
 
 #-------------------------------------------------------------------------------
+## @param spells
+##
+## Asks sorcery in the build chroot for the grimoire versions of the given
+## spells (one gaze call) and keeps them in CAULDRON_GRIMOIRE_VERSIONS, which
+## cauldron_sorcerous_spell_cache then prefers: a cache only counts when it is
+## for the grimoire's version. Without this, a spell installed in the build
+## chroot is looked up by its *installed* version, so after a grimoire update
+## its old cache still counts, nothing gets rebuilt, and the ISO ships caches
+## that sorcery won't resurrect offline (it only takes a cache whose version
+## matches its grimoire).
+##
+#-------------------------------------------------------------------------------
+declare -gA CAULDRON_GRIMOIRE_VERSIONS
+function cauldron_sorcerous_grimoire_versions() {
+  local spell=
+  local version=
+
+  [[ "$#" -gt 0 ]] || return $ERR_OK
+
+  cauldron_chroot_init "$CAULDRON_BUILD" >&2
+  liberror_check || return $?
+  while IFS='|' read -r _ _ spell version _
+  do
+    # (skip gaze's header lines)
+    [[ -n "$spell" && -n "$version" && "$spell" != Spell &&
+      "$spell" != -* ]] || continue
+    CAULDRON_GRIMOIRE_VERSIONS[$spell]="$version"
+  done < <(cauldron_chroot -q gaze -q version "$@" 2> "$CAULDRON_NULL" |
+    sed 's/\x1b\[[0-9;]*m//g' | grep '^[^|]*|[^|]*|[^|]*|')
+  cauldron_chroot_done "$CAULDRON_BUILD" >&2
+  liberror_check || return $?
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
 ## @param spell
 ## @param sorcery spell cache directory (optional)
 ##
@@ -736,8 +772,14 @@ function cauldron_sorcerous_spell_cache() {
 
   [[ -n "$spell" ]] || return $ERR_SORCEROUS_SPELL_CACHE
 
-  version=$(grep "^$spell:" "$state" 2> "$CAULDRON_NULL")
-  version="${version##*:}"
+  # the grimoire's version, when known (cauldron_sorcerous_grimoire_versions),
+  # else the installed one
+  version="${CAULDRON_GRIMOIRE_VERSIONS[$spell]}"
+  if [[ -z "$version" ]]
+  then
+    version=$(grep "^$spell:" "$state" 2> "$CAULDRON_NULL")
+    version="${version##*:}"
+  fi
   if [[ -z "$version" ]]
   then
     # the spell couldn't be found in sorcery's list of installed spells, so try

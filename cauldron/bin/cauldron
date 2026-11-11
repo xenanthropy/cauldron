@@ -282,7 +282,10 @@ function build_spells() {
 
   [[ -f "$spells" ]] && spells=( $(cauldron_read_list "$spells") )
 
-  # remove spells from the list if their caches already exist
+  # remove spells from the list if their caches already exist (for the
+  # grimoire's version: after a grimoire update, changed spells are rebuilt)
+  cauldron_sorcerous_grimoire_versions "${spells[@]}"
+  liberror_check || return $?
   local count="${#spells[@]}"
   for ((i=0; i < count ; i++))
   do
