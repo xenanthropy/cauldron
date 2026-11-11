@@ -837,6 +837,14 @@ sections below.
     (`sudo-1.9.17_p2-openssl-4.patch`), so cauldron's sudo hack is gone
     (it no longer applied: both create the spell's PRE_BUILD).
   - rsync DETAILS: `UPSTRAM_HASH` typo.
+  - ca-certificates (20260601) downloads its .deb from Debian's pool
+    (`ftp.debian.org/debian/pool/main/c/ca-certificates/`), which only
+    keeps current versions: since 20260816 came out, 20260601 is a 404 and
+    every cast fails (found Nov 2026). snapshot.debian.org keeps every
+    version (`https://snapshot.debian.org/file/<sha1>`, the sha1 from its
+    `mr/package/ca-certificates/<ver>/binfiles/...?fileinfo=1` API; same
+    sha512 as the spell). A snapshot URL as a SOURCE_URL fallback would end
+    this; the sandbox build used the snapshot file.
   - grub2's `grub-default` sets `GRUB_DISABLE_UUID=true`, a variable GRUB
     doesn't know (it's `GRUB_DISABLE_LINUX_UUID`). `grub-mkconfig` then
     writes `root=UUID=...` whenever `/dev/disk/by-uuid` exists, which only
@@ -1674,6 +1682,25 @@ sections below.
   directories). Round trip tested (setuid mode, numeric group, an xattr).
   Note: sorcery's caches don't store xattrs either, so a spell that sets
   a capability at install time (setcap) loses it in its cache.
+- Grimoire updates didn't rebuild anything (found Nov 2026, updating the
+  build chroot to the grimoire with the team's git fix): 16 cached spells
+  had new versions (openssh 10.6p2, zlib 1.4, eudev 3.3.0, parted 3.8,
+  xfsprogs 7.2.1, ...), yet `sys build` cast nothing.
+  `cauldron_sorcerous_spell_cache` looked a spell up by the version
+  *installed* in the build chroot, and most base spells are installed
+  there, so their old caches kept counting; the ISO would then have
+  shipped caches that sorcery doesn't resurrect offline (only a cache for
+  the grimoire's version counts; the libuv/libarchive failure on the
+  hardware, again). `build_spells` now asks gaze for the grimoire versions
+  of its whole list in one call (`cauldron_sorcerous_grimoire_versions`),
+  the lookup prefers them, and `cauldron_iso_check` fails on an
+  installable cache that isn't for its grimoire's version
+  (`cauldron_check_cache_versions`). Old caches stay in the cache
+  directory (the right one is picked by version). Also seen: don't edit
+  `bin/cauldron` while a run uses it (bash reads it as it goes: "unexpected
+  EOF" at the end), and the sandbox's host tar (the official tarball's)
+  has no xattr support ("tar: XATTR support is not available"), so
+  tarballs packed there carry no xattrs; nothing in them uses any yet.
 - `iso package` failed with "grub-mkimage: cannot open
   /usr/lib/grub/i386-pc/moddep.lst" (Nov 2026): after grub2 was recast for
   x86_64-efi, the build chroot's i386-pc directory survived with two files
