@@ -1732,6 +1732,18 @@ sections below.
   the basesystem exile. The boot showed eudev 3.3.0's modprobe messages
   and the clock group (see the team report), so eudev is rebuilt with
   kmod and the ISO rebuilt.
+- `sys populate` and `iso populate` unpacked caches into the existing
+  sys/ and isofs/ trees, so every earlier build's files stayed (found Nov
+  2026 when eudev's dropped 52-modules.rules was still there after the
+  rebuild): 789 files in sys/ came from no current cache (groff 1.24.2's
+  data, automake-1.19, the old ca-certificates, eudev 3.2's
+  /etc/udev/hwdb.d, which overrides the current hwdb). Every tarball and
+  ISO so far carried such leftovers, and they could hide a cache missing
+  files that a fresh build (an empty CAULDRON_TMP) wouldn't have. Both
+  populate steps now start from an empty tree (`cauldron_empty_tree`,
+  which refuses while anything is mounted below it). Consequence: run
+  `iso populate` before `iso kernel` (the kernel step adds the modules
+  and firmware to isofs), as `iso` does.
 - `iso package` failed with "grub-mkimage: cannot open
   /usr/lib/grub/i386-pc/moddep.lst" (Nov 2026): after grub2 was recast for
   x86_64-efi, the build chroot's i386-pc directory survived with two files
