@@ -405,7 +405,8 @@ function cauldron_chroot_dispel() {
   do
     [[ -n "$spell" ]] || continue
     grep -qx "$spell" "$sustained" 2> "$CAULDRON_NULL" && continue
-    grep -q "^$spell:" "$packages" 2> "$CAULDRON_NULL" || continue
+    grep -q "^$spell:[^:]*:\(installed\|held\):" "$packages" \
+      2> "$CAULDRON_NULL" || continue
     spells+=( "$spell" )
   done
   target_spells=( "${spells[@]}" )

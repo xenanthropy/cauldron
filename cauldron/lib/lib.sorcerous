@@ -933,7 +933,9 @@ function cauldron_sorcerous_cauldron_defaults() {
       "$target/var/lib/sorcery/sustained" ||
         return $ERR_SORCEROUS_DEFAULT_SETTINGS
 
-    if "${CAULDRON_CMD_GREP_QUIET[@]}" "^$spell:" \
+    # (installed or held, not exiled: cauldron's own tarballs exile
+    # basesystem, and dispel fails on a spell that isn't installed)
+    if "${CAULDRON_CMD_GREP_QUIET[@]}" "^$spell:[^:]*:\(installed\|held\):" \
       "$target/var/state/sorcery/packages" 2> "$CAULDRON_NULL"
     then
       cauldron_chroot "${CAULDRON_CMD_DISPEL[@]}" "$spell"
