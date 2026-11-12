@@ -1753,6 +1753,19 @@ sections below.
   without /sbin/udevadm fails at coldplug (68 s). ward's TODO still lists
   ISO/sys runtime tests; boot-test covers the sys part, the live ISO and
   the installer still need a walkthrough (qinstall-style) to test.
+- **Tarball smgl-test-0.63-20261112_0442** (341 MB; the maintainer's new
+  host chroot and baseroot, replacing the official 20251212 one): sys
+  repopulated with everything up to Nov 12 (hwdb.bin, the registry GIDs,
+  boot-script check), sys check passed, `ward/boot-test` passed (106 s,
+  TCG). Bootstrapped from itself as BUILDING.md describes (unpacked as the
+  host chroot, cauldron from git, the same tarball as CAULDRON_BASEROOT):
+  ward-all clean inside it; the first `toolchain` failed at the
+  obsolete-spell step, because cauldron took basesystem's `exiled` entry
+  in sorcery's packages file (written by CAULDRON_SYS_EXILE) for an
+  installed spell and ran dispel ("basesystem is not installed"); the
+  installed check now wants `installed` or `held` (lib.sorcerous and the
+  dispel helper). Then `toolchain` passed: compiler test, sorcery,
+  grimoire + hacks, kernel 6.18.59 headers, no mounts left.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
     wireless-regdb,wpa_supplicant,openssh,dosfstools,eudev,systemd,dbus,
