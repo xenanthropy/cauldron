@@ -3,9 +3,8 @@ After @[enchantment install init systemd], the new system boots with systemd.
 Some things work differently from simpleinit-msb:
 
 Root filesystem: /etc/fstab needs a line for / (see @[todo edit-confs]).
-  The kernel mounts / read-only ("ro" in grub.cfg); simpleinit remounts it
-  read-write anyway, systemd only as fstab says, so without that line the
-  root filesystem stays read-only.
+  The kernel mounts / read-only ("ro" in grub.cfg) and systemd remounts it
+  only as fstab says, so without that line it stays read-only.
 
 Services: @[systemctl enable --now sshd] (instead of telinit enable);
   @[systemctl status sshd], @[systemctl list-units --failed]. The init.d

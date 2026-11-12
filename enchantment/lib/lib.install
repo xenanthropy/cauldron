@@ -371,9 +371,9 @@ function enchant_install_init_settings_systemd() {
       return $ERR_INSTALL_INIT
   fi
 
-  # the kernel mounts / read-only (grub-mkconfig's "ro"); simpleinit and
-  # OpenRC remount it read-write anyway, but systemd-remount-fs only applies
-  # an fstab entry for /, so without one the root filesystem stays read-only
+  # the kernel mounts / read-only (grub-mkconfig's "ro"); systemd-remount-fs
+  # only applies an fstab entry for /, so without one / stays read-only
+  # (simpleinit stops at its root fsck instead; the reboot step checks too)
   if ! awk '$1 !~ /^#/ && $2 == "/" { found = 1 } END { exit !found }' \
     "$target/etc/fstab" 2> "$ENCHANT_NULL"
   then

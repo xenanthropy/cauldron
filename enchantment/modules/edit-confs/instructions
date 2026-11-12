@@ -7,7 +7,8 @@ others does no harm, but they are ignored).
 
 Partitions and mounts: @[$ENCHANT_TARGET/etc/fstab]
 Add a line per filesystem below "Add your file systems here" (@[lsblk -f]
-shows your partitions); e.g. for a UEFI disk with an ext4 root:
+shows your partitions). The line for / is required: without it the first
+boot stops at the root filesystem check. E.g. for a UEFI disk, ext4 root:
   /dev/nvme0n1p2  /          ext4  defaults  0 1
   /dev/nvme0n1p1  /boot/efi  vfat  defaults  0 2
 Fields: device, mount point, filesystem, options, dump (0), fsck order (1 for

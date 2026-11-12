@@ -180,6 +180,48 @@ function enchant_shell_todo_text() {
   enchant_shell_print "$ENCHANT_MODULES/$curstep/instructions"
   liberror_check || return $?
 
+  [[ "$curstep" == "reboot" ]] && enchant_shell_reboot_checks
+
+  return $ERR_OK
+}
+
+#-------------------------------------------------------------------------------
+##
+## Before the reboot step: warns about what would leave the installed system
+## unbootable or with no way in, and prints nothing if all is well:
+## - no line for / in the target's fstab: simpleinit's mountroot.sh then
+##   runs "fsck /" without a device, fails, and stops the boot at a
+##   maintenance prompt with / read-only; systemd leaves / read-only
+## - no kernel in the target's /boot
+## - root's password locked or empty and no other account with a password
+##
+#-------------------------------------------------------------------------------
+function enchant_shell_reboot_checks() {
+  local target="$ENCHANT_TARGET"
+  local problems=()
+
+  [[ -d "$target/etc" ]] || return $ERR_OK
+
+  awk '$1 !~ /^#/ && $2 == "/" { found = 1 } END { exit !found }' \
+    "$target/etc/fstab" 2> "$ENCHANT_NULL" ||
+    problems+=( "/etc/fstab has no line for / (see 'todo edit-confs'):"
+      "  without it the boot stops at fsck with / read-only" )
+
+  compgen -G "$target/boot/vmlinuz*" > "$ENCHANT_NULL" ||
+    compgen -G "$target/boot/kernel*" > "$ENCHANT_NULL" ||
+    compgen -G "$target/boot/bzImage*" > "$ENCHANT_NULL" ||
+    problems+=( "no kernel in /boot (see 'todo kernel')" )
+
+  awk -F: '$2 ~ /^\$/ { found = 1 } END { exit !found }' \
+    "$target/etc/shadow" 2> "$ENCHANT_NULL" ||
+    problems+=( "no account has a password, so nobody can log in"
+      "  (see 'todo user-setup')" )
+
+  [[ ${#problems[@]} -eq 0 ]] && return $ERR_OK
+
+  echo
+  libcolor_msg warn "Before you reboot, check:"
+  printf '  %s\n' "${problems[@]}"
   return $ERR_OK
 }
 

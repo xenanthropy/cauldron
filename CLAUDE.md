@@ -1004,12 +1004,23 @@ sections below.
   - Root filesystem read-only after boot (tester's report, Nov 2026, "ro in
     the grub.cfg entries"): GRUB's 10_linux writes `ro` on every entry, as
     on every distribution: the kernel mounts / read-only for fsck and init
-    remounts it. simpleinit's mountroot.sh always remounts read-write;
-    OpenRC's `root` does unless fstab says ro for /; systemd-remount-fs
-    only applies an fstab entry for /, so on systemd a missing / line in
-    fstab leaves root read-only. `install init systemd` now warns when the
-    target's fstab has no / line, and the systemd page says so. (Editing
-    grub.cfg is undone by the next grub-mkconfig.)
+    remounts it. The tester runs simpleinit, and there a missing / line in
+    fstab is the cause (reproduced in QEMU, Nov 2026: the 20261111 sys tree
+    on a virtio disk, kernel `root=/dev/vda ro`): mountroot.sh remounts /
+    read-only and runs `fsck /`, which without an fstab entry tries to open
+    the directory ("fsck.ext2: Is a directory while trying to open /", then
+    a misleading "superblock is corrupt"), so mountroot.sh stops at "Give
+    root password for maintenance" with / still read-only. With a / line
+    the same image fscks, remounts rw and boots (bootmisc printed
+    `/dev/root / ext4 rw`). OpenRC's `root` remounts rw unless fstab says
+    ro (its fsck service checks fstab entries only); systemd-remount-fs
+    only applies an fstab entry for /, so there / stays read-only. Fixes:
+    the reboot step now checks the target (`enchant_shell_reboot_checks`:
+    fstab without /, no kernel in /boot, no account with a password) and
+    warns; edit-confs says the / line is required; `install init systemd`
+    warns too. For the team: mountroot.sh could skip the fsck (or say what
+    is wrong) when / isn't in fstab, instead of a "corrupt superblock"
+    hint. (Editing grub.cfg is undone by the next grub-mkconfig.)
   - grub2 builds one platform per cast (`i386-pc` *or* `x86_64-efi`); a
     cache for a hybrid ISO / installer has to be assembled from two casts
     (cauldron does this in `cauldron_iso_grub_cache`). A spell option to
