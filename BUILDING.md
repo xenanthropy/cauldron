@@ -33,19 +33,29 @@ your Linux host
 
 ## 1. Set up the SMGL chroot (once)
 
-On your host, as root:
+You need an SMGL basesystem tarball. Best is one cauldron built (a
+`smgl-test-0.63-YYYYMMDD_HHMM-basesystem-x86_64.tar.xz` with its `.sha512`,
+from an earlier cauldron run or from someone who has one): it has the current
+toolchain and none of the official 20251212 tarball's leftovers (old
+module-init-tools and basesystem, shipped SSH host keys, 3.4 kernel modules).
+The official tarball works too, it just makes the first build do more.
+
+On your host, as root, with the tarball and its `.sha512` in /srv/smgl:
 
 ```sh
 mkdir -p /srv/smgl && cd /srv/smgl
 
-# the official basesystem tarball and its checksum
-T=smgl-test-0.63-20251212_1200-basesystem-x86_64.tar.xz
-wget https://mirror.sobukus.de/files/sourcemage/image/official/test/$T
-wget https://mirror.sobukus.de/files/sourcemage/image/official/test/$T.sha512
-sha512sum $T; cat $T.sha512        # the two sums must be the same
+# a cauldron-built tarball:
+T=smgl-test-0.63-YYYYMMDD_HHMM-basesystem-x86_64.tar.xz
+sha512sum -c $T.sha512             # must say OK
+# or the official one:
+#   T=smgl-test-0.63-20251212_1200-basesystem-x86_64.tar.xz
+#   wget https://mirror.sobukus.de/files/sourcemage/image/official/test/$T
+#   wget https://mirror.sobukus.de/files/sourcemage/image/official/test/$T.sha512
+#   sha512sum $T; cat $T.sha512    # the two sums must be the same
 
 # unpack it (keep the tarball: cauldron uses it again in step 3)
-tar -xpf $T -C /srv/smgl
+tar -xpf $T -C /srv/smgl --xattrs --xattrs-include='*' --numeric-owner
 mv $T /srv/smgl/root/
 
 # put cauldron inside it
@@ -74,9 +84,9 @@ Everything from here on runs **inside** the chroot.
 ```sh
 cd /root/cauldron
 
-# which tarball to start the build chroot from, and how many CPU threads to
-# compile with (leave 1-2 free if you want to use the machine meanwhile)
-export CAULDRON_BASEROOT=/root/smgl-test-0.63-20251212_1200-basesystem-x86_64.tar.xz
+# which tarball to start the build chroot from (the one from step 1), and how
+# many CPU threads to compile with (leave 1-2 free to use the machine meanwhile)
+export CAULDRON_BASEROOT=/root/smgl-test-0.63-YYYYMMDD_HHMM-basesystem-x86_64.tar.xz
 export CAULDRON_BUILD_JOBS=$(nproc)
 
 ./local-exec/cauldron.sh toolchain 2>&1 | tee /root/toolchain.log
