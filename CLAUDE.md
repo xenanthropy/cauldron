@@ -1655,9 +1655,9 @@ sections below.
     so an empty name); the iso-kernel step's manual commands copied a
     non-existent modprobe blacklist and left out the firmware and depmod;
     the boot-loader step named removed steps (select-spells, install) and
-    lilo, which isn't on the ISO (also dropped from the step order). The
-    old `ward` checks still flag the dead toolchain build/cross calls; its
-    error-code check reads the wrong file for enchantment (false alarms).
+    lilo, which isn't on the ISO (also dropped from the step order). (The
+    ward false alarms noted here then came from running it without gawk;
+    see "Testing tools".)
   - Grimoire metadata (found on the installed system): `scribe update` asked
     "Repair Grimoire:/var/lib/sorcery/codex/test's Metadata?" because cauldron
     unpacks grimoire tarballs itself and never wrote the `GRIMOIRE` file
@@ -1726,6 +1726,33 @@ sections below.
     puts them back. The installer's `enchantment install kernel-source`
     copies them from the ISO if present, else downloads them from
     kernel.org, and unpacks them with the ISO kernel's config as `.config`.
+- **Testing tools (Nov 2026).** `ward` (2010) is a static linter: ward-
+  errorcodes (ERR_* used but not defined, needs gawk: without it every
+  code looks undefined), ward-functions, ward-configvars. It still worked
+  apart from configvars (its include parser kept redirections and broke its
+  eval; fixed). `ward-all` now runs all three for cauldron and enchantment
+  plus `bash -n` on every script, filters `ward/ignore` (known false alarms,
+  each with its reason), uses a pager only on a terminal and exits 1 on
+  findings, so a CI job or hook can use it. Its first run found the three
+  dead toolchain build/cross calls (now an explicit ERR_TOOLCHAIN_METHOD
+  "only chroot works" instead of "command not found") and a syntax error in
+  the unfinished menu enchanter. Testing that turned up a liberror misuse:
+  `liberror_check "$rc" ""` returns success whenever the previous command
+  succeeded (the code argument only renames an error), so `toolchain build`
+  with CAULDRON_VERBOSE=yes went on to the chroot method and
+  cauldron_prepare (stopped only by a failed sorcery download, before it
+  removes the old sorcery); the same pattern in enchantment's `jump` never
+  printed its error. Both callers fixed. `ward/boot-test` (host side, root,
+  qemu + mkfs.ext4): unpacks system.tar.xz (or `-t` a tree, e.g. sys/),
+  adds the ISO kernel's modules, an fstab / line and a bootmisc probe,
+  boots it in QEMU with the ISO kernel and fails on boot-script failures, a
+  stopped boot (maintenance prompt, Essential script failed, panic), / not
+  rw, udevd/metalog/nscd not running, no CA bundle or hwdb.bin, /tmp modes.
+  Tested: the 20261111 tarball fails on hwdb.bin (as it should, built
+  before that fix, 94 s under TCG), today's sys tree passes, the sys tree
+  without /sbin/udevadm fails at coldplug (68 s). ward's TODO still lists
+  ISO/sys runtime tests; boot-test covers the sys part, the live ISO and
+  the installer still need a walkthrough (qinstall-style) to test.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
     wireless-regdb,wpa_supplicant,openssh,dosfstools,eudev,systemd,dbus,

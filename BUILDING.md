@@ -127,6 +127,22 @@ qemu-system-x86_64 -enable-kvm -m 2G -bios /usr/share/ovmf/OVMF.fd \
   -cdrom smgl-devel-*.iso
 ```
 
+Or let a script boot the system tarball for you and check it (on the host,
+as root, with qemu-system-x86_64 and mkfs.ext4 installed; about a minute with
+KVM):
+
+```sh
+/srv/smgl/root/cauldron/ward/boot-test /srv/smgl/tmp/cauldron
+```
+
+It boots `system.tar.xz` with the ISO's kernel and reports what went wrong:
+a boot script that failed, a boot that stopped (e.g. at a maintenance
+prompt), `/` not read-write, udevd/metalog/nscd not running, files missing
+that cauldron adds after unpacking (CA certificates, udev's hardware
+database), wrong `/tmp` modes. `-k` keeps its work directory with the
+console log. It doesn't replace an install walkthrough: the installer, the
+boot loader and real hardware are only tested by doing them.
+
 Put it on a USB stick (this erases the stick; check the device name with
 `lsblk` first):
 
@@ -218,6 +234,14 @@ rm /tmp/cauldron/build/var/cache/sorcery/SPELL-*
 
 To start over completely: `./local-exec/cauldron.sh cleanse`. It deletes all of
 /tmp/cauldron, **including the ISO and the tarball**, and everything compiled.
+
+## Checking cauldron's own code
+
+Inside the chroot, `ward/ward-all` runs the static checks: error codes used
+but never defined, functions called but never defined, config variables used
+but never set, and `bash -n` on every script. It exits non-zero when it finds
+something; known false alarms are listed, with their reasons, in
+`ward/ignore`. Run it after changing cauldron or the installer.
 
 ## When something goes wrong
 

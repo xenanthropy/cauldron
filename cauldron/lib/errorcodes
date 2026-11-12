@@ -148,6 +148,8 @@ liberror_add_error ERR_TOOLCHAIN_BASEROOT_TEST \
 liberror_add_error ERR_TOOLCHAIN_BASEROOT \
   "could not acquire and set up a valid basesystem chroot"
 liberror_add_error ERR_TOOLCHAIN_KSRC "could not acquire kernel source"
+liberror_add_error ERR_TOOLCHAIN_METHOD \
+  "toolchain method not supported yet, only chroot works: see CLAUDE.md"
 liberror_add_error ERR_TOOLCHAIN_SOURCES "could not acquire toolchain sources"
 liberror_add_error ERR_TOOLCHAIN_UNPACK \
   "could not unpack toolchain component sources"

@@ -1,0 +1,205 @@
+#!/bin/bash
+#-------------------------------------------------------------------------------
+##
+##=head1 SYNOPSIS
+##
+##  boot-test [-k] [-t TREE] [CAULDRON_TMP]
+##
+##  Boots the system tarball that cauldron built (system.tar.xz) in QEMU,
+##  with the ISO's kernel, and checks that it comes up: no boot script fails,
+##  the root filesystem ends up read-write, the expected daemons run, and the
+##  files cauldron adds after unpacking the caches are there. A smoke test of
+##  what a chroot can't show, in about a minute with KVM (several without).
+##
+##  Run it on the host, as root (it unpacks the tarball with its owners and
+##  builds an ext4 image), with qemu-system-x86_64 and mkfs.ext4 installed.
+##  CAULDRON_TMP is cauldron's work area as the host sees it (default
+##  /srv/smgl/tmp/cauldron, the layout in BUILDING.md); it needs
+##  system.tar.xz, iso/boot/kernel and isofs/lib/modules (run `cauldron iso`
+##  first). -k keeps the work directory, with the console log, for a look.
+##  -t TREE boots a copy of an unpacked tree instead of system.tar.xz, e.g.
+##  CAULDRON_TMP/sys before `cauldron sys package`.
+##  Exits 0 when the boot passed, 1 when it failed, 2 on a setup problem.
+##
+##  What it adds to the unpacked system before booting: an fstab line for /
+##  (the installer leaves that to the user) and /etc/sysconfig/bootmisc,
+##  which simpleinit runs at the end of the boot (smgl-misc), to report what
+##  it sees on the serial console and power off.
+##
+#-------------------------------------------------------------------------------
+
+keep="no"
+tree=""
+while [[ "$1" == -* ]]
+do
+  case "$1" in
+    -k) keep="yes" ;;
+    -t) tree="$2"; shift ;;
+    *)  echo "usage: ${0##*/} [-k] [-t TREE] [CAULDRON_TMP]" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+tmp="${1:-/srv/smgl/tmp/cauldron}"
+tarball="$tmp/system.tar.xz"
+kernel="$tmp/iso/boot/kernel"
+modules="$tmp/isofs/lib/modules"
+timeout="${BOOT_TEST_TIMEOUT:-600}"
+
+function setup_error() {
+  echo "boot-test: $*" >&2
+  exit 2
+}
+
+[[ "$(id -u)" -eq 0 ]] || setup_error "run as root"
+for cmd in qemu-system-x86_64 mkfs.ext4 tar xz
+do
+  command -v "$cmd" > /dev/null || setup_error "$cmd not found"
+done
+[[ -n "$tree" ]] && tarball="$tree"
+for file in "$tarball" "$kernel"
+do
+  [[ -e "$file" ]] || setup_error "$file not found"
+done
+
+work="$(mktemp -d "${TMPDIR:-/var/tmp}/boot-test.XXXXXX")" ||
+  setup_error "can't make a work directory"
+root="$work/root"
+image="$work/disk.img"
+log="$work/console.log"
+
+function cleanup() {
+  [[ -n "$qemu" ]] && kill "$qemu" 2> /dev/null
+  if [[ "$keep" == "yes" ]]
+  then
+    echo "work directory kept: $work"
+  else
+    rm -rf "$work"
+  fi
+}
+trap cleanup EXIT
+
+if [[ -n "$tree" ]]
+then
+  echo "Copying $tree ..."
+  mkdir "$root" && cp -a "$tree/." "$root/" || setup_error "can't copy $tree"
+else
+  echo "Unpacking $tarball ..."
+  mkdir "$root" &&
+    tar -xpf "$tarball" -C "$root" --xattrs --xattrs-include='*' \
+      --numeric-owner 2> "$work/tar.log" ||
+    tar -xpf "$tarball" -C "$root" --numeric-owner ||
+    setup_error "can't unpack $tarball"
+fi
+if [[ -d "$modules" ]]
+then
+  mkdir -p "$root/lib/modules" && cp -a "$modules/." "$root/lib/modules/"
+else
+  echo "warning: no $modules: boot scripts that load modules will fail"
+fi
+
+# the root filesystem (the installer's edit-confs step has the user write it)
+awk '$1 !~ /^#/ && $2 == "/" { found = 1 } END { exit !found }' \
+  "$root/etc/fstab" 2> /dev/null ||
+  echo "/dev/vda  /  ext4  defaults  0 1" >> "$root/etc/fstab"
+
+# the probe: runs at the end of the boot (runlevel 3, smgl-misc)
+cat > "$root/etc/sysconfig/bootmisc" << 'EndProbe'
+#!/bin/bash
+{
+  echo "BOOTTEST-ROOT $(awk '$2 == "/" { print $4 }' /proc/mounts | tail -n 1)"
+  for p in udevd metalog nscd
+  do
+    pidof "$p" > /dev/null && echo "BOOTTEST-RUNNING $p" ||
+      echo "BOOTTEST-NOTRUNNING $p"
+  done
+  for f in /etc/ssl/certs/ca-certificates.crt /etc/udev/hwdb.bin
+  do
+    [[ -s "$f" ]] && echo "BOOTTEST-FILE $f" || echo "BOOTTEST-NOFILE $f"
+  done
+  for d in /tmp /var/tmp
+  do
+    echo "BOOTTEST-MODE $d $(stat -c %a "$d")"
+  done
+  echo "BOOTTEST-END"
+} > /dev/ttyS0 2>&1
+sync
+echo o > /proc/sysrq-trigger
+EndProbe
+chmod 755 "$root/etc/sysconfig/bootmisc"
+
+echo "Making the disk image ..."
+size=$(( $(du -sm "$root" | cut -f1) + 1024 ))
+truncate -s "${size}M" "$image" &&
+  mkfs.ext4 -q -d "$root" "$image" ||
+  setup_error "can't make the disk image"
+rm -rf "$root"
+
+accel=()
+[[ -w /dev/kvm ]] && accel=( -enable-kvm -cpu host )
+echo "Booting (${accel[*]:-no KVM, slower}; at most $timeout s) ..."
+qemu-system-x86_64 "${accel[@]}" -m 1G -nographic -no-reboot \
+  -kernel "$kernel" -append "root=/dev/vda ro console=ttyS0" \
+  -drive "file=$image,format=raw,if=virtio" > "$log" 2>&1 &
+qemu=$!
+
+# wait for the end of the probe, a boot that stopped, or the timeout
+stopped=""
+for (( waited = 0; waited < timeout; waited += 2 ))
+do
+  kill -0 "$qemu" 2> /dev/null || break
+  if grep -q 'BOOTTEST-END' "$log"
+  then
+    sleep 2
+    break
+  fi
+  if grep -aq 'Give root password\|Essential script failed\|Kernel panic' "$log"
+  then
+    stopped="yes"
+    sleep 2
+    break
+  fi
+  sleep 2
+done
+kill "$qemu" 2> /dev/null
+wait "$qemu" 2> /dev/null
+qemu=""
+
+# simpleinit's messages: one per line, without colours
+sed 's/\x1bE/\n/g; s/\x1b\[[0-9;]*[A-Za-z]//g; s/\r//g' "$log" > "$work/clean.log"
+
+problems=()
+grep -q 'BOOTTEST-END' "$work/clean.log" ||
+  problems+=( "the boot didn't reach the end of runlevel 3" )
+[[ -n "$stopped" ]] && problems+=( "the boot stopped: $(grep -ao \
+  'Give root password[^.]*\|Essential script failed[^.]*\|Kernel panic.*' \
+  "$work/clean.log" | head -n 1)" )
+while read -r line
+do
+  problems+=( "boot script: $line" )
+done < <(grep -a ': failure' "$work/clean.log")
+rootopts="$(sed -n 's/.*BOOTTEST-ROOT //p' "$work/clean.log" | head -n 1)"
+[[ -z "$rootopts" || ",$rootopts," == *,rw,* ]] ||
+  problems+=( "/ is mounted $rootopts" )
+while read -r line
+do
+  problems+=( "${line#*BOOTTEST-}" )
+done < <(grep -a 'BOOTTEST-NOTRUNNING\|BOOTTEST-NOFILE' "$work/clean.log")
+while read -r dir mode
+do
+  [[ "$mode" == "1777" ]] || problems+=( "$dir has mode $mode, not 1777" )
+done < <(sed -n 's/.*BOOTTEST-MODE //p' "$work/clean.log")
+
+if [[ ${#problems[@]} -eq 0 ]]
+then
+  echo "boot-test: passed ($(grep -c ': success' "$work/clean.log") boot" \
+    "script steps succeeded, / read-write)"
+  exit 0
+fi
+
+echo "boot-test: FAILED"
+printf '  %s\n' "${problems[@]}"
+echo "(the console log: rerun with -k to keep it)"
+exit 1
+
+# vim:ai:tw=80:tabstop=2:softtabstop=2:shiftwidth=2:expandtab

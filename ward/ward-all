@@ -16,23 +16,118 @@
 ##
 #-------------------------------------------------------------------------------
 
-WARD_PATH="$(dirname $0)"
+WARD_PATH="$(cd "$(dirname "$0")" && pwd)"
+WARD_BASE="$(dirname "$WARD_PATH")"
 PATH="$WARD_PATH:$PATH"
-
-PAGER="${PAGER:-less -R}"
+WARD_IGNORE="${WARD_IGNORE:-$WARD_PATH/ignore}"
 
 TESTERS=(
-        "ward-configvars"
-        "ward-errorcodes"
-        "ward-functions"
+        "configvars"
+        "errorcodes"
+        "functions"
         )
+TARGETS=( cauldron enchantment )
 
-for tester in "${TESTERS[@]}"
-do
-  echo ""
-  echo "RUNNING: $tester"
-  $tester "$@"
-done | $PAGER
+#-------------------------------------------------------------------------------
+##
+## Prints every finding of all checkers that isn't in the ignore list
+## (ward/ignore), plus any bash syntax error in cauldron's and enchantment's
+## scripts, and the count. Returns 1 if there were any, so scripts (a CI job,
+## a pre-commit hook) can use it; on a terminal the output goes to a pager.
+##
+#-------------------------------------------------------------------------------
+function ward_all() {
+  local tester=
+  local target=
+  local file=
+  local out=
+  local findings=0
+
+  # ward-errorcodes needs gawk; without it every code looks undefined
+  if ! command -v gawk > /dev/null
+  then
+    echo "ward needs gawk (ward-errorcodes would report every error code)"
+    return 1
+  fi
+
+  for tester in "${TESTERS[@]}"
+  do
+    for target in "${TARGETS[@]}"
+    do
+      echo "== ward-$tester $target"
+      # findings look like "FILE: NAME"; drop the ignored names, keep
+      # everything else (also unexpected output, which may be an error)
+      out=$("ward-$tester" -n "$target" 2>&1 |
+        grep -v '^Checking ' |
+        awk -v t="$tester" -v base="$WARD_BASE/" '
+          FNR == NR {
+            sub(/#.*/, "")
+            if ($1 == t && $2 != "") ignore[$2] = 1
+            next
+          }
+          {
+            name = $NF
+            if ($0 ~ /^\/.*: [^ ]+$/ && name in ignore) next
+            sub("^" base, "")
+            print
+          }' "$WARD_IGNORE" -)
+      if [[ -n "$out" ]]
+      then
+        echo "$out"
+        findings=$((findings + $(echo "$out" | wc -l)))
+      fi
+    done
+  done
+
+  echo "== bash -n (syntax)"
+  for file in $(ward_shell_files)
+  do
+    out=$(bash -n "$file" 2>&1) && continue
+    echo "${file#$WARD_BASE/}: $out"
+    findings=$((findings + 1))
+  done
+
+  echo
+  if [[ "$findings" -gt 0 ]]
+  then
+    echo "ward: $findings finding(s) (false alarms go in ward/ignore)"
+    return 1
+  fi
+  echo "ward: no findings"
+  return 0
+}
+
+#-------------------------------------------------------------------------------
+##
+## Prints the bash files of cauldron and enchantment: the libraries and config
+## files (no shebang) and every script with a bash or sh shebang.
+##
+#-------------------------------------------------------------------------------
+function ward_shell_files() {
+  local file=
+
+  for file in "$WARD_BASE"/{cauldron/lib,enchantment/lib,lib}/* \
+    "$WARD_BASE"/cauldron/config/*.conf "$WARD_BASE"/cauldron/config/*/*.conf \
+    "$WARD_BASE"/enchantment/config/*.conf
+  do
+    [[ -f "$file" ]] && echo "$file"
+  done
+  find "$WARD_BASE"/{cauldron,enchantment,local-exec,ward} -type f \
+    ! -path '*/config/*' ! -path '*/lib/*' |
+    while read -r file
+    do
+      case "$(head -n 1 "$file" 2> /dev/null)" in
+        '#!'*bash*|'#!'*/sh) echo "$file" ;;
+      esac
+    done
+}
+
+if [[ -t 1 ]]
+then
+  ward_all | ${PAGER:-less -R}
+  exit "${PIPESTATUS[0]}"
+fi
+ward_all
 
 #-------------------------------------------------------------------------------
 ##

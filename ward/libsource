@@ -79,8 +79,9 @@ function ward_parse_includes() {
 
   # for every line starting with "source" or ".", grab the argument to be
   # sourced
+  # (only the path: drop redirections and anything else after it)
   grep '^[[:space:]]*\(source \|\. \)' "${include[@]}" |
-    sed 's/.*\(source\|\.\) //'
+    sed 's/.*\(source\|\.\) //; s/[[:space:]].*//'
 }
 
 #-------------------------------------------------------------------------------

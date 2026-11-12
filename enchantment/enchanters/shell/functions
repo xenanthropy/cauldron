@@ -271,7 +271,8 @@ function enchant_shell_perform_jump() {
 
   enchant_set_current $*
   rc="$?"
-  liberror_check "$rc" "'$@'"
+  # (after the assignment $? is 0, so liberror_check needs the failed test)
+  [[ "$rc" -eq $ERR_OK ]] || liberror_check "$rc" "'$@'"
 
   if [[ "$rc" -eq $ERR_SET_CURRENT ]]
   then

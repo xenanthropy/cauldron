@@ -4,6 +4,7 @@
 . /wherever/libmenu
 
 function main_menu() {
+  :  # not written yet: the menu installer is an unfinished start
 }
 
 function main_loop() {

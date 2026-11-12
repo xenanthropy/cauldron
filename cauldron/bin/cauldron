@@ -218,11 +218,11 @@ EndUsage
 ##
 #-------------------------------------------------------------------------------
 # set up a tool-chain that matches the arch of the host system
+# (not wired up: the lib.toolchain refactor of 2018 renamed the functions this
+# called to cauldron_toolchain_cache_cast/_build, and nobody has tested those
+# since; the chroot method, from a basesystem tarball, is the one in use)
 function build_toolchain_host() {
-  cauldron_toolchain_cache_make
-  liberror_check || return $?
-  cauldron_toolchain_build_host
-  liberror_check
+  return $ERR_TOOLCHAIN_METHOD
 }
 
 #-------------------------------------------------------------------------------
@@ -232,9 +232,10 @@ function build_toolchain_host() {
 ##
 #-------------------------------------------------------------------------------
 # set up cross-compile tool-chain
+# (not wired up either: cauldron_toolchain_cross never existed; see
+# cauldron_toolchain_build_cross in lib.toolchain for where to start)
 function build_toolchain_cross() {
-  cauldron_toolchain_cross
-  liberror_check
+  return $ERR_TOOLCHAIN_METHOD
 }
 
 #-------------------------------------------------------------------------------
@@ -1049,11 +1050,12 @@ function process_toolchain() {
         exit 1
         ;;
     esac
-    if [[ "$CAULDRON_VERBOSE" == "yes" ]]
+    # (liberror_check "$rc" "" can't do this: it returns success whenever
+    # the previous command did, and only renames an error otherwise)
+    if [[ "$rc" -ne $ERR_OK ]]
     then
-      liberror_check "$rc" "" || break
-    else
-      [[ "$rc" -eq $ERR_OK ]] || break
+      [[ "$CAULDRON_VERBOSE" == "yes" ]] && liberror_print_error "$rc" ""
+      break
     fi
   done
   check_fatal "$rc"

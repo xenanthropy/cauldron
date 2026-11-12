@@ -1,0 +1,42 @@
+# Findings ward-all doesn't report: "CHECKER NAME  # why". CHECKER is the
+# ward-CHECKER script (configvars, errorcodes, functions), NAME what it
+# reports. Only add false alarms here, each with its reason; a real problem
+# stays visible until it's fixed.
+
+# bash's own variables
+configvars PWD                  # set by bash
+configvars UID                  # set by bash
+configvars BASH_REMATCH         # set by bash's =~
+
+# globals the libraries set themselves (outside config/*.conf)
+configvars CAULDRON_CHROOT      # lib.chroot, set by cauldron_chroot_init
+configvars ENCHANT_CHROOT       # enchantment's lib.chroot, the same
+configvars LIBCHROOT_PATHS      # lib.chroot's mount bookkeeping
+configvars LIBCHROOT_USERS      # lib.chroot's mount bookkeeping
+configvars CAULDRON_GRIMOIRE_VERSIONS  # declare -gA in lib.sorcerous
+
+# set by local-exec/cauldron.sh or the user, with defaults where used
+configvars CONFIG_FILE          # the config file cauldron loads
+configvars VERSION_FILE         # optional override, has a default
+configvars CAULDRON_PARAMS      # only in a commented-out block
+
+# enchantment's settings, which cauldron reads from enchantment's own config
+# when it copies the installer into the live system (cauldron_enchant)
+configvars ENCHANT_COMMON
+configvars ENCHANT_CONFIGS
+configvars ENCHANT_DATA
+configvars ENCHANT_DOCS
+configvars ENCHANT_ENCHANTERS
+configvars ENCHANT_LIBS
+configvars ENCHANT_MODULES
+configvars ENCHANT_TARGET
+configvars ENCHANT_TMP
+configvars ENCHANT_VERSION
+
+# sorcery's setting, written by the installer into the target's sorcery config
+configvars PROMPT_DELAY
+
+# words in strings that look like function calls to ward-functions
+functions x86_64                # arch names in strings and case patterns
+functions headers_install       # a make target
+functions modify_config          # sorcery's function (libtrack), loaded at run time
