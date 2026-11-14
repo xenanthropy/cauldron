@@ -543,6 +543,23 @@ function enchant_install_init_settings_openrc() {
     done < "$target/etc/modules" || return $ERR_INSTALL_INIT
   fi
 
+  # single-user mode (`shutdown now` without -h/-r) and a failed boot open
+  # rc_shell on the console; unset, that is root's shell without a
+  # password: ask for root's password with sulogin (util-linux, recast with
+  # it), as rc.conf suggests
+  for value in /sbin/sulogin /usr/sbin/sulogin
+  do
+    [[ -x "$target$value" ]] || continue
+    if grep -q '^#*rc_shell=' "$target/etc/rc.conf" 2> "$ENCHANT_NULL"
+    then
+      "${ENCHANT_CMD_SEDFILE[@]}" "0,/^#*rc_shell=.*/s||rc_shell=$value|" \
+        "$target/etc/rc.conf"
+    else
+      echo "rc_shell=$value" >> "$target/etc/rc.conf"
+    fi || return $ERR_INSTALL_INIT
+    break
+  done
+
   return $ERR_OK
 }
 
@@ -652,15 +669,22 @@ function enchant_install_init() {
       return $ERR_INSTALL_INIT
   done < "$data/providers"
 
-  # spell option presets
+  # spell option presets (they replace the answers recorded for the same
+  # options; sorcery may leave the last line without a newline)
   "${ENCHANT_CMD_MKDIR[@]}" "$config" || return $ERR_INSTALL_INIT
-  # (sorcery may leave the last line without a newline)
+  local var=
   for file in "$data/presets"/*.p
   do
     [[ -f "$file" ]] || continue
     if [[ -s "$config/${file##*/}" ]]
     then
-      echo >> "$config/${file##*/}" || return $ERR_INSTALL_INIT
+      for var in $(sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' "$file")
+      do
+        "${ENCHANT_CMD_SEDFILE[@]}" "/^$var=/d" "$config/${file##*/}" ||
+          return $ERR_INSTALL_INIT
+      done
+      [[ -s "$config/${file##*/}" ]] &&
+        echo >> "$config/${file##*/}" || true
     fi
     cat "$file" >> "$config/${file##*/}" || return $ERR_INSTALL_INIT
   done

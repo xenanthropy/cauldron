@@ -4,13 +4,15 @@ enchant_install_init_settings_openrc in lib/lib.install):
   depends    answers for sorcery, "spell:dependency:on|off" (see systemd/)
   presets/   openrc.p answers "SysVinit compatibility" with yes: without it
              OpenRC installs no /sbin/init (openrc-init), halt, reboot, ...
-             and no getties
+             and no getties; util-linux.p asks for sulogin (presets replace
+             the recorded answers for the same options)
   replaces   spells dispelled before openrc is cast (and restored if it
              fails): simpleinit-msb (owns /sbin/init, ...) and init.d
              (conflicts with openrc, which provides INITSCRIPTS)
   providers  "spell PROVIDER" rewritten to openrc in sorcery's records
   recast     installed spells to recompile: procps-ng builds pidof only
-             without simpleinit-msb, which shipped it
+             without simpleinit-msb, which shipped it; util-linux for
+             sulogin (presets/util-linux.p), which becomes rc_shell
   check      spells that must be installed afterwards
   init.d/    service scripts SMGL's spells don't ship: udev, udev-trigger,
              udev-settle (eudev), metalog, nscd, sshd, dhcpcd,

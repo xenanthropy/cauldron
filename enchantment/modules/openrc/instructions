@@ -21,5 +21,8 @@ Settings: hardware clock in /etc/conf.d/hwclock, keymap in
   @[rc-update add consolefont boot]), modules to load in
   /etc/modules-load.d/*.conf, commands to run at boot in
   /etc/local.d/*.start (/etc/sysconfig/bootmisc still runs from there).
+Shutting down: @[poweroff], @[reboot], or @[shutdown -h now] / @[shutdown -r
+  now]. A plain "shutdown now" goes to single-user mode (a root shell on
+  the console after root's password; @[exit] goes back to normal).
 
 To see this again, type @[todo openrc].

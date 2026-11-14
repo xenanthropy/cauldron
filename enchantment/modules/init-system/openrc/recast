@@ -1,2 +1,5 @@
 # procps-ng builds pidof only without simpleinit-msb, which shipped it
 procps-ng
+# util-linux: sulogin (simpleinit-msb shipped it) for rc_shell, so
+# single-user mode and a failed boot ask for root's password
+util-linux

@@ -506,7 +506,23 @@ service started, `rc-status --crashed` empty, udev/metalog/nscd/sshd up,
 /dev/fd and /dev/std* there, /var/run and /var/lock moved into /run,
 clock and keymap carried over, pidof from procps-ng, `reboot` refused to
 a user and clean as root. dmesg only showed firmware ACPI errors and the
-known built-in cfg80211 regulatory.db message.
+known built-in cfg80211 regulatory.db message. Then `sudo shutdown now`
+left a `bash-5.3#` prompt ("cannot set terminal process group ... no job
+control"): OpenRC's /sbin/shutdown (src/shutdown/shutdown.in, installed
+with sysvinit=true) passes `--single` when neither -h nor -r is given, as
+sysvinit's shutdown did, and openrc-init's single mode stops the services
+and runs `rc_shell` (src/openrc-init/openrc-init.c `open_shell`; rc.c uses
+it for a failed boot too), which unset means root's shell with no
+password and no controlling tty. Gentoo's rc.conf suggests
+`rc_shell=/sbin/sulogin`, but under OpenRC SMGL had no sulogin
+(simpleinit-msb shipped it; util-linux builds it only with UL_SULOGIN).
+`install init openrc` now recasts util-linux with sulogin
+(presets/util-linux.p) and sets rc_shell to it; presets now replace the
+recorded answers for the same options instead of only being appended.
+The openrc page says to use poweroff/reboot/`shutdown -h now`. Preset and
+rc.conf edits tested on scratch files; not yet run in a target. On an
+existing OpenRC install: `cast -c util-linux` answering sulogin yes, then
+`rc_shell=/sbin/sulogin` in /etc/rc.conf.
 
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**
