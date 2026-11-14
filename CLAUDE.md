@@ -1844,6 +1844,14 @@ sections below.
   EOF" at the end), and the sandbox's host tar (the official tarball's)
   has no xattr support ("tar: XATTR support is not available"), so
   tarballs packed there carry no xattrs; nothing in them uses any yet.
+  The same holds for cauldron's own tar (in system.tar.xz and the live
+  system): the build chroot recorded `tar:attr:off`/`tar:acl:off`, so
+  `install basesystem` (tar --xattrs) prints that warning (seen by the
+  maintainer on the 20261111 ISO; harmless today: tar carries on, exit 0,
+  and the tarball has no xattrs). `CAULDRON_SORCERY_ANSWERS` and
+  default_depends now answer both on (attr and acl join the sys closure);
+  takes effect when tar's cache is rebuilt (a fresh build, or delete
+  `build/var/cache/sorcery/tar-*`). Not yet in a built tarball.
 - Same grimoire update: openssh 10.6p2's cache again lacked /etc/ssh
   (sorcery recast openssh as a dependent after the zlib upgrade, outside
   `build_spells`, so the leftover files weren't removed first); the iso

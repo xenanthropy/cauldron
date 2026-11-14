@@ -23,3 +23,6 @@ grub2:unifont:on
 git:rust:off
 # eudev: load modules itself (see CAULDRON_SORCERY_ANSWERS)
 eudev:kmod:on
+# tar: extended attributes and ACLs (install basesystem unpacks with --xattrs)
+tar:attr:on
+tar:acl:on
