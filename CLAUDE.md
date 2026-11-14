@@ -499,6 +499,14 @@ pings; poweroff is clean. The first boot found two faults: nscd's
 script makes it now), and sshd had no sshd_config, which turned out to be
 the openssh cache itself (see the install_config_file entry in the team
 report; fixed with `CAULDRON_CACHE_CONFIGS`, cache rebuilt).
+**On hardware (Nov 2026):** the maintainer wiped the laptop and installed
+from smgl-devel-20261111 with `install init openrc` (Wi-Fi through the
+wpa_supplicant + dhcpcd services, `networking` disabled): every enabled
+service started, `rc-status --crashed` empty, udev/metalog/nscd/sshd up,
+/dev/fd and /dev/std* there, /var/run and /var/lock moved into /run,
+clock and keymap carried over, pidof from procps-ng, `reboot` refused to
+a user and clean as root. dmesg only showed firmware ACPI errors and the
+known built-in cfg80211 regulatory.db message.
 
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**
@@ -887,6 +895,22 @@ sections below.
     from drafts checked in QEMU at 1024x768, 1920x1080 and 1200x1920;
     BIOS + UEFI, the serial port keeps the text menu). For the team: the
     grub2 spell could ship it for installed systems (GRUB_THEME=).
+    Installed systems still showed the spell's splash (maintainer, Nov
+    2026, OpenRC install from 20261111), so cauldron's grub2 cache now
+    carries the theme: `cauldron_sorcerous_cauldron_defaults` copies
+    `etc/<arch>/iso/grub-theme` into the spell as `theme-smgl/`, and the
+    grub2 hack installs it to /usr/share/grub/themes/smgl and sets
+    `GRUB_THEME=` (instead of GRUB_BACKGROUND) and `GRUB_GFXMODE=auto` in
+    grub-default (the spell itself stays as it is). grub-mkconfig output
+    checked (Nov 2026, build chroot overlay): `insmod gfxmenu`, `insmod
+    png`, `set theme=($root)/usr/share/grub/themes/smgl/theme.txt`, font
+    loaded. Not yet in a built cache or seen booting an installed system.
+    `/etc/default/grub` is in `CAULDRON_CACHE_CONFIGS` now (it is an
+    install_config_file, and `cauldron_iso_grub` recasts grub2 once per
+    platform). To rebuild in an existing build tree: delete the grub2
+    cache and `CAULDRON_ISO_GRUB_DIR` before `iso build`. Existing
+    installs keep their /etc/default/grub: copy the theme and set
+    GRUB_THEME by hand.
   - wpa_supplicant 2.11 doesn't build against OpenSSL 4 (`ASN1_STRING` is
     opaque now; `tls_openssl.c` uses `->data`/`->length`). Cauldron patches
     it (`grimoire_hacks/wpa_supplicant`); other distributions carry the same

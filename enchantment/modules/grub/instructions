@@ -29,6 +29,8 @@ First enter the new system: @[enchantment chroot]
  (older grub2 caches have a misspelled GRUB_DISABLE_UUID=true instead.)
  Kernel options you needed for this ISO (e.g. fbcon=rotate:1 for a sideways
  screen) go into GRUB_CMDLINE_LINUX_DEFAULT="..." here as well.
+ The menu uses this ISO's theme (GRUB_THEME=...); comment that line out for
+ GRUB's plain menu.
 
 3. Write the boot menu (it lists the kernels in /boot, so do this after the
  kernel step, and again after installing another kernel):

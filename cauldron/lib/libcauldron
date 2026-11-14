@@ -250,6 +250,15 @@ function cauldron_iso_grub() {
           return $ERR_WRITE_FILE
       fi
 
+      # config files left by the previous cast would be missing from the
+      # new cache (CAULDRON_CACHE_CONFIGS, as in build_spells)
+      local entry=
+      for entry in "${CAULDRON_CACHE_CONFIGS[@]}"
+      do
+        [[ "${entry%%:*}" == "grub2" ]] || continue
+        "${CAULDRON_CMD_RM[@]}" -f "$build/${entry#*:}" || return $ERR_RM_FILE
+      done
+
       # -c: compile, rather than resurrect the cache of another platform
       cauldron_chroot_cast -c grub2
       liberror_check || return $?

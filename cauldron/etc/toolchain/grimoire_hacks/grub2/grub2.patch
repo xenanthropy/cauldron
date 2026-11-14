@@ -16,8 +16,12 @@
                    '--enable-grub-emu-sdl' \
 --- var/lib/sorcery/codex/test/disk/grub2/grub-default
 +++ var/lib/sorcery/codex/test/disk/grub2/grub-default
-@@ -8,12 +8,14 @@
- GRUB_GFXMODE=1024x768
+@@ -5,15 +5,18 @@
+ # Hidden menu timeout
+ GRUB_HIDDEN_TIMEOUT=0
+ # Graphics mode
+-GRUB_GFXMODE=1024x768
++GRUB_GFXMODE=auto
  # Add recovery items (single mode)
  GRUB_DISABLE_RECOVERY=
 -# Booting using UUID's appears broken
@@ -30,8 +34,25 @@
  
 -# show the splash image
 -GRUB_BACKGROUND="smgl-splash.png"
-+# show the splash image (installed there by this spell; grub-mkconfig needs
-+# the full path, and a font for the graphical menu: /boot/grub/fonts)
-+GRUB_BACKGROUND="/boot/grub/smgl-splash.png"
- #GRUB_THEME=""
+-#GRUB_THEME=""
++# the graphical menu: the theme of Source Mage's install ISO (Quoth on
++# black; installed by this spell), which needs a font in /boot/grub/fonts
++# (grub-install copies unicode.pf2 there). Instead of the theme, a plain
++# background image: GRUB_BACKGROUND="/boot/grub/smgl-splash.png"
++GRUB_THEME="/usr/share/grub/themes/smgl/theme.txt"
  GRUB_CMDLINE_LINUX_DEFAULT=""
+--- var/lib/sorcery/codex/test/disk/grub2/INSTALL
++++ var/lib/sorcery/codex/test/disk/grub2/INSTALL
+@@ -5,4 +5,11 @@
+ 
+ GRUBDIR=${INSTALL_ROOT}/boot/grub &&
+ mkdir -p $GRUBDIR &&
+-install ${SPELL_DIRECTORY}/smgl-splash.png $GRUBDIR
++install ${SPELL_DIRECTORY}/smgl-splash.png $GRUBDIR &&
++
++# the theme of Source Mage's install ISO (cauldron copies it into the spell)
++if [[ -d ${SPELL_DIRECTORY}/theme-smgl ]]; then
++  mkdir -p ${INSTALL_ROOT}/usr/share/grub/themes/smgl &&
++  install -m 644 ${SPELL_DIRECTORY}/theme-smgl/* \
++    ${INSTALL_ROOT}/usr/share/grub/themes/smgl/
++fi
