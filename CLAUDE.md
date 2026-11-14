@@ -522,7 +522,20 @@ recorded answers for the same options instead of only being appended.
 The openrc page says to use poweroff/reboot/`shutdown -h now`. Preset and
 rc.conf edits tested on scratch files; not yet run in a target. On an
 existing OpenRC install: `cast -c util-linux` answering sulogin yes, then
-`rc_shell=/sbin/sulogin` in /etc/rc.conf.
+`rc_shell=/sbin/sulogin` in /etc/rc.conf, and a reboot (openrc-init, PID
+1, reads rc.conf once at boot: librc's `rc_conf_value` caches it).
+Confirmed on the hardware: sulogin asks for root's password. But typed
+after `shutdown now` on tty1, keystrokes were split between sulogin's
+shell and the user's own tty1 login shell (Enter alternated between the
+`bash-5.3#` and `user@host$` prompts): OpenRC's single mode stops the
+agetty services but not the login sessions they started (killprocs runs
+only in the shutdown runlevel; sysvinit killed everything on the way to
+runlevel S), and sulogin opens /dev/console, the VT in front. From ssh,
+with tty1 left at its login prompt, sulogin worked cleanly. Fix: our
+`vt-logout` service in the single runlevel (`runlevels`) sends HUP, then
+KILL, to everything on tty1..ttyN (`pkill -t`), except the VT openrc
+itself runs on; services keep running. Logic tested with stubs; not yet
+run on a real single-mode switch.
 
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**

@@ -1,0 +1,35 @@
+#!/sbin/openrc-run
+# Source Mage (cauldron): ends the login sessions on the virtual terminals
+# when the system goes to single-user mode (enabled in the single runlevel).
+# OpenRC's single mode stops the agetty services but not the shells they
+# started (killprocs only runs at shutdown), and sulogin then shares the
+# console with the old login shell: every keystroke goes to one or the
+# other. sysvinit killed all processes on the way to runlevel S; this only
+# ends what runs on a VT, so udevd, metalog etc. keep running.
+# Distributed under the terms of the GNU General Public License v2
+
+description="Ends the login sessions on the virtual terminals"
+
+depend() {
+	keyword -prefix -docker -podman -lxc -jail -vserver
+}
+
+start() {
+	local own ttys t
+	# not the terminal openrc itself runs on (`openrc single` typed on a VT)
+	own=$(ps -o tty= -p $$ 2>/dev/null | tr -d ' ')
+	ttys=
+	for t in /sys/class/tty/tty[1-9]*; do
+		[ -e "$t" ] || continue
+		t=${t##*/}
+		[ "$t" = "$own" ] && continue
+		ttys="${ttys:+$ttys,}$t"
+	done
+	[ -n "$ttys" ] || return 0
+
+	ebegin "Ending the login sessions on the virtual terminals"
+	pkill -HUP -t "$ttys"
+	sleep 1
+	pkill -KILL -t "$ttys"
+	eend 0
+}

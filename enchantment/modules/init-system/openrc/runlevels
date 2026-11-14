@@ -4,3 +4,5 @@ udev-trigger sysinit /sbin/udevd
 metalog boot /sbin/metalog
 networking default /sbin/ifup
 nscd default /usr/sbin/nscd
+# single-user mode: end the VT login shells, so sulogin has the console
+vt-logout single
