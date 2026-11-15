@@ -548,7 +548,17 @@ controlling terminal, still reads tty1 through its stdin: `pgrep -t`
 can't see it. vt-logout now also matches processes whose fd 0/1/2 is a
 /dev/ttyN, and always logs a line (with the PIDs it ends). Tested with a
 stand-in process with no controlling terminal and its stdin on a fake
-tty; not yet on the hardware.
+tty. On the hardware rc.log then had no line from it at all: rc never
+started the service in single (cause not pinned down; most likely its
+recorded state, since rc only starts services it has as stopped).
+Replaced (Nov 2026) by doing the work in rc_shell itself, which
+openrc-init runs fresh every time, after rc single has finished:
+`single-shell`, installed as /sbin/smgl-single-shell and set as
+rc_shell, ends every process with a /dev/ttyN as stdin/stdout/stderr
+(HUP, then KILL; its own stdio is /dev/console), then execs sulogin
+(falls back to a plain root shell, with a warning, if there is none).
+The vt-logout service is gone. Tested with a stand-in process on a fake
+tty; not yet on the hardware. Note rc_shell is read by PID 1 at boot.
 
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**

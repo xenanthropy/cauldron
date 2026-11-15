@@ -545,20 +545,21 @@ function enchant_install_init_settings_openrc() {
 
   # single-user mode (`shutdown now` without -h/-r) and a failed boot open
   # rc_shell on the console; unset, that is root's shell without a
-  # password: ask for root's password with sulogin (util-linux, recast with
-  # it), as rc.conf suggests
-  for value in /sbin/sulogin /usr/sbin/sulogin
-  do
-    [[ -x "$target$value" ]] || continue
-    if grep -q '^#*rc_shell=' "$target/etc/rc.conf" 2> "$ENCHANT_NULL"
-    then
-      "${ENCHANT_CMD_SEDFILE[@]}" "0,/^#*rc_shell=.*/s||rc_shell=$value|" \
-        "$target/etc/rc.conf"
-    else
-      echo "rc_shell=$value" >> "$target/etc/rc.conf"
-    fi || return $ERR_INSTALL_INIT
-    break
-  done
+  # password. Ours (single-shell) ends the login shells left on the VTs,
+  # which would share the console with it, then runs sulogin (util-linux,
+  # recast with it) to ask for root's password
+  "${ENCHANT_CMD_CP[@]}" "$data/single-shell" \
+    "$target/sbin/smgl-single-shell" &&
+    chmod 0755 "$target/sbin/smgl-single-shell" ||
+    return $ERR_INSTALL_INIT
+  if grep -q '^#*rc_shell=' "$target/etc/rc.conf" 2> "$ENCHANT_NULL"
+  then
+    "${ENCHANT_CMD_SEDFILE[@]}" \
+      "0,/^#*rc_shell=.*/s||rc_shell=/sbin/smgl-single-shell|" \
+      "$target/etc/rc.conf"
+  else
+    echo "rc_shell=/sbin/smgl-single-shell" >> "$target/etc/rc.conf"
+  fi || return $ERR_INSTALL_INIT
 
   return $ERR_OK
 }
