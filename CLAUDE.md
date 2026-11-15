@@ -559,7 +559,8 @@ rc_shell, ends every process with a /dev/ttyN as stdin/stdout/stderr
 (falls back to a plain root shell, with a warning, if there is none).
 The vt-logout service is gone. On the hardware that didn't work either
 (back at the login prompt; the session clean-up apparently took the
-console from sulogin). Decision (maintainer, Nov 2026): this is OpenRC's
+console from sulogin). Stopped there (Nov 2026; the maintainer asked
+whether it was worth more time): this is OpenRC's
 own single-mode behaviour with openrc-init as PID 1 (stopping gettys but
 not their sessions), not the installer's, so stop investing: the
 installer sets `rc_shell=/sbin/sulogin` (the password check, which is
