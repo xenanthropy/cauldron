@@ -574,8 +574,10 @@ cache doesn't run PRE_BUILD (like FINAL), so system.tar.xz never had it
 (dhcpcd then runs without privsep). base_etc now has dhcpcd 238/238 (the
 registries' ids) in passwd, shadow and group. On installed systems:
 `groupadd -g 238 dhcpcd; useradd -u 238 -g 238 -d /var/lib/dhcpcd -s
-/bin/false dhcpcd`. Worth checking other base spells' PRE_BUILDs for
-create_account/create_group the same way.
+/bin/false dhcpcd`. Checked the other spells of system.tar.xz and the
+ISO's caches (create_account/create_group in PRE_BUILD, BUILD, INSTALL,
+FINAL): eudev, init.d, openssh, shadow, smgl-fhs and util-linux create
+only accounts and groups base_etc already has; dhcpcd was the only gap.
 
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**
