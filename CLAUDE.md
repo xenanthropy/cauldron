@@ -540,7 +540,15 @@ terminal, which resolves to the VT in front (/proc/consoles: tty0, device
 4:1 = tty1), exactly the user's VT. Run by hand from ssh it worked (the
 shell died; the default runlevel's getty came back). It now skips only
 its own ancestors (openrc-run, rc, openrc-init) and kills the other
-`pgrep -t` matches; tested with a stub process tree.
+`pgrep -t` matches; tested with a stub process tree. Still nothing on the
+hardware, and rc.log (rc_logger="YES") showed why: rc stops agetty.tty1
+before vt-logout runs, the user's `login` (session leader) exits, the
+kernel detaches tty1 from that session, and the shell, now without a
+controlling terminal, still reads tty1 through its stdin: `pgrep -t`
+can't see it. vt-logout now also matches processes whose fd 0/1/2 is a
+/dev/ttyN, and always logs a line (with the PIDs it ends). Tested with a
+stand-in process with no controlling terminal and its stdin on a fake
+tty; not yet on the hardware.
 
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**

@@ -24,16 +24,29 @@ _ancestors() {
 	done
 }
 
-# the processes on the VTs, without our own
+# the processes on the VTs, without our own: by controlling terminal, and
+# by what their stdin/stdout/stderr point to, since a shell whose login
+# process has gone (agetty is stopped before this runs) loses its
+# controlling terminal but keeps reading the VT
 _vt_processes() {
-	local ttys t pid skip
+	local ttys t pid fd link skip
 	ttys=
 	for t in /sys/class/tty/tty[1-9]*; do
 		[ -e "$t" ] && ttys="${ttys:+$ttys,}${t##*/}"
 	done
 	[ -n "$ttys" ] || return 0
 	skip=" $(_ancestors | tr '\n' ' ') "
-	for pid in $(pgrep -t "$ttys"); do
+	{
+		pgrep -t "$ttys"
+		for pid in /proc/[0-9]*; do
+			for fd in 0 1 2; do
+				link=$(readlink "$pid/fd/$fd" 2>/dev/null) || continue
+				case "$link" in
+					/dev/tty[1-9]*) echo "${pid#/proc/}"; break ;;
+				esac
+			done
+		done
+	} | sort -un | while read -r pid; do
 		case "$skip" in
 			*" $pid "*) ;;
 			*) echo "$pid" ;;
@@ -44,12 +57,13 @@ _vt_processes() {
 start() {
 	local pids
 	pids=$(_vt_processes)
-	[ -n "$pids" ] || return 0
-
 	ebegin "Ending the login sessions on the virtual terminals"
-	kill -HUP $pids 2>/dev/null
-	sleep 1
-	pids=$(_vt_processes)
-	[ -n "$pids" ] && kill -KILL $pids 2>/dev/null
+	if [ -n "$pids" ]; then
+		einfo "processes: $(echo $pids)"
+		kill -HUP $pids 2>/dev/null
+		sleep 1
+		pids=$(_vt_processes)
+		[ -n "$pids" ] && kill -KILL $pids 2>/dev/null
+	fi
 	eend 0
 }
