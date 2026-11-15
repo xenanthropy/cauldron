@@ -29,3 +29,4 @@ kvm:x:36:
 sgx:x:240:
 render:x:228:
 clock:x:239:
+dhcpcd:x:238:

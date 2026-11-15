@@ -557,8 +557,24 @@ openrc-init runs fresh every time, after rc single has finished:
 rc_shell, ends every process with a /dev/ttyN as stdin/stdout/stderr
 (HUP, then KILL; its own stdio is /dev/console), then execs sulogin
 (falls back to a plain root shell, with a warning, if there is none).
-The vt-logout service is gone. Tested with a stand-in process on a fake
-tty; not yet on the hardware. Note rc_shell is read by PID 1 at boot.
+The vt-logout service is gone. On the hardware that didn't work either
+(back at the login prompt; the session clean-up apparently took the
+console from sulogin). Decision (maintainer, Nov 2026): this is OpenRC's
+own single-mode behaviour with openrc-init as PID 1 (stopping gettys but
+not their sessions), not the installer's, so stop investing: the
+installer sets `rc_shell=/sbin/sulogin` (the password check, which is
+what matters) and the openrc page says to start single-user mode from ssh
+or another VT. single-shell removed. For OpenRC upstream: single mode
+could end the sessions of the gettys it stops, as sysvinit's runlevel S
+did.
+Also in that rc.log: dhcpcd's start printed "no such user dhcpcd". The
+dhcpcd spell creates its privilege-separation account in PRE_BUILD, and a
+cache doesn't run PRE_BUILD (like FINAL), so system.tar.xz never had it
+(dhcpcd then runs without privsep). base_etc now has dhcpcd 238/238 (the
+registries' ids) in passwd, shadow and group. On installed systems:
+`groupadd -g 238 dhcpcd; useradd -u 238 -g 238 -d /var/lib/dhcpcd -s
+/bin/false dhcpcd`. Worth checking other base spells' PRE_BUILDs for
+create_account/create_group the same way.
 
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**

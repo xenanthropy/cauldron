@@ -23,6 +23,8 @@ Settings: hardware clock in /etc/conf.d/hwclock, keymap in
   /etc/local.d/*.start (/etc/sysconfig/bootmisc still runs from there).
 Shutting down: @[poweroff], @[reboot], or @[shutdown -h now] / @[shutdown -r
   now]. A plain "shutdown now" goes to single-user mode (a root shell on
-  the console after root's password; @[exit] goes back to normal).
+  the console after root's password; @[exit] goes back to normal). Start
+  it from ssh or another VT, not a login on the console's VT: OpenRC
+  leaves that login running, and it would share the keyboard with sulogin.
 
 To see this again, type @[todo openrc].
