@@ -533,9 +533,14 @@ only in the shutdown runlevel; sysvinit killed everything on the way to
 runlevel S), and sulogin opens /dev/console, the VT in front. From ssh,
 with tty1 left at its login prompt, sulogin worked cleanly. Fix: our
 `vt-logout` service in the single runlevel (`runlevels`) sends HUP, then
-KILL, to everything on tty1..ttyN (`pkill -t`), except the VT openrc
-itself runs on; services keep running. Logic tested with stubs; not yet
-run on a real single-mode switch.
+KILL, to everything on tty1..ttyN; services keep running. Its first
+version skipped "the VT openrc runs on" (`ps -o tty= -p $$`) and so did
+nothing: in single mode openrc-init's rc has /dev/console as controlling
+terminal, which resolves to the VT in front (/proc/consoles: tty0, device
+4:1 = tty1), exactly the user's VT. Run by hand from ssh it worked (the
+shell died; the default runlevel's getty came back). It now skips only
+its own ancestors (openrc-run, rc, openrc-init) and kills the other
+`pgrep -t` matches; tested with a stub process tree.
 
 **Planned (maintainer, Nov 2026), once the init-system work is done and
 the code has had another review pass:**

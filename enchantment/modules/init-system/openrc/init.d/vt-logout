@@ -14,22 +14,42 @@ depend() {
 	keyword -prefix -docker -podman -lxc -jail -vserver
 }
 
-start() {
-	local own ttys t
-	# not the terminal openrc itself runs on (`openrc single` typed on a VT)
-	own=$(ps -o tty= -p $$ 2>/dev/null | tr -d ' ')
+# this script and the processes running it (openrc-run, rc, openrc-init):
+# in single mode rc has the console, i.e. the VT in front, as its terminal
+_ancestors() {
+	local pid=$$
+	while [ -n "$pid" ] && [ "$pid" -gt 1 ]; do
+		echo "$pid"
+		pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+	done
+}
+
+# the processes on the VTs, without our own
+_vt_processes() {
+	local ttys t pid skip
 	ttys=
 	for t in /sys/class/tty/tty[1-9]*; do
-		[ -e "$t" ] || continue
-		t=${t##*/}
-		[ "$t" = "$own" ] && continue
-		ttys="${ttys:+$ttys,}$t"
+		[ -e "$t" ] && ttys="${ttys:+$ttys,}${t##*/}"
 	done
 	[ -n "$ttys" ] || return 0
+	skip=" $(_ancestors | tr '\n' ' ') "
+	for pid in $(pgrep -t "$ttys"); do
+		case "$skip" in
+			*" $pid "*) ;;
+			*) echo "$pid" ;;
+		esac
+	done
+}
+
+start() {
+	local pids
+	pids=$(_vt_processes)
+	[ -n "$pids" ] || return 0
 
 	ebegin "Ending the login sessions on the virtual terminals"
-	pkill -HUP -t "$ttys"
+	kill -HUP $pids 2>/dev/null
 	sleep 1
-	pkill -KILL -t "$ttys"
+	pids=$(_vt_processes)
+	[ -n "$pids" ] && kill -KILL $pids 2>/dev/null
 	eend 0
 }
