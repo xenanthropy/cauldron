@@ -1320,6 +1320,24 @@ sections below.
     (`CAULDRON_CACHE_CONFIGS`) and its checks fail on a cache without them.
     Fix on a system installed with that cache, with network: `cast -c
     openssh` (no /etc/ssh files exist, so they get installed).
+  - xz-utils' FINAL (since 2019) is `sed -i ... {/usr,}/lib/*\.la`: on a
+    system with no .la file in /lib (both our tarball and the official
+    20251212 one) the glob stays literal, sed exits 2, and sorcery counts
+    the FINAL as failed: "The spell xz-utils subtly failed before cast.
+    Remembering that. (final)" (in /tmp/cast/backup/*/failure_reason_log).
+    Every spell that depends on xz-utils (most of the base system) is then
+    never started, and the summary lists them as "dropped" with no failed
+    spell named (found by the maintainer's first from-scratch `sys build`
+    on their desktop, Nov 2026: 59 spells dropped after nettle). Fix for
+    the spell: loop over the .la files that exist (cauldron's
+    `grimoire_hacks/xz-utils`). Also from that run, sorcery: the version
+    cache code (`tablet_create_version_cache`, libtablet) runs `rm` on a
+    `mktemp -u` name it only writes to when a tablet page is broken, so
+    every rebuild of the cache prints "rm: cannot remove '/tmp/tmp...'"
+    (should be `rm -f`); and "The tablet version cache is damaged" showed
+    before many installs in that build chroot (cause not found: our
+    tarball ships no /var/state/sorcery/versions and its packages list is
+    clean; harmless, sorcery rebuilds the cache).
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).
@@ -1864,7 +1882,7 @@ sections below.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
     wireless-regdb,wpa_supplicant,openssh,dosfstools,eudev,systemd,dbus,
-    policykit,jinja2,linux-pam}` (see the README there and the team report above). New
+    policykit,jinja2,linux-pam,xz-utils}` (see the README there and the team report above). New
     hack files that are spell scripts get their x bit set
     (`cauldron_sorcerous_cauldron_defaults`): sorcery only runs a
     SUB_DEPENDS etc. that is executable ("missing SUB_DEPENDS!" otherwise).

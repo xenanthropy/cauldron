@@ -40,6 +40,12 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
                   --enable-compat-symlinks, so mkfs.vfat and fsck.vfat exist
                   (fsck at boot looks for fsck.vfat for a vfat fstab entry;
                   documentation and the installer say mkfs.vfat)
+  xz-utils        FINAL runs sed on {/usr,}/lib/*.la; with no .la file in
+                  /lib (today's tarballs, ours and the official one) the glob
+                  stays literal, sed fails, FINAL fails, and sorcery holds back
+                  every spell that depends on xz-utils ("subtly failed before
+                  cast ... (final)", then "dropped" in the summary). Loop over
+                  the files that exist instead
   openssh         "make install" runs ssh-keygen -A on the build machine (the
                   keys end up in the spell's cache, shared by every system
                   installed from it) and only installs ssh_config/sshd_config
