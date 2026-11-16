@@ -14,6 +14,11 @@ so unattended casts don't fall back to unsuitable defaults:
               unattended cast never installs a spell's init script
   openssh     install the sshd init script, but leave it disabled (the user
               enables it: chmod +x /etc/init.d/runlevels/%3/sshd)
+  wget        https through gnutls (WGET_SSL). It is a provider question
+              (optional_depends_one_of), and the build chroot starts with a
+              fresh sorcery config, so an unattended cast picked "none"
+              (wget --without-ssl; seen in a from-scratch build, Nov 2026)
+              unless smgl-base's SSL sub-depends happened to be in the queue
   vim         console only (no X/GUI), "normal" features, vi -> vim;
               GVIM_MULTIBYTE holds the configure flag itself (a bare "y"
               there ends up as a configure argument, which then thinks it

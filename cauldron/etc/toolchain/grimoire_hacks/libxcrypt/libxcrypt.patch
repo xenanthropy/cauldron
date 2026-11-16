@@ -1,0 +1,9 @@
+diff -ruN var/lib/sorcery/codex/test/crypto/libxcrypt/INSTALL var/lib/sorcery/codex/test/crypto/libxcrypt/INSTALL
+--- var/lib/sorcery/codex/test/crypto/libxcrypt/INSTALL	1970-01-01 00:00:00.000000000 +0000
++++ var/lib/sorcery/codex/test/crypto/libxcrypt/INSTALL	2026-11-16 21:05:26.010883290 +0000
+@@ -0,0 +1,5 @@
++default_install &&
++# the library is built as libxcrypt; programs linked against the old name
++# (login, su, passwd, ...) need libcrypt.so.2. Made here rather than in
++# FINAL, so that it is in the install log and the spell's cache
++ln -sfn libxcrypt.so.2 "$INSTALL_ROOT/usr/lib/libcrypt.so.2"

@@ -1338,6 +1338,27 @@ sections below.
     before many installs in that build chroot (cause not found: our
     tarball ships no /var/state/sorcery/versions and its packages list is
     clean; harmless, sorcery rebuilds the cache).
+  - libxcrypt (Nov 2026 rework for musl, three commits): the header moved
+    to /usr/include/xcrypt/crypt.h, the library is built as libxcrypt
+    (soname libxcrypt.so.2, pkg-config `-lxcrypt`, upstream's compat links
+    off), and FINAL makes `libcrypt.so.2 -> libxcrypt.so.2` for what was
+    linked before (shadow's login/su/passwd, util-linux's sulogin, ...).
+    FINAL output is never in a cache (see the CA-certificates entry), so
+    a system installed from caches has no libcrypt.so.2: found by the
+    maintainer's from-scratch `sys` (Nov 2026), whose sys check listed
+    login, su, passwd, sulogin, libsubid "libcrypt.so.2 => not found"
+    (shadow's cache was from before the libxcrypt recast). Earlier
+    cauldron tarballs escaped only because their libxcrypt cache predates
+    the change. Fix for the spell: make the link in INSTALL (cauldron's
+    `grimoire_hacks/libxcrypt`). Worth checking for the team: with no
+    /usr/include/crypt.h and no libcrypt.so dev link on glibc systems,
+    spells whose configure looks for `crypt()` in `-lcrypt` / <crypt.h>
+    (shadow, openssh, sudo, perl, python3, ...) may now build without it
+    or fail; cauldron's caches of those were built before the change.
+  - wget's SSL library is a provider question (`WGET_SSL`, via
+    `optional_depends_one_of`): cast unattended without a saved answer,
+    it picks "none" and builds `--without-ssl`. Cauldron presets gnutls
+    (`depends/wget`); the sys check caught it ("wget lacks https support").
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).
@@ -1882,7 +1903,7 @@ sections below.
 - **Workarounds still in place** (each should become a proper fix):
   - `etc/toolchain/grimoire_hacks/{parted,squashfs-tools,grub2,
     wireless-regdb,wpa_supplicant,openssh,dosfstools,eudev,systemd,dbus,
-    policykit,jinja2,linux-pam,xz-utils}` (see the README there and the team report above). New
+    policykit,jinja2,linux-pam,xz-utils,libxcrypt}` (see the README there and the team report above). New
     hack files that are spell scripts get their x bit set
     (`cauldron_sorcerous_cauldron_defaults`): sorcery only runs a
     SUB_DEPENDS etc. that is executable ("missing SUB_DEPENDS!" otherwise).

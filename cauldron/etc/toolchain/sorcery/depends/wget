@@ -1,0 +1,2 @@
+WGET_OPTS="--enable-ipv6"
+WGET_SSL="gnutls"

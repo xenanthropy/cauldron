@@ -40,6 +40,12 @@ reported to the grimoire maintainers and dropped once the grimoire is fixed.
                   --enable-compat-symlinks, so mkfs.vfat and fsck.vfat exist
                   (fsck at boot looks for fsck.vfat for a vfat fstab entry;
                   documentation and the installer say mkfs.vfat)
+  libxcrypt       since the Nov 2026 rework the library is built as
+                  libxcrypt.so.2, and the libcrypt.so.2 link that login, su,
+                  passwd, sulogin (anything linked before) need is made in
+                  FINAL, which a cache never contains: a system installed
+                  from caches (system.tar.xz) has no libcrypt.so.2 and nobody
+                  can log in. INSTALL makes the link, so it is recorded
   xz-utils        FINAL runs sed on {/usr,}/lib/*.la; with no .la file in
                   /lib (today's tarballs, ours and the official one) the glob
                   stays literal, sed fails, FINAL fails, and sorcery holds back
