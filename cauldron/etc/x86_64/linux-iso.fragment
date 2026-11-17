@@ -1,11 +1,16 @@
-# Cauldron ISO kernel: settings applied on top of the kernel's
-# x86_64_defconfig. The full config used by cauldron
-# (linux-<version>.config next to this file) is generated from it with:
+# Cauldron ISO kernel: settings applied on top of Void Linux's kernel config
+# for the same series (linux-6.18-void.config next to this file: a broad
+# distribution config, every driver as a module, plain kernel.org sources).
+# The full config used by cauldron (linux-<version>.config next to this file)
+# is generated from them with:
 #
 #   cd /usr/src/linux-<version>
-#   make x86_64_defconfig
+#   cp linux-6.18-void.config .config
 #   scripts/kconfig/merge_config.sh -m .config <this file>
 #   make olddefconfig
+#
+# (Until Nov 2026 the base was the kernel's x86_64_defconfig: ~160 modules,
+# so most hardware the installer met had no driver.)
 #
 # Rule of thumb: anything the initramfs needs to find and mount the boot
 # medium is built in (=y), so booting never depends on loading modules; extra
@@ -20,7 +25,13 @@ CONFIG_MODULES=y
 CONFIG_MODULE_UNLOAD=y
 CONFIG_MODULE_COMPRESS=n
 CONFIG_MODULE_SIG=n
+# (the lockdown LSM selects module signing; it only matters with Secure Boot,
+# which the ISO doesn't support)
+CONFIG_SECURITY_LOCKDOWN_LSM=n
+# no debug info: Void builds it with BTF, which needs pahole (dwarves) and
+# makes the build several times bigger
 CONFIG_DEBUG_INFO_NONE=y
+CONFIG_DEBUG_INFO_BTF=n
 # not needed for anything on the ISO (and needs a Rust toolchain)
 # CONFIG_RUST is not set
 
@@ -47,6 +58,10 @@ CONFIG_SQUASHFS_ZSTD=y
 CONFIG_OVERLAY_FS=y
 CONFIG_BLK_DEV_SR=y
 CONFIG_CHR_DEV_SG=y
+# (the USB and HID cores themselves too: Void builds them as modules, which
+# would turn everything below them into modules as well)
+CONFIG_USB=y
+CONFIG_HID=y
 CONFIG_USB_STORAGE=y
 CONFIG_USB_UAS=y
 CONFIG_USB_XHCI_HCD=y
@@ -61,6 +76,12 @@ CONFIG_ATA=y
 CONFIG_SATA_AHCI=y
 CONFIG_ATA_PIIX=y
 CONFIG_BLK_DEV_NVME=y
+# disks behind libata and USB storage are SCSI disks (sd_mod); Void builds it
+# as a module and loads it from its initramfs, SMGL boots without one
+CONFIG_SCSI=y
+CONFIG_BLK_DEV_SD=y
+# Intel VMD: on many laptops the NVMe drive sits behind it
+CONFIG_VMD=y
 CONFIG_MD=y
 CONFIG_BLK_DEV_MD=m
 CONFIG_MD_RAID0=m
@@ -72,7 +93,6 @@ CONFIG_DM_CRYPT=m
 CONFIG_DM_SNAPSHOT=m
 CONFIG_DM_MIRROR=m
 CONFIG_DM_RAID=m
-CONFIG_CRYPTO_XTS=m
 CONFIG_CRYPTO_AES_NI_INTEL=m
 
 # filesystems the installer can create / mount
@@ -100,6 +120,8 @@ CONFIG_EFI_STUB=y
 CONFIG_EFI_PARTITION=y
 CONFIG_EFIVAR_FS=y
 CONFIG_SYSFB_SIMPLEFB=y
+# (DRM depends on "AGP || AGP=n": a modular AGP would make DRM a module)
+CONFIG_AGP=y
 CONFIG_DRM=y
 CONFIG_DRM_SIMPLEDRM=y
 CONFIG_DRM_FBDEV_EMULATION=y

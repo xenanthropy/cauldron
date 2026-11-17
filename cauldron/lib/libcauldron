@@ -2023,8 +2023,18 @@ function cauldron_iso_firmware() {
   "${CAULDRON_CMD_RM_RECURSE_FORCE[@]}" "$build$scratch/src" ||
     return $ERR_RM_FILE
 
-  # the firmware the kernel's drivers declare
-  cauldron_chroot sh -c "find /lib/modules/$kvers -name '*.ko*' \
+  # the firmware the kernel's drivers declare (those below
+  # CAULDRON_ISO_FIRMWARE_DRIVERS, or all of them)
+  local dirs=()
+  for name in "${CAULDRON_ISO_FIRMWARE_DRIVERS[@]}"
+  do
+    [[ -d "$build/lib/modules/$kvers/kernel/$name" ]] &&
+      dirs+=( "/lib/modules/$kvers/kernel/$name" )
+  done
+  [[ "${#CAULDRON_ISO_FIRMWARE_DRIVERS[@]}" -eq 0 ]] &&
+    dirs=( "/lib/modules/$kvers" )
+  [[ "${#dirs[@]}" -gt 0 ]] || return $ERR_ISO_FIRMWARE
+  cauldron_chroot sh -c "find ${dirs[*]} -name '*.ko*' \
     -exec modinfo -F firmware {} + > $scratch/wanted"
   liberror_check || return $ERR_ISO_FIRMWARE
 
