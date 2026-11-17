@@ -1891,6 +1891,23 @@ sections below.
     puts them back. The installer's `enchantment install kernel-source`
     copies them from the ISO if present, else downloads them from
     kernel.org, and unpacks them with the ISO kernel's config as `.config`.
+- UEFI under QEMU (maintainer's test of the first from-scratch ISO,
+  smgl-devel-20261117, Nov 2026): the themed GRUB menu showed, then the
+  kernel console was scrambled (rows of garbage). Reproduced with the
+  20261111 ISO under OVMF + `-vga std`: the kernel set up a 160x50 console
+  (1280x800, the firmware's GOP mode) while the display was 800x600. The
+  ISO's grub.cfg had `insmod all_video`, which also loads GRUB's native
+  bochs driver; it took QEMU's std VGA over directly for the graphical
+  menu (800x600) without telling the firmware. `gfxpayload=keep` and
+  `gfxmode=keep` didn't help; loading only efi_gop/efi_uga (UEFI) and
+  vbe/vga (BIOS) did: menu and console at 1280x800 under OVMF, menu at
+  1280x800 and the usual VGA text console under SeaBIOS (both checked by
+  screenshots of a copy of the ISO with only grub.cfg changed). Real
+  hardware has no bochs device, which is why the laptop never showed it.
+  Earlier UEFI tests used the serial console only. Installed systems:
+  grub-mkconfig's 00_header has its own `insmod all_video`, so an
+  installed system with GRUB_THEME may show the same under QEMU's std VGA
+  (not on hardware; `-vga virtio` avoids it); not changed.
 - **Testing tools (Nov 2026).** `ward` (2010) is a static linter: ward-
   errorcodes (ERR_* used but not defined, needs gawk: without it every
   code looks undefined), ward-functions, ward-configvars. It still worked
