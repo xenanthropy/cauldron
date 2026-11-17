@@ -1743,6 +1743,9 @@ function cauldron_iso_compressedfs() {
 
   cmd=( "${CAULDRON_CMD_MKSQUASHFS[@]/ISOFS_DIR/$mnt}" )
   cmd=( "${cmd[@]/SQUASH_IMAGE/$out}" )
+  # mksquashfs uses every CPU unless told otherwise
+  [[ "$CAULDRON_BUILD_JOBS" -gt 0 ]] 2> "$CAULDRON_NULL" &&
+    cmd+=( -processors "$CAULDRON_BUILD_JOBS" )
 
   cauldron_verbose "Creating $(libcolor_file $img)"
   cauldron_build_run_with "$target" "$mnt" "${cmd[@]}" ||

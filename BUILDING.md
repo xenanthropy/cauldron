@@ -87,7 +87,7 @@ cd /root/cauldron
 # which tarball to start the build chroot from (the one from step 1), and how
 # many CPU threads to compile with (leave 1-2 free to use the machine meanwhile)
 export CAULDRON_BASEROOT=/root/smgl-test-0.63-YYYYMMDD_HHMM-basesystem-x86_64.tar.xz
-export CAULDRON_BUILD_JOBS=$(nproc)
+export CAULDRON_BUILD_JOBS=$(( $(nproc) - 2 ))
 
 ./local-exec/cauldron.sh toolchain 2>&1 | tee /root/toolchain.log
 ./local-exec/cauldron.sh sys       2>&1 | tee /root/sys.log
@@ -227,7 +227,7 @@ then enter the chroot (step 2) and run the steps again:
 
 ```sh
 cd /root/cauldron
-export CAULDRON_BUILD_JOBS=$(nproc)
+export CAULDRON_BUILD_JOBS=$(( $(nproc) - 2 ))
 ./local-exec/cauldron.sh sys
 ./local-exec/cauldron.sh iso
 ```
