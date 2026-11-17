@@ -1359,6 +1359,37 @@ sections below.
     `optional_depends_one_of`): cast unattended without a saved answer,
     it picks "none" and builds `--without-ssl`. Cauldron presets gnutls
     (`depends/wget`); the sys check caught it ("wget lacks https support").
+  - json-c's DEPENDS (`depends cmake && depends gcc`) has had no execute bit
+    since 2020, and sorcery silently skips a spell file that isn't
+    executable (`test -x` in run_spell_file): json-c declared no
+    dependencies at all (no uncommitted depends file, nothing recorded), so
+    the maintainer's from-scratch `iso build` (Nov 2026) compiled it four
+    minutes before cmake, and it failed with "cmake: command not found"
+    (cryptsetup-luks, which needs json-c, was dropped). Earlier builds
+    passed only because cmake was installed by then. Cauldron sets the bit
+    (`CAULDRON_SORCERY_EXECUTABLE`, config/build.conf). The test grimoire
+    (Nov 2026) has 37 spell scripts without it, each silently ignored (a
+    missing dependency list, or sorcery's default instead of a custom
+    BUILD/INSTALL): archive/zip/DEPENDS, audio-soft/cuetools/INSTALL, audio-
+    soft/idjc/BUILD, devel/nodejs/TRIGGERS, devel/xbinutils/BUILD,
+    devel/xbinutils/INSTALL, devel/xbinutils/UP_TRIGGERS,
+    disk/qpxtool/INSTALL, fonts-x11/ttf-jetbrains-mono/DEPENDS,
+    gnome2-libs/libgnome/TRIGGERS, http/eflwebkit/INSTALL, kde-
+    frameworks/syndication/CONFIGURE, kde-gear/kompare/CONFIGURE, kde-
+    gear/libkomparediff2/CONFIGURE, kde-pim/kmail/TRIGGERS, kde-
+    plasma/kscreenlocker/PREPARE, libs/json-c/DEPENDS,
+    libs/libepubgen/BUILD, libs/t1lib/DEPENDS, mobile/cpufreqd/CONFLICTS,
+    net/amap/UP_TRIGGERS, net/libslirp/CONFIGURE, openprinting/goipp/BUILD,
+    openprinting/goipp/INSTALL, openprinting/gotags/BUILD, python-
+    pypi/gramps5/BUILD, python-pypi/gramps6/BUILD, python-
+    pypi/hatchling/BUILD, python-pypi/hatchling/CONFIGURE, python-
+    pypi/hatchling/INSTALL, qt-cmake/qsynth/BUILD,
+    science/gpsbabel/CONFIGURE, telephony/libsrtp/DEPENDS,
+    telephony/libsrtp2/DEPENDS, utils/procps/CONFLICTS, video-
+    libs/x264/TRIGGERS, video/mlt/INSTALL. For the team: `chmod +x` them (or
+    delete the ones meant to be unused), and a check in the grimoire's
+    tooling; sorcery could also warn when a spell file exists but isn't
+    executable.
   - Defaults worth reviewing: python3 builds without readline and sqlite
     unless asked; nghttp2's python bindings default on when python3 is
     installed (pulls boost + openmpi).

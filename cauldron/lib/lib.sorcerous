@@ -989,6 +989,19 @@ function cauldron_sorcerous_cauldron_defaults() {
         return $ERR_SORCEROUS_DEFAULT_SETTINGS
   fi
 
+  # spell scripts the grimoire ships without the x bit, which sorcery skips
+  # (CAULDRON_SORCERY_EXECUTABLE)
+  local script=
+  local file=
+  for script in "${CAULDRON_SORCERY_EXECUTABLE[@]}"
+  do
+    for file in "$target"/var/lib/sorcery/codex/*/"$script"
+    do
+      [[ -f "$file" ]] || continue
+      chmod +x "$file" || return $ERR_SORCEROUS_DEFAULT_SETTINGS
+    done
+  done
+
   # answers sorcery already recorded (the baseroot's, an earlier cast's) win
   # over default_depends: change those in place (CAULDRON_SORCERY_ANSWERS)
   local answer=
