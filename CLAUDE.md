@@ -616,6 +616,22 @@ Other ideas for later:
   pull in all GPU firmware). The x86_64 ISO doesn't have to fit a CD (USB is
   the norm on 64-bit machines); a CD-sized ISO matters more for a future
   32-bit x86 ISO, whose machines may not boot from USB.
+  **Done (Nov 2026):** `etc/x86_64/linux-6.18-void.config` (Void's
+  6.18.63_1 config) + `linux-iso.fragment` -> `linux-6.18.59.config`;
+  `CAULDRON_ISO_FIRMWARE_DRIVERS` limits firmware to drivers below
+  drivers/{gpu,net,scsi,ata,nvme,block,mmc}. Built in the sandbox (4
+  cores, ~1 h 15 min for the kernel) and booted in QEMU, BIOS and UEFI
+  (CD, TCG): both reach the installer's login, no console errors, UEFI
+  console at 1280x800. Sizes, old (defconfig) -> new: bzImage 15.4 ->
+  16.6 MiB; modules 157 / 38 MB -> 5513 / 474 MB (stripped, not
+  compressed); firmware 248 files / 80 MB -> 1837 / 435 MB (nvidia 153,
+  amdgpu 102, netronome 35 (data-centre NICs), mediatek 18, brcm 17,
+  i915 11); initramfs unchanged (7.1 MiB); isofs.img 655 -> 882 MiB; ISO
+  717 -> 945 MiB. Not yet on hardware. Possible trims later: module
+  compression (maintainer: later), firmware of data-centre NICs
+  (netronome, liquidio). Next (agreed): ship the modified Void config on
+  the ISO as a starting config for `install kernel-source`, with a `make
+  localmodconfig` option; then the optional initramfs; then LUKS guides.
 - **Optional initramfs (planned, maintainer's wish, Nov 2026):** SMGL
   traditionally boots without one, and that stays the default; the installer
   should offer one as a choice and explain it: needed for root on
@@ -1482,13 +1498,13 @@ sections below.
   tarball whose `.sha512` verifies. Caches were reused from the first run, so
   that run checked the pipeline, not a from-scratch compile.
 - **Stage two (Oct 2026): `cauldron iso` produces a hybrid x86_64 ISO**
-  (`smgl-devel-YYYYMMDD.x86_64.iso` + `.sha512`, ~600 MiB: fits an 80-min CD). What it is:
+  (`smgl-devel-YYYYMMDD.x86_64.iso` + `.sha512`, ~600 MiB then, ~945 MiB with the generic kernel). What it is:
   - live system = `iso.runtime` + its dependency closure, minus build-only
     spells (`CAULDRON_ISO_RUNTIME_EXCLUDE`) plus gcc's runtime libraries;
     squashfs (xz, 1 MiB blocks); `system.tar.xz` inside, caches of
     `iso.install` (grub2 for BIOS+UEFI, efibootmgr, dosfstools, mdadm, lvm,
     cryptsetup-luks, xfsprogs, btrfs-progs, openssh) in `/var/cache/sorcery`; no kernel sources by default (see below)
-  - kernel 6.18.59 (`x86_64_defconfig` + `etc/x86_64/linux-iso.fragment`:
+  - kernel 6.18.59 (`x86_64_defconfig`, since Nov 2026 Void's config, + `etc/x86_64/linux-iso.fragment`:
     the drivers needed to reach the boot medium are built in, the rest are
     modules), initramfs with a dynamically linked busybox 1.37
   - GRUB 2.12 for both `i386-pc` and `x86_64-efi`, `xorriso` image with El
